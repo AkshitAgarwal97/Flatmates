@@ -285,9 +285,9 @@ const Register = () => {
                       label="Looking for roommates to find a flat together"
                     />
                     <FormControlLabel
-                      value="room_provider"
+                      value="broker_dealer"
                       control={<Radio />}
-                      label="Offering a room in my flat"
+                      label="Broker/Dealer - Offering rooms/properties on behalf of others"
                     />
                     <FormControlLabel
                       value="property_owner"

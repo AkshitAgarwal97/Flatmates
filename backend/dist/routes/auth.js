@@ -19,7 +19,7 @@ router.post('/register', [
     (0, express_validator_1.check)('userType', 'User type is required').isIn([
         'room_seeker',
         'roommate_seeker',
-        'room_provider',
+        'broker_dealer',
         'property_owner'
     ])
 ], async (req, res) => {
@@ -187,7 +187,7 @@ router.put('/complete-profile', [
     (0, express_validator_1.check)('userType', 'User type is required').isIn([
         'room_seeker',
         'roommate_seeker',
-        'room_provider',
+        'broker_dealer',
         'property_owner'
     ])
 ], async (req, res) => {

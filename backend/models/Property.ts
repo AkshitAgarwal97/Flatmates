@@ -14,8 +14,7 @@ export interface IPropertyAddress {
 
 export interface IPropertyPrice {
   amount: number;
-  currency: string;
-  period: 'month' | 'week' | 'day';
+  brokerage?: number; // brokerage amount charged by broker/dealer (optional)
 }
 
 export interface IPropertyAvailability {
@@ -127,14 +126,10 @@ const PropertySchema: Schema = new Schema({
       type: Number,
       required: true
     },
-    currency: {
-      type: String,
-      default: 'INR'
-    },
-    period: {
-      type: String,
-      enum: ['month', 'week', 'day'],
-      default: 'month'
+    // Removed currency & period fields per new requirements
+    brokerage: {
+      type: Number,
+      default: 0
     }
   },
   availability: {

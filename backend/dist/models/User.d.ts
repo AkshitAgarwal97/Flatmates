@@ -28,7 +28,7 @@ export interface IUser extends Document {
     email: string;
     password?: string;
     avatar?: string;
-    userType: 'room_seeker' | 'roommate_seeker' | 'room_provider' | 'property_owner';
+    userType: 'room_seeker' | 'roommate_seeker' | 'broker_dealer' | 'property_owner';
     socialProvider?: 'local' | 'google' | 'facebook' | 'instagram';
     socialId?: string;
     phone?: string;

@@ -21,6 +21,8 @@ const messages_1 = __importDefault(require("./routes/messages"));
 const passport_2 = __importDefault(require("./config/passport"));
 // Import socket service
 const socket_1 = __importDefault(require("./services/socket"));
+// Import Property model for background jobs
+const Property_1 = __importDefault(require("./models/Property"));
 dotenv_1.default.config();
 // Initialize express app
 const app = (0, express_1.default)();
@@ -79,5 +81,22 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Background job: mark properties older than 30 days as inactive
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const markExpiredProperties = async () => {
+    try {
+        const cutoff = new Date(Date.now() - 30 * MS_PER_DAY);
+        const result = await Property_1.default.updateMany({ status: 'active', createdAt: { $lt: cutoff } }, { $set: { status: 'inactive' } });
+        if (result.modifiedCount && result.modifiedCount > 0) {
+            console.log(`Marked ${result.modifiedCount} properties as inactive (older than 30 days)`);
+        }
+    }
+    catch (err) {
+        console.error('Error running markExpiredProperties job:', err);
+    }
+};
+// Run at startup and then once every 24 hours
+markExpiredProperties();
+setInterval(markExpiredProperties, 24 * MS_PER_DAY);
 exports.default = app;
 //# sourceMappingURL=server.js.map

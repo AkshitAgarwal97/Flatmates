@@ -12,8 +12,7 @@ export interface IPropertyAddress {
 }
 export interface IPropertyPrice {
     amount: number;
-    currency: string;
-    period: 'month' | 'week' | 'day';
+    brokerage?: number;
 }
 export interface IPropertyAvailability {
     availableFrom: Date;

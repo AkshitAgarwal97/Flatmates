@@ -80,14 +80,10 @@ const PropertySchema = new mongoose_1.Schema({
             type: Number,
             required: true
         },
-        currency: {
-            type: String,
-            default: 'INR'
-        },
-        period: {
-            type: String,
-            enum: ['month', 'week', 'day'],
-            default: 'month'
+        // Removed currency & period fields per new requirements
+        brokerage: {
+            type: Number,
+            default: 0
         }
     },
     availability: {

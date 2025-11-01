@@ -52,7 +52,7 @@ const UserSchema = new mongoose_1.Schema({
     },
     userType: {
         type: String,
-        enum: ['room_seeker', 'roommate_seeker', 'room_provider', 'property_owner'],
+        enum: ['room_seeker', 'roommate_seeker', 'broker_dealer', 'property_owner'],
         required: true
     },
     socialProvider: {

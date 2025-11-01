@@ -39,8 +39,7 @@ interface Property {
   };
   price: {
     amount: number;
-    currency: string;
-    period: string;
+    brokerage?: number;
   };
 }
 
@@ -169,8 +168,11 @@ const Dashboard = () => {
                       {property.address.city}, {property.address.state}
                     </Typography>
                     <Typography variant="body2">
-                      {property.price.amount} {property.price.currency} /{" "}
-                      {property.price.period}
+                      {property.price.amount}
+                      {property.price.brokerage &&
+                      property.price.brokerage > 0 ? (
+                        <span> (Brokerage: {property.price.brokerage})</span>
+                      ) : null}
                     </Typography>
                   </CardContent>
                   <CardActions>
@@ -405,8 +407,14 @@ const Dashboard = () => {
                           {property.address.city}, {property.address.state}
                         </Typography>
                         <Typography variant="body2">
-                          {property.price.amount} {property.price.currency} /{" "}
-                          {property.price.period}
+                          {property.price.amount}
+                          {property.price.brokerage &&
+                          property.price.brokerage > 0 ? (
+                            <span>
+                              {" "}
+                              (Brokerage: {property.price.brokerage})
+                            </span>
+                          ) : null}
                         </Typography>
                       </CardContent>
                       <CardActions>

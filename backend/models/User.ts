@@ -31,7 +31,7 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   avatar?: string;
-  userType: 'room_seeker' | 'roommate_seeker' | 'room_provider' | 'property_owner';
+  userType: 'room_seeker' | 'roommate_seeker' | 'broker_dealer' | 'property_owner';
   socialProvider?: 'local' | 'google' | 'facebook' | 'instagram';
   socialId?: string;
   phone?: string;
@@ -61,7 +61,7 @@ const UserSchema: Schema = new Schema({
   },
   userType: {
     type: String,
-    enum: ['room_seeker', 'roommate_seeker', 'room_provider', 'property_owner'],
+    enum: ['room_seeker', 'roommate_seeker', 'broker_dealer', 'property_owner'],
     required: true
   },
   socialProvider: {

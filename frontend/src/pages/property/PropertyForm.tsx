@@ -41,8 +41,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 // Type definitions
 interface Price {
   amount: number;
-  currency: string;
-  period: string;
+  brokerage?: number;
 }
 
 interface Address {
@@ -217,8 +216,11 @@ const PropertyForm = () => {
     "price.amount": Yup.number()
       .required("Price is required")
       .positive("Price must be positive"),
-    "price.currency": Yup.string().required("Currency is required"),
-    "price.period": Yup.string().required("Period is required"),
+    "price.brokerage": Yup.number().when("userType", (userType: any, schema: any) =>
+      userType === "broker_dealer"
+        ? schema.required("Brokerage is required").min(0, "Brokerage cannot be negative")
+        : schema.optional()
+    ),
     "address.street": Yup.string().required("Street address is required"),
     "address.city": Yup.string().required("City is required"),
     "address.state": Yup.string().required("State/Province is required"),
@@ -247,8 +249,7 @@ const PropertyForm = () => {
         userType: p.userType || "",
         price: {
           amount: (p.price && (p.price.amount ?? p.price.min ?? 0)) || 0,
-          currency: (p.price && (p.price.currency || "INR")) || "INR",
-          period: p.price?.period || "month",
+          brokerage: p.price?.brokerage ?? 0,
         },
         address: {
           street: p.address?.street || "",
@@ -286,8 +287,7 @@ const PropertyForm = () => {
       userType: user?.userType || "",
       price: {
         amount: 0,
-        currency: "INR",
-        period: "month",
+        brokerage: 0,
       },
       address: {
         street: "",
@@ -484,7 +484,7 @@ const PropertyForm = () => {
                       <MenuItem value="roommate_seeker">
                         Roommate Seeker
                       </MenuItem>
-                      <MenuItem value="room_provider">Room Provider</MenuItem>
+                      <MenuItem value="broker_dealer">Broker/Dealer</MenuItem>
                       <MenuItem value="property_owner">Property Owner</MenuItem>
                     </Field>
                     {touched.userType && errors.userType && (
@@ -524,52 +524,25 @@ const PropertyForm = () => {
                 </Grid>
 
                 <Grid item xs={12} sm={4}>
-                  <FormControl
+                  <Field
+                    as={TextField}
                     fullWidth
+                    label="Brokerage (if any)"
+                    name="price.brokerage"
+                    type="number"
+                    value={values.price.brokerage}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     error={
-                      touched.price?.currency && Boolean(errors.price?.currency)
+                      touched.price?.brokerage && Boolean(errors.price?.brokerage)
                     }
-                  >
-                    <InputLabel>Currency</InputLabel>
-                    <Field
-                      as={Select}
-                      name="price.currency"
-                      label="Currency"
-                      value={values.price.currency}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    ></Field>
-                    {touched.price?.currency && errors.price?.currency && (
-                      <FormHelperText>{errors.price?.currency}</FormHelperText>
-                    )}
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} sm={4}>
-                  <FormControl
-                    fullWidth
-                    error={
-                      touched.price?.period && Boolean(errors.price?.period)
-                    }
-                  >
-                    <InputLabel>Period</InputLabel>
-                    <Field
-                      as={Select}
-                      name="price.period"
-                      label="Period"
-                      value={values.price.period}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    >
-                      <MenuItem value="day">Per Day</MenuItem>
-                      <MenuItem value="week">Per Week</MenuItem>
-                      <MenuItem value="month">Per Month</MenuItem>
-                      <MenuItem value="year">Per Year</MenuItem>
-                    </Field>
-                    {touched.price?.period && errors.price?.period && (
-                      <FormHelperText>{errors.price?.period}</FormHelperText>
-                    )}
-                  </FormControl>
+                    helperText={touched.price?.brokerage && errors.price?.brokerage}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">₹</InputAdornment>
+                      ),
+                    }}
+                  />
                 </Grid>
 
                 {/* Address Information */}

@@ -28,8 +28,7 @@ export interface Preferences {
 export interface Price {
   // For listings
   amount?: number;
-  currency?: string;
-  period?: string;
+  brokerage?: number;
   // For filters/preferences
   min?: number;
   max?: number;

@@ -45,7 +45,7 @@ interface Property {
   };
   price: {
     amount: number;
-    period: string;
+    brokerage?: number;
   };
   images?: string[];
 }
@@ -444,7 +444,10 @@ const Conversation = () => {
             {property.address.city}, {property.address.state}
           </Typography>
           <Typography variant="body1" sx={{ mt: 1 }}>
-            ${property.price.amount} / {property.price.period}
+            ${property.price.amount}
+            {property.price.brokerage && property.price.brokerage > 0 ? (
+              <span> (Brokerage: {property.price.brokerage})</span>
+            ) : null}
           </Typography>
           <Button
             size="small"

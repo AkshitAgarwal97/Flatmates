@@ -51,7 +51,7 @@ router.post(
     check('userType', 'User type is required').isIn([
       'room_seeker',
       'roommate_seeker',
-      'room_provider',
+      'broker_dealer',
       'property_owner'
     ])
   ],
@@ -292,7 +292,7 @@ router.put(
     check('userType', 'User type is required').isIn([
       'room_seeker',
       'roommate_seeker',
-      'room_provider',
+      'broker_dealer',
       'property_owner'
     ])
   ],

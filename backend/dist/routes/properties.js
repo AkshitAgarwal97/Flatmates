@@ -68,7 +68,7 @@ router.post('/', [
         switch (listingType) {
             case 'room_in_flat':
             case 'occupied_flat':
-                isValidUserType = user?.userType === 'room_provider';
+                isValidUserType = user?.userType === 'broker_dealer';
                 break;
             case 'roommates_for_flat':
                 isValidUserType = user?.userType === 'roommate_seeker';
@@ -90,6 +90,13 @@ router.post('/', [
             }))
             : [];
         // Create new property
+        // If the owner is a broker/dealer ensure brokerage is provided and numeric
+        if (user?.userType === 'broker_dealer') {
+            const brokerageVal = req.body?.price?.brokerage;
+            if (brokerageVal === undefined || brokerageVal === null || isNaN(Number(brokerageVal))) {
+                return res.status(400).json({ errors: [{ msg: 'Brokerage is required for Broker/Dealer listings' }] });
+            }
+        }
         const newProperty = new Property({
             owner: req.user?.id,
             title: req.body.title,
