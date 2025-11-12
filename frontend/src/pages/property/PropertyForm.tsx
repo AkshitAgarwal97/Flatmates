@@ -216,10 +216,14 @@ const PropertyForm = () => {
     "price.amount": Yup.number()
       .required("Price is required")
       .positive("Price must be positive"),
-    "price.brokerage": Yup.number().when("userType", (userType: any, schema: any) =>
-      userType === "broker_dealer"
-        ? schema.required("Brokerage is required").min(0, "Brokerage cannot be negative")
-        : schema.optional()
+    "price.brokerage": Yup.number().when(
+      "userType",
+      (userType: any, schema: any) =>
+        userType === "broker_dealer"
+          ? schema
+              .required("Brokerage is required")
+              .min(0, "Brokerage cannot be negative")
+          : schema.optional()
     ),
     "address.street": Yup.string().required("Street address is required"),
     "address.city": Yup.string().required("City is required"),
@@ -230,12 +234,12 @@ const PropertyForm = () => {
     bathrooms: Yup.number().min(0, "Cannot be negative").nullable(),
     size: Yup.number().min(0, "Cannot be negative").nullable(),
     availableFrom: Yup.date().nullable(),
-    amenities: Yup.array().of(Yup.string()),
-    rules: Yup.array().of(Yup.string()),
-    "preferences.gender": Yup.string().nullable(),
-    "preferences.occupation": Yup.string().nullable(),
-    "preferences.lifestyle": Yup.string().nullable(),
-    "preferences.ageRange": Yup.string().nullable(),
+    // amenities: Yup.array().of(Yup.string()),
+    // rules: Yup.array().of(Yup.string()),
+    // "preferences.gender": Yup.string().nullable(),
+    // "preferences.occupation": Yup.string().nullable(),
+    // "preferences.lifestyle": Yup.string().nullable(),
+    // "preferences.ageRange": Yup.string().nullable(),
   });
 
   // Get initial values for the form
@@ -534,9 +538,12 @@ const PropertyForm = () => {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     error={
-                      touched.price?.brokerage && Boolean(errors.price?.brokerage)
+                      touched.price?.brokerage &&
+                      Boolean(errors.price?.brokerage)
                     }
-                    helperText={touched.price?.brokerage && errors.price?.brokerage}
+                    helperText={
+                      touched.price?.brokerage && errors.price?.brokerage
+                    }
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">₹</InputAdornment>

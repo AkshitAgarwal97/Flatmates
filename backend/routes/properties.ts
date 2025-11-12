@@ -181,6 +181,7 @@ router.post(
         address: req.body.address,
         price: req.body.price,
         availability: req.body.availability,
+        amenities: req.body.anenities,
         features: req.body.features || {},
         images,
         currentOccupants: req.body.currentOccupants || { total: 0, details: [] },

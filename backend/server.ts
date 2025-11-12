@@ -49,6 +49,7 @@ try {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use('/',express.static(__dirname+'/public'))
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(uploadsDir));

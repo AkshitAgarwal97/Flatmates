@@ -153,10 +153,10 @@ router.get('/', async (req, res) => {
             filter['features.bathrooms'] = Number(bathrooms);
         if (furnishing)
             filter['features.furnishing'] = furnishing;
-        if (amenities) {
-            const amenitiesArray = amenities.split(',');
-            filter['features.amenities'] = { $all: amenitiesArray };
-        }
+        // if (amenities) {
+        //   const amenitiesArray = (amenities as string).split(',');
+        //   filter['features.amenities'] = { $all: amenitiesArray };
+        // }
         if (gender)
             filter['preferences.gender'] = gender;
         // Pagination
