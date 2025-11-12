@@ -5,5 +5,8 @@
     "build": "tsc",
     "build:dev": "tsc --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "typescript": "^5.9.3"
   }
 }
