@@ -106,6 +106,7 @@ router.post('/', [
             address: req.body.address,
             price: req.body.price,
             availability: req.body.availability,
+            amenities: req.body.anenities,
             features: req.body.features || {},
             images,
             currentOccupants: req.body.currentOccupants || { total: 0, details: [] },
@@ -153,10 +154,10 @@ router.get('/', async (req, res) => {
             filter['features.bathrooms'] = Number(bathrooms);
         if (furnishing)
             filter['features.furnishing'] = furnishing;
-        // if (amenities) {
-        //   const amenitiesArray = (amenities as string).split(',');
-        //   filter['features.amenities'] = { $all: amenitiesArray };
-        // }
+        if (amenities) {
+            const amenitiesArray = amenities.split(',');
+            filter['features.amenities'] = { $all: amenitiesArray };
+        }
         if (gender)
             filter['preferences.gender'] = gender;
         // Pagination

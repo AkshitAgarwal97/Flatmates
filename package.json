@@ -1,6 +1,9 @@
 {
-  "dependencies": {
-    "git-filter-repo": "^0.0.30",
-    "redux-mock-store": "^1.5.5"
+  "scripts": {
+    "start": "node backend/dist/server.js",
+    "dev": "nodemon --exec ts-node server.ts",
+    "build": "tsc",
+    "build:dev": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
