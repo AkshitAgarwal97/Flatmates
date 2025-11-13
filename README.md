@@ -1,6 +1,6 @@
 # Flatmates Website
 
-A platform that connects people looking for flatmates or properties to rent. The website allows users to sign up or log in using their Google, Facebook, or Instagram accounts and caters to four distinct user types with specific functionalities.
+A platform that connects people looking for flatmates or properties to rent. The website caters to four distinct user types with specific functionalities.
 
 ## User Types
 
@@ -11,7 +11,7 @@ A platform that connects people looking for flatmates or properties to rent. The
 
 ## Features
 
-- Social login (Google, Facebook, Instagram)
+- Authentication via email/password and JWT (social login removed)
 - User profiles based on user type
 - Property listings and requirements posting
 - Real-time messaging system between users
@@ -24,12 +24,14 @@ A platform that connects people looking for flatmates or properties to rent. The
 ## Tech Stack
 
 ### Frontend
+
 - React.js
 - Redux for state management
 - Material-UI for components
 - Axios for API requests
 
 ### Backend
+
 - Node.js with Express
 - MongoDB for database
 - Passport.js for authentication

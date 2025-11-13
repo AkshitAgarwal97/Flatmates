@@ -181,7 +181,9 @@ router.post(
         address: req.body.address,
         price: req.body.price,
         availability: req.body.availability,
-        amenities: req.body.anenities,
+        // Make amenities and rules optional on backend; default to empty arrays
+        amenities: req.body.amenities || [],
+        rules: req.body.rules || [],
         features: req.body.features || {},
         images,
         currentOccupants: req.body.currentOccupants || { total: 0, details: [] },
