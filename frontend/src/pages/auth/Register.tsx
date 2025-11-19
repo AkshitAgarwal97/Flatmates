@@ -95,9 +95,9 @@ const Register = () => {
   });
 
   // Handle social login
-  const handleSocialLogin = (provider: string) => {
-    window.location.href = `/api/auth/${provider}`;
-  };
+  // const handleSocialLogin = (provider: string) => {
+  //   window.location.href = `/api/auth/${provider}`;
+  // };
 
   return (
     <Grid container component="main" sx={{ height: "100vh" }}>
@@ -135,7 +135,7 @@ const Register = () => {
             Sign up
           </Typography>
 
-          {/* Social Login Buttons */}
+          {/* Social Login Buttons
           <Box sx={{ mt: 3, width: "100%" }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
@@ -178,7 +178,7 @@ const Register = () => {
                 OR
               </Typography>
             </Divider>
-          </Box>
+          </Box> */}
 
           {/* Registration Form */}
           <Box
