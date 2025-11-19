@@ -40,51 +40,51 @@ import {
 import { showAlert } from "../../redux/slices/alertSlice";
 import NewConversation from "../messages/NewConversation";
 
-interface Address {
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-}
+// interface Address {
+//   street: string;
+//   city: string;
+//   state: string;
+//   zipCode: string;
+//   country: string;
+// }
 
-interface Price {
-  amount: number;
-  currency: string;
-}
+// interface Price {
+//   amount: number;
+//   currency: string;
+// }
 
-interface Owner {
-  _id: string;
-  name: string;
-  avatar?: string;
-  userType?: string;
-  createdAt: string;
-}
+// // interface Owner {
+// //   _id: string;
+// //   name: string;
+// //   avatar?: string;
+// //   userType?: string;
+// //   createdAt: string;
+// // }
 
-interface Preferences {
-  gender?: string;
-  occupation?: string;
-  lifestyle?: string;
-  ageRange?: string;
-}
+// interface Preferences {
+//   gender?: string;
+//   occupation?: string;
+//   lifestyle?: string;
+//   ageRange?: string;
+// }
 
-interface PropertyDetail {
-  _id: string;
-  title: string;
-  description: string;
-  propertyType: string;
-  userType: string;
-  availabilityDate: string;
-  images: string[];
-  amenities: string[];
-  preferences?: Preferences;
-  rules: string[];
-  owner: Owner;
-  views: number;
-  isSaved?: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+// interface PropertyDetail {
+//   _id: string;
+//   title: string;
+//   description: string;
+//   propertyType: string;
+//   userType: string;
+//   availabilityDate: string;
+//   images: string[];
+//   amenities: string[];
+//   preferences?: Preferences;
+//   rules: string[];
+//   owner: Owner;
+//   views: number;
+//   isSaved?: boolean;
+//   createdAt: string;
+//   updatedAt: string;
+// }
 interface AuthState {
   user: {
     _id: string;
@@ -95,7 +95,7 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
-const PropertyDetail: React.FC = () => {
+const PropertyDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -635,4 +635,4 @@ const PropertyDetail: React.FC = () => {
   );
 };
 
-export default PropertyDetail;
+export default PropertyDetails;

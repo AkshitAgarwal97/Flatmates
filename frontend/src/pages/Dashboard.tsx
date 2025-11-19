@@ -43,16 +43,16 @@ interface Property {
   };
 }
 
-interface User {
-  _id: string;
-  name: string;
-  avatar?: string;
-}
+// interface User {
+//   _id: string;
+//   name: string;
+//   avatar?: string;
+// }
 
-interface Message {
-  content: string;
-  createdAt: string;
-}
+// interface Message {
+//   content: string;
+//   createdAt: string;
+// }
 
 const Dashboard = () => {
   const dispatch = useAppDispatch();
