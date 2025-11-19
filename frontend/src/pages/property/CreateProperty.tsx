@@ -9,7 +9,6 @@ import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 
 const CreateProperty = () => {
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   return (
