@@ -119,66 +119,6 @@ router.get('/user', passport_1.default.authenticate('jwt', { session: false }), 
         res.status(500).send('Server error');
     }
 });
-// @route   GET api/auth/google
-// @desc    Google OAuth login
-// @access  Public
-router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
-// @route   GET api/auth/google/callback
-// @desc    Google OAuth callback
-// @access  Public
-router.get('/google/callback', passport_1.default.authenticate('google', { failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:3000'}/login` }), (req, res) => {
-    // Successful authentication
-    const payload = {
-        id: req.user?.id,
-        userType: req.user?.userType
-    };
-    jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' }, (err, token) => {
-        if (err)
-            throw err;
-        // Redirect to frontend with token
-        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/auth/success?token=${token}`);
-    });
-});
-// @route   GET api/auth/facebook
-// @desc    Facebook OAuth login
-// @access  Public
-router.get('/facebook', passport_1.default.authenticate('facebook', { scope: ['email'] }));
-// @route   GET api/auth/facebook/callback
-// @desc    Facebook OAuth callback
-// @access  Public
-router.get('/facebook/callback', passport_1.default.authenticate('facebook', { failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:3000'}/login` }), (req, res) => {
-    // Successful authentication
-    const payload = {
-        id: req.user?.id,
-        userType: req.user?.userType
-    };
-    jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' }, (err, token) => {
-        if (err)
-            throw err;
-        // Redirect to frontend with token
-        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/auth/success?token=${token}`);
-    });
-});
-// @route   GET api/auth/instagram
-// @desc    Instagram OAuth login
-// @access  Public
-router.get('/instagram', passport_1.default.authenticate('instagram'));
-// @route   GET api/auth/instagram/callback
-// @desc    Instagram OAuth callback
-// @access  Public
-router.get('/instagram/callback', passport_1.default.authenticate('instagram', { failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:3000'}/login` }), (req, res) => {
-    // Successful authentication
-    const payload = {
-        id: req.user?.id,
-        userType: req.user?.userType
-    };
-    jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' }, (err, token) => {
-        if (err)
-            throw err;
-        // Redirect to frontend with token
-        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/auth/success?token=${token}`);
-    });
-});
 // @route   PUT api/auth/complete-profile
 // @desc    Complete user profile after social login
 // @access  Private

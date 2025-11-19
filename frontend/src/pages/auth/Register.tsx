@@ -26,9 +26,6 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 // MUI icons
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import GoogleIcon from "@mui/icons-material/Google";
-import FacebookIcon from "@mui/icons-material/Facebook";
-import InstagramIcon from "@mui/icons-material/Instagram";
 
 // Types
 interface RegisterFormValues {
