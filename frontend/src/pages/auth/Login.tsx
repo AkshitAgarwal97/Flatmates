@@ -5,7 +5,7 @@ import { login } from "../../redux/slices/authSlice";
 import { showAlert } from "../../redux/slices/alertSlice";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { useAppDispatch } from "../../redux/store";
+import { useAppDispatch, RootState } from "../../redux/store";
 
 // MUI components
 import Avatar from "@mui/material/Avatar";
@@ -33,12 +33,6 @@ interface LoginFormValues {
   password: string;
 }
 
-interface AuthState {
-  isAuthenticated: boolean;
-  loading: boolean;
-  error: string | null;
-}
-
 // Validation schema
 const validationSchema = Yup.object({
   email: Yup.string()
@@ -53,7 +47,7 @@ const Login = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isAuthenticated, loading, error } = useSelector(
-    (state: RootState) => state.auth as any
+    (state: RootState) => state.auth
   );
   const [rememberMe, setRememberMe] = useState(false);
 

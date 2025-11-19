@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { Link as RouterLink } from "react-router-dom";
 import { getProperties } from "../redux/slices/propertySlice";
 import { getConversations } from "../redux/slices/messageSlice";
-import { useAppDispatch } from "../redux/store";
+import { useAppDispatch, RootState } from "../redux/store";
 
 // MUI components
 import Grid from "@mui/material/Grid";
@@ -61,30 +61,14 @@ interface Conversation {
   unreadCount: number;
 }
 
-interface AuthState {
-  user: User | null;
-}
-
-interface PropertyState {
-  userListings: Property[];
-  savedProperties: Property[];
-  loading: boolean;
-}
-
-interface MessageState {
-  conversations: Conversation[];
-  unreadCount: number;
-  loading: boolean;
-}
-
 const Dashboard = () => {
   const dispatch = useAppDispatch();
-  const { user } = useSelector((state: RootState) => state.auth as AuthState);
+  const { user } = useSelector((state: RootState) => state.auth as any);
   const {
     userListings,
     savedProperties,
     loading: propertiesLoading,
-  } = useSelector((state: RootState) => state.property as PropertyState);
+  } = useSelector((state: RootState) => state.property as any);
   const {
     conversations,
     unreadCount,
@@ -154,7 +138,7 @@ const Dashboard = () => {
               ))
             ) : userListings && userListings.length > 0 ? (
               // User has listings
-              userListings.slice(0, 3).map((property) => (
+              userListings.slice(0, 3).map((property: Property) => (
                 <Card key={property._id} sx={{ mb: 2 }}>
                   <CardContent>
                     <Typography variant="h6" component="div" noWrap>
@@ -392,7 +376,7 @@ const Dashboard = () => {
             ) : savedProperties && savedProperties.length > 0 ? (
               // User has saved properties
               <Grid container spacing={3}>
-                {savedProperties.slice(0, 3).map((property) => (
+                {savedProperties.slice(0, 3).map((property: Property) => (
                   <Grid item xs={12} sm={6} md={4} key={property._id}>
                     <Card>
                       <CardContent>
