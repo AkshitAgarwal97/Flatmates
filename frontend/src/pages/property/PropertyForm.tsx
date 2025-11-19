@@ -58,8 +58,6 @@ interface Preferences {
   lifestyle?: string;
   ageRange?: string;
 }
-  images?: string[];
-}
 
 interface FormValues {
   title: string;

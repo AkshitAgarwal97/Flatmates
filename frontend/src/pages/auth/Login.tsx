@@ -18,14 +18,10 @@ import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import Divider from "@mui/material/Divider";
 import CircularProgress from "@mui/material/CircularProgress";
 
 // MUI icons
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import GoogleIcon from "@mui/icons-material/Google";
-import FacebookIcon from "@mui/icons-material/Facebook";
-import InstagramIcon from "@mui/icons-material/Instagram";
 
 // Types
 interface LoginFormValues {
@@ -73,15 +69,9 @@ const Login = () => {
     },
     validationSchema: validationSchema,
     onSubmit: (values: LoginFormValues) => {
-      // login expects only email/password
       dispatch(login(values) as any);
     },
   });
-
-  // Handle social login
-  const handleSocialLogin = (provider: string) => {
-    window.location.href = `/api/auth/${provider}`;
-  };
 
   return (
     <Grid container component="main" sx={{ height: "100vh" }}>
@@ -119,52 +109,6 @@ const Login = () => {
             Sign in
           </Typography>
 
-          {/* Social Login Buttons */}
-          <Box sx={{ mt: 3, width: "100%" }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<GoogleIcon />}
-                  onClick={() => handleSocialLogin("google")}
-                  sx={{ py: 1 }}
-                >
-                  Sign in with Google
-                </Button>
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<FacebookIcon />}
-                  onClick={() => handleSocialLogin("facebook")}
-                  sx={{ py: 1 }}
-                >
-                  Sign in with Facebook
-                </Button>
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<InstagramIcon />}
-                  onClick={() => handleSocialLogin("instagram")}
-                  sx={{ py: 1 }}
-                >
-                  Sign in with Instagram
-                </Button>
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                OR
-              </Typography>
-            </Divider>
-          </Box>
-
-          {/* Email/Password Login Form */}
           <Box
             component="form"
             noValidate
