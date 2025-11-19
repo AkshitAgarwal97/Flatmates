@@ -2,7 +2,7 @@
   "scripts": {
     "start": "node backend/dist/server.js",
     "dev": "nodemon --exec ts-node server.ts",
-    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "build": "npm ci --prefix backend && npm ci --prefix frontend && npm run build --prefix backend && npm run build --prefix frontend",
     "build:dev": "tsc --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   }
