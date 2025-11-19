@@ -66,14 +66,14 @@ interface Message {
   read?: boolean;
 }
 
-interface Conversation {
+interface ConversationData {
   _id: string;
   participants: User[];
   property?: Property;
 }
 
 interface ConversationState {
-  currentConversation: Conversation | null;
+  currentConversation: ConversationData | null;
   messages: Message[];
   loading: boolean;
 }

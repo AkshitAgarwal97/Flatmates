@@ -1,4 +1,4 @@
-import React, { useEffect, useState, ChangeEvent } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -90,14 +90,6 @@ interface Property {
   createdAt: string;
   updatedAt: string;
 }
-
-interface PropertyState {
-  property: Property | null;
-  loading: boolean;
-  error: string | null;
-  savedProperties: Property[];
-}
-
 interface AuthState {
   user: {
     _id: string;

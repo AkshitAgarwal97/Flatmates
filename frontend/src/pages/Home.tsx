@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 
 // MUI components
 import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";

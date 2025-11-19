@@ -59,8 +59,7 @@ interface Preferences {
   ageRange?: string;
 }
 
-interface Property {
-  _id?: string;
+interface PropertyFormData {
   title: string;
   description: string;
   propertyType: string;
@@ -155,7 +154,6 @@ const PropertyForm = () => {
 
     // Limit to 5 images total
     const totalImages = [...images, ...validImages];
-    const totalPreviews = [...imagePreviewUrls];
 
     if (totalImages.length > 5) {
       dispatch(showAlert("warning", "Maximum 5 images allowed"));

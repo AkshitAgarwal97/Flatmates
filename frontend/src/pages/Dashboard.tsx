@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { Link as RouterLink } from "react-router-dom";
 import { getProperties } from "../redux/slices/propertySlice";
 import { getConversations } from "../redux/slices/messageSlice";
-import { RootState, useAppDispatch } from "../redux/store";
+import { useAppDispatch } from "../redux/store";
 
 // MUI components
 import Grid from "@mui/material/Grid";

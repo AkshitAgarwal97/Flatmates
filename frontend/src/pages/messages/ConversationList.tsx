@@ -25,7 +25,6 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import InputBase from "@mui/material/InputBase";
-import CircularProgress from "@mui/material/CircularProgress";
 import Skeleton from "@mui/material/Skeleton";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
@@ -66,20 +65,8 @@ interface Conversation {
   property?: Property;
 }
 
-interface ConversationState {
-  conversations: Conversation[];
-  loading: boolean;
-}
-
 interface AuthState {
   user: User | null;
-}
-
-interface NewConversationProps {
-  open: boolean;
-  onClose: () => void;
-  propertyId?: string | null;
-  ownerId?: string | null;
 }
 
 const ConversationList = () => {

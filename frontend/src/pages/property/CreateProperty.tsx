@@ -1,7 +1,5 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppDispatch } from "../../redux/store";
-import { createProperty } from "../../redux/slices/propertySlice";
 import PropertyForm from "./PropertyForm";
 
 // MUI components
@@ -13,17 +11,6 @@ import Box from "@mui/material/Box";
 const CreateProperty = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-
-  const handleSubmit = async (propertyData: any) => {
-    try {
-      const result = await dispatch(
-        createProperty(propertyData) as any
-      ).unwrap();
-      navigate(`/properties/${result._id}`);
-    } catch (error) {
-      console.error("Failed to create property:", error);
-    }
-  };
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>

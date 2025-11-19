@@ -26,14 +26,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HomeIcon from "@mui/icons-material/Home";
 
-interface PropertyFilters {
-  search?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  propertyType?: string;
-}
-
-const PropertyListing: React.FC = () => {
+const PropertyListing = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { properties, loading, error } = useSelector(
     (state: RootState) => state.property

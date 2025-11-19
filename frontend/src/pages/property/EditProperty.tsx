@@ -1,10 +1,7 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import {
-  getPropertyById,
-  updateProperty,
-} from "../../redux/slices/propertySlice";
+import { getPropertyById } from "../../redux/slices/propertySlice";
 import PropertyForm from "./PropertyForm";
 
 // MUI components
@@ -19,7 +16,6 @@ import { useAppDispatch } from "../../redux/store";
 const EditProperty = () => {
   const { id } = useParams();
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const { property, loading, error } = useSelector(
     (state: any) => state.property
   );
@@ -30,16 +26,6 @@ const EditProperty = () => {
       dispatch(getPropertyById(id) as any);
     }
   }, [dispatch, id]);
-
-  const handleSubmit = async (propertyData: any) => {
-    try {
-      if (!id) return;
-      await dispatch(updateProperty({ id, propertyData }) as any).unwrap();
-      navigate(`/properties/${id}`);
-    } catch (error) {
-      console.error("Failed to update property:", error);
-    }
-  };
 
   if (loading) {
     return (

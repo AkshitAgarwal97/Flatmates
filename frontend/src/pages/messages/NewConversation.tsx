@@ -37,11 +37,6 @@ interface User {
   userType?: string;
 }
 
-interface Property {
-  _id: string;
-  title: string;
-}
-
 interface AuthState {
   user: User | null;
 }

@@ -275,21 +275,6 @@ const EditProfile: React.FC = () => {
     setSelectedInterests(event.target.value as string[]);
   };
 
-  // Add proper typing for the initial values
-  const getInitialValues = (user: User | null): FormValues => ({
-    firstName: user?.firstName || "",
-    lastName: user?.lastName || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    location: user?.location || "",
-    bio: user?.bio || "",
-    age: user?.age?.toString() || "",
-    occupation: user?.occupation || "",
-    university: user?.university || "",
-    budgetMin: user?.budget?.min?.toString() || "",
-    budgetMax: user?.budget?.max?.toString() || "",
-  });
-
   const profileData: Partial<User> = user || {};
 
   const initialValues: FormValues = {

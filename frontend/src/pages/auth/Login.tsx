@@ -5,7 +5,7 @@ import { login } from "../../redux/slices/authSlice";
 import { showAlert } from "../../redux/slices/alertSlice";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { RootState, useAppDispatch } from "../../redux/store";
+import { useAppDispatch } from "../../redux/store";
 
 // MUI components
 import Avatar from "@mui/material/Avatar";

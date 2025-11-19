@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { RootState } from '../store';
-import { Property, PropertyFilters, PropertyFormValues, ApiError, PropertyState } from '../../types';
+import { Property, PropertyFilters, PropertyFormValues, PropertyState } from '../../types';
 
 // Get all properties with filters
 export const getProperties = createAsyncThunk(
