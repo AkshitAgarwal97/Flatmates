@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon --exec ts-node server.ts",
-    "build": "tsc",
-    "build:dev": "tsc --watch",
+    "build": "npx tsc",
+    "build:dev": "npx tsc --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
