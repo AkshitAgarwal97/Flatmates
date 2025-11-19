@@ -67,17 +67,6 @@ interface Preferences {
   lifestyle?: string;
   ageRange?: string;
 }
-
-interface Property {
-  _id: string;
-  title: string;
-  description: string;
-  price: Price;
-  address: Address;
-  bedrooms: number;
-  bathrooms: number;
-  size: number;
-  propertyType: string;
   userType: string;
   availabilityDate: string;
   images: string[];

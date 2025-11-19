@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getPropertyById } from "../../redux/slices/propertySlice";
 import PropertyForm from "./PropertyForm";

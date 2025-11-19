@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import PropertyForm from "./PropertyForm";
 
 // MUI components
@@ -9,8 +8,6 @@ import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 
 const CreateProperty = () => {
-  const navigate = useNavigate();
-
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>

@@ -54,13 +54,6 @@ interface Message {
   createdAt: string;
 }
 
-interface Conversation {
-  _id: string;
-  participants: User[];
-  lastMessage?: Message;
-  unreadCount: number;
-}
-
 const Dashboard = () => {
   const dispatch = useAppDispatch();
   const { user } = useSelector((state: RootState) => state.auth as any);

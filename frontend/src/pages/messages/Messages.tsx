@@ -9,9 +9,8 @@ import ConversationList from "./ConversationList";
 import Conversation from "./Conversation";
 
 // MUI components
-import { Box, TextField, Button } from "@mui/material";
+import { Box } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Hidden from "@mui/material/Hidden";
 

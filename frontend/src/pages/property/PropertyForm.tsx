@@ -58,21 +58,6 @@ interface Preferences {
   lifestyle?: string;
   ageRange?: string;
 }
-
-interface PropertyFormData {
-  title: string;
-  description: string;
-  propertyType: string;
-  userType: string;
-  price: Price;
-  address: Address;
-  bedrooms?: number;
-  bathrooms?: number;
-  size?: number;
-  availableFrom?: string;
-  amenities: string[];
-  rules: string[];
-  preferences: Preferences;
   images?: string[];
 }
 
