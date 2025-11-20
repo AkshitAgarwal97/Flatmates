@@ -63,7 +63,7 @@ interface FormValues {
   title: string;
   description: string;
   propertyType: string;
-  userType: string;
+  listingType: string;
   price: Price;
   address: Address;
   bedrooms: string;
@@ -193,7 +193,7 @@ const PropertyForm = () => {
       .required("Description is required")
       .min(20, "Description must be at least 20 characters"),
     propertyType: Yup.string().required("Property type is required"),
-    userType: Yup.string().required("User type is required"),
+    listingType: Yup.string().required("Listing type is required"),
     price: Yup.object({
       amount: Yup.number()
         .required("Price is required")
@@ -203,16 +203,11 @@ const PropertyForm = () => {
       "brokerage-required",
       "Brokerage is required for brokers",
       function (value) {
-        const userType = (this as any).from?.[1]?.value?.userType;
-        if (
-          userType === "broker_dealer" &&
-          ((value as any)?.brokerage === undefined || (value as any)?.brokerage === null)
-        ) {
-          return this.createError({
-            path: "price.brokerage",
-            message: "Brokerage is required",
-          });
-        }
+        // Brokerage validation logic can be adjusted or removed if not tied to userType anymore
+        // For now, we'll remove the strict userType check or adapt it if needed.
+        // Since any user can post any listing, we might want to enforce brokerage only if explicitly required by some other logic,
+        // or perhaps just leave it optional/validated by amount > 0 if provided.
+        // Let's simplify for now as the user wants to relax restrictions.
         return true;
       }
     ),
@@ -237,7 +232,7 @@ const PropertyForm = () => {
         title: p.title || "",
         description: p.description || "",
         propertyType: p.propertyType || "",
-        userType: p.userType || "",
+        listingType: p.listingType || "",
         price: {
           amount: (p.price && (p.price.amount ?? p.price.min ?? 0)) || 0,
           brokerage: p.price?.brokerage ?? 0,
@@ -275,7 +270,7 @@ const PropertyForm = () => {
       title: "",
       description: "",
       propertyType: "",
-      userType: user?.userType || "",
+      listingType: "",
       price: {
         amount: 0,
         brokerage: 0,
@@ -310,8 +305,21 @@ const PropertyForm = () => {
     setIsSubmitting(true);
 
     try {
+      // Use listingType directly
+      const listingType = values.listingType;
+
       const propertyData: any = {
         ...values,
+        listingType,
+        availability: {
+          availableFrom: values.availableFrom,
+        },
+        features: {
+          bedrooms: Number(values.bedrooms) || 0,
+          bathrooms: Number(values.bathrooms) || 0,
+          area: Number(values.size) || 0,
+          amenities: values.amenities,
+        },
         images,
         removeImages: removedImages,
       };
@@ -455,29 +463,29 @@ const PropertyForm = () => {
                 <Grid item xs={12} sm={6}>
                   <FormControl
                     fullWidth
-                    error={touched.userType && Boolean(errors.userType)}
+                    error={touched.listingType && Boolean(errors.listingType)}
                   >
-                    <InputLabel>User Type</InputLabel>
+                    <InputLabel>Listing Type</InputLabel>
                     <Field
                       as={Select}
-                      name="userType"
-                      label="User Type"
-                      value={values.userType}
+                      name="listingType"
+                      label="Listing Type"
+                      value={values.listingType}
                       onChange={handleChange}
                       onBlur={handleBlur}
                     >
                       <MenuItem value="">
-                        <em>Select User Type</em>
+                        <em>Select Listing Type</em>
                       </MenuItem>
-                      <MenuItem value="room_seeker">Room Seeker</MenuItem>
-                      <MenuItem value="roommate_seeker">
-                        Roommate Seeker
+                      <MenuItem value="room_in_flat">Room in a shared flat</MenuItem>
+                      <MenuItem value="roommates_for_flat">
+                        Roommates for a flat
                       </MenuItem>
-                      <MenuItem value="broker_dealer">Broker/Dealer</MenuItem>
-                      <MenuItem value="property_owner">Property Owner</MenuItem>
+                      <MenuItem value="entire_property">Entire Property</MenuItem>
+                      <MenuItem value="occupied_flat">Occupied Flat</MenuItem>
                     </Field>
-                    {touched.userType && errors.userType && (
-                      <FormHelperText>{errors.userType}</FormHelperText>
+                    {touched.listingType && errors.listingType && (
+                      <FormHelperText>{errors.listingType}</FormHelperText>
                     )}
                   </FormControl>
                 </Grid>

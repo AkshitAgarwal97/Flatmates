@@ -113,88 +113,26 @@ router.post(
       'roommates_for_flat',
       'occupied_flat',
       'entire_property'
-    ]),
-    check('address.city', 'City is required').not().isEmpty(),
-    check('address.country', 'Country is required').not().isEmpty(),
-    check('price.amount', 'Price amount is required').isNumeric(),
-    check('availability.availableFrom', 'Availability date is required').isISO8601()
-  ],
-  async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+  description: req.body.description,
+      propertyType: req.body.propertyType,
+      listingType: req.body.listingType,
+      address: req.body.address,
+      price: req.body.price,
+      availability: req.body.availability,
+      amenities: req.body.anenities,
+      features: req.body.features || {},
+      images,
+      currentOccupants: req.body.currentOccupants || { total: 0, details: [] },
+      preferences: req.body.preferences || {}
+});
 
-    try {
-      // Import models dynamically to avoid circular dependencies
-      const Property = require('../models/Property').default;
-      const User = require('../models/User').default;
-      
-      // Check if user type matches listing type
-      const user = await User.findById(req.user?.id);
-      const { listingType } = req.body;
+const property = await newProperty.save();
 
-      let isValidUserType = false;
-
-      switch (listingType) {
-        case 'room_in_flat':
-        case 'occupied_flat':
-          isValidUserType = user?.userType === 'broker_dealer';
-          break;
-        case 'roommates_for_flat':
-          isValidUserType = user?.userType === 'roommate_seeker';
-          break;
-        case 'entire_property':
-          isValidUserType = user?.userType === 'property_owner';
-          break;
-      }
-
-      if (!isValidUserType) {
-        return res.status(400).json({
-          errors: [{ msg: 'User type does not match the listing type' }]
-        });
-      }
-
-      // Process uploaded images
-      const images = req.files && Array.isArray(req.files)
-        ? req.files.map((file: Express.Multer.File) => ({
-            url: `/uploads/properties/${file.filename}`,
-            caption: ''
-          }))
-        : [];
-
-      // Create new property
-      // If the owner is a broker/dealer ensure brokerage is provided and numeric
-      if (user?.userType === 'broker_dealer') {
-        const brokerageVal = req.body?.price?.brokerage;
-        if (brokerageVal === undefined || brokerageVal === null || isNaN(Number(brokerageVal))) {
-          return res.status(400).json({ errors: [{ msg: 'Brokerage is required for Broker/Dealer listings' }] });
-        }
-      }
-
-      const newProperty = new Property({
-        owner: req.user?.id,
-        title: req.body.title,
-        description: req.body.description,
-        propertyType: req.body.propertyType,
-        listingType: req.body.listingType,
-        address: req.body.address,
-        price: req.body.price,
-        availability: req.body.availability,
-        amenities: req.body.anenities,
-        features: req.body.features || {},
-        images,
-        currentOccupants: req.body.currentOccupants || { total: 0, details: [] },
-        preferences: req.body.preferences || {}
-      });
-
-      const property = await newProperty.save();
-
-      res.json(property);
+res.json(property);
     } catch (err: any) {
-      console.error(err.message);
-      res.status(500).send('Server error');
-    }
+  console.error(err.message);
+  res.status(500).send('Server error');
+}
   }
 );
 
@@ -222,7 +160,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     // Import models dynamically to avoid circular dependencies
     const Property = require('../models/Property').default;
-    
+
     // Build filter object
     const filter: any = { status: 'active' };
 
@@ -230,26 +168,26 @@ router.get('/', async (req: Request, res: Response) => {
     if (propertyType) filter.propertyType = propertyType;
     if (city) filter['address.city'] = new RegExp(city as string, 'i');
     if (country) filter['address.country'] = new RegExp(country as string, 'i');
-    
+
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.amount = { $gte: Number(minPrice) };
       if (maxPrice) filter.price.amount = { ...filter.price.amount, $lte: Number(maxPrice) };
     }
-    
+
     if (availableFrom) {
       filter['availability.availableFrom'] = { $lte: new Date(availableFrom as string) };
     }
-    
+
     if (bedrooms) filter['features.bedrooms'] = Number(bedrooms);
     if (bathrooms) filter['features.bathrooms'] = Number(bathrooms);
     if (furnishing) filter['features.furnishing'] = furnishing;
-    
+
     if (amenities) {
       const amenitiesArray = (amenities as string).split(',');
       filter['features.amenities'] = { $all: amenitiesArray };
     }
-    
+
     if (gender) filter['preferences.gender'] = gender;
 
     // Pagination
@@ -275,7 +213,7 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error(err.message);
     res.status(500).send('Server error');
-    }
+  }
 });
 
 // @route   GET api/properties/:id
@@ -285,7 +223,7 @@ router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
   try {
     // Import models dynamically to avoid circular dependencies
     const Property = require('../models/Property').default;
-    
+
     const property = await Property.findById(req.params.id).populate('owner', 'name avatar email phone');
 
     if (!property) {
@@ -328,7 +266,7 @@ router.put(
     try {
       // Import models dynamically to avoid circular dependencies
       const Property = require('../models/Property').default;
-      
+
       let property = await Property.findById(req.params.id);
 
       if (!property) {
@@ -396,7 +334,7 @@ router.delete('/:id', passport.authenticate('jwt', { session: false }), async (r
   try {
     // Import models dynamically to avoid circular dependencies
     const Property = require('../models/Property').default;
-    
+
     const property = await Property.findById(req.params.id);
 
     if (!property) {
@@ -404,9 +342,9 @@ router.delete('/:id', passport.authenticate('jwt', { session: false }), async (r
     }
 
     // Check ownership
-      if (property.owner.toString() !== req.user?.id) {
-        return res.status(401).json({ msg: 'Not authorized' });
-      }
+    if (property.owner.toString() !== req.user?.id) {
+      return res.status(401).json({ msg: 'Not authorized' });
+    }
 
     await property.deleteOne();
 
@@ -428,7 +366,7 @@ router.post('/:id/save', passport.authenticate('jwt', { session: false }), async
     // Import models dynamically to avoid circular dependencies
     const Property = require('../models/Property').default;
     const User = require('../models/User').default;
-    
+
     const user = await User.findById(req.user?.id);
     const propertyId = req.params.id;
 
@@ -466,7 +404,7 @@ router.get('/user/saved', passport.authenticate('jwt', { session: false }), asyn
     // Import models dynamically to avoid circular dependencies
     const Property = require('../models/Property').default;
     const User = require('../models/User').default;
-    
+
     const user = await User.findById(req.user?.id);
     const properties = await Property.find({ _id: { $in: user?.savedProperties } }).populate(
       'owner',
@@ -487,7 +425,7 @@ router.get('/user/listings', passport.authenticate('jwt', { session: false }), a
   try {
     // Import models dynamically to avoid circular dependencies
     const Property = require('../models/Property').default;
-    
+
     const properties = await Property.find({ owner: req.user?.id }).sort({ createdAt: -1 });
     res.json(properties);
   } catch (err: any) {

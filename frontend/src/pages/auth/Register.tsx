@@ -33,7 +33,7 @@ interface RegisterFormValues {
   email: string;
   password: string;
   confirmPassword: string;
-  userType: string;
+
 }
 
 interface AuthState {
@@ -54,7 +54,7 @@ const validationSchema = Yup.object({
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password") as any, undefined], "Passwords must match")
     .required("Confirm Password is required"),
-  userType: Yup.string().required("Please select what you are looking for"),
+
 });
 
 const Register = () => {
@@ -93,12 +93,13 @@ const Register = () => {
       email: "",
       password: "",
       confirmPassword: "",
-      userType: "",
+
     },
     validationSchema: validationSchema,
     onSubmit: (values: RegisterFormValues) => {
       const { confirmPassword, ...registerData } = values;
-      dispatch(register(registerData as any));
+      // Default userType to 'room_seeker' as it's required by backend but removed from frontend
+      dispatch(register({ ...registerData, userType: "room_seeker" } as any));
     },
   });
 
@@ -265,49 +266,8 @@ const Register = () => {
                   }
                 />
               </Grid>
-              <Grid item xs={12}>
-                <FormControl
-                  component="fieldset"
-                  error={
-                    formik.touched.userType && Boolean(formik.errors.userType)
-                  }
-                >
-                  <FormLabel component="legend">I am:</FormLabel>
-                  <RadioGroup
-                    aria-label="user-type"
-                    name="userType"
-                    value={formik.values.userType}
-                    onChange={formik.handleChange}
-                  >
-                    <FormControlLabel
-                      value="room_seeker"
-                      control={<Radio />}
-                      label="Looking for a room in a shared flat"
-                    />
-                    <FormControlLabel
-                      value="roommate_seeker"
-                      control={<Radio />}
-                      label="Looking for roommates to find a flat together"
-                    />
-                    <FormControlLabel
-                      value="broker_dealer"
-                      control={<Radio />}
-                      label="Broker/Dealer - Offering rooms/properties on behalf of others"
-                    />
-                    <FormControlLabel
-                      value="property_owner"
-                      control={<Radio />}
-                      label="Offering a whole property for rent"
-                    />
-                  </RadioGroup>
-                  {formik.touched.userType && formik.errors.userType && (
-                    <Typography color="error" variant="caption">
-                      {formik.errors.userType}
-                    </Typography>
-                  )}
-                </FormControl>
               </Grid>
-            </Grid>
+
             <Button
               type="submit"
               fullWidth
