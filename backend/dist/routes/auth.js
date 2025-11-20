@@ -8,6 +8,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const passport_1 = __importDefault(require("passport"));
 const express_validator_1 = require("express-validator");
+const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
 // @route   POST api/auth/register
 // @desc    Register user
@@ -29,14 +30,12 @@ router.post('/register', [
     }
     const { name, email, password, userType } = req.body;
     try {
-        // Import User model dynamically to avoid circular dependencies
-        const User = require('../models/User').default;
         // Check if user exists
-        let user = await User.findOne({ email });
+        let user = await User_1.default.findOne({ email });
         if (user) {
             return res.status(400).json({ errors: [{ msg: 'User already exists' }] });
         }
-        user = new User({
+        user = new User_1.default({
             name,
             email,
             password,
@@ -76,15 +75,13 @@ router.post('/login', [
     }
     const { email, password } = req.body;
     try {
-        // Import User model dynamically to avoid circular dependencies
-        const User = require('../models/User').default;
         // Check if user exists
-        let user = await User.findOne({ email, socialProvider: 'local' });
+        let user = await User_1.default.findOne({ email, socialProvider: 'local' });
         if (!user) {
             return res.status(400).json({ errors: [{ msg: 'Invalid credentials' }] });
         }
         // Check password
-        const isMatch = await bcryptjs_1.default.compare(password, user.password);
+        const isMatch = await bcryptjs_1.default.compare(password, user.password || '');
         if (!isMatch) {
             return res.status(400).json({ errors: [{ msg: 'Invalid credentials' }] });
         }
@@ -109,9 +106,7 @@ router.post('/login', [
 // @access  Private
 router.get('/user', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
     try {
-        // Import User model dynamically to avoid circular dependencies
-        const User = require('../models/User').default;
-        const user = await User.findById(req.user?.id).select('-password');
+        const user = await User_1.default.findById(req.user?.id).select('-password');
         res.json(user);
     }
     catch (err) {
@@ -136,11 +131,9 @@ router.put('/complete-profile', [
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        // Import User model dynamically to avoid circular dependencies
-        const User = require('../models/User').default;
         const { userType, phone, bio, preferences } = req.body;
         // Update user profile
-        const user = await User.findById(req.user?.id);
+        const user = await User_1.default.findById(req.user?.id);
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });
         }

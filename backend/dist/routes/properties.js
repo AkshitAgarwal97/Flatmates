@@ -51,52 +51,23 @@ router.post('/', [
     (0, express_validator_1.check)('address.city', 'City is required').not().isEmpty(),
     (0, express_validator_1.check)('address.country', 'Country is required').not().isEmpty(),
     (0, express_validator_1.check)('price.amount', 'Price amount is required').isNumeric(),
-    (0, express_validator_1.check)('availability.availableFrom', 'Availability date is required').isISO8601()
+    (0, express_validator_1.check)('availability.availableFrom', 'Available from date is required').not().isEmpty()
 ], async (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        // Import models dynamically to avoid circular dependencies
+        // Import Property model dynamically to avoid circular dependencies
         const Property = require('../models/Property').default;
-        const User = require('../models/User').default;
-        // Check if user type matches listing type
-        const user = await User.findById(req.user?.id);
-        const { listingType } = req.body;
-        let isValidUserType = false;
-        switch (listingType) {
-            case 'room_in_flat':
-            case 'occupied_flat':
-                isValidUserType = user?.userType === 'broker_dealer';
-                break;
-            case 'roommates_for_flat':
-                isValidUserType = user?.userType === 'roommate_seeker';
-                break;
-            case 'entire_property':
-                isValidUserType = user?.userType === 'property_owner';
-                break;
-        }
-        if (!isValidUserType) {
-            return res.status(400).json({
-                errors: [{ msg: 'User type does not match the listing type' }]
-            });
-        }
         // Process uploaded images
-        const images = req.files && Array.isArray(req.files)
+        const images = req.files && Array.isArray(req.files) && req.files.length > 0
             ? req.files.map((file) => ({
                 url: `/uploads/properties/${file.filename}`,
                 caption: ''
             }))
             : [];
         // Create new property
-        // If the owner is a broker/dealer ensure brokerage is provided and numeric
-        if (user?.userType === 'broker_dealer') {
-            const brokerageVal = req.body?.price?.brokerage;
-            if (brokerageVal === undefined || brokerageVal === null || isNaN(Number(brokerageVal))) {
-                return res.status(400).json({ errors: [{ msg: 'Brokerage is required for Broker/Dealer listings' }] });
-            }
-        }
         const newProperty = new Property({
             owner: req.user?.id,
             title: req.body.title,
@@ -106,7 +77,6 @@ router.post('/', [
             address: req.body.address,
             price: req.body.price,
             availability: req.body.availability,
-            amenities: req.body.anenities,
             features: req.body.features || {},
             images,
             currentOccupants: req.body.currentOccupants || { total: 0, details: [] },

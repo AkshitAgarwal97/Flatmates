@@ -113,26 +113,53 @@ router.post(
       'roommates_for_flat',
       'occupied_flat',
       'entire_property'
-  description: req.body.description,
-      propertyType: req.body.propertyType,
-      listingType: req.body.listingType,
-      address: req.body.address,
-      price: req.body.price,
-      availability: req.body.availability,
-      amenities: req.body.anenities,
-      features: req.body.features || {},
-      images,
-      currentOccupants: req.body.currentOccupants || { total: 0, details: [] },
-      preferences: req.body.preferences || {}
-});
+    ]),
+    check('address.city', 'City is required').not().isEmpty(),
+    check('address.country', 'Country is required').not().isEmpty(),
+    check('price.amount', 'Price amount is required').isNumeric(),
+    check('availability.availableFrom', 'Available from date is required').not().isEmpty()
+  ],
+  async (req: AuthenticatedRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-const property = await newProperty.save();
+    try {
+      // Import Property model dynamically to avoid circular dependencies
+      const Property = require('../models/Property').default;
 
-res.json(property);
+      // Process uploaded images
+      const images = req.files && Array.isArray(req.files) && req.files.length > 0
+        ? req.files.map((file: Express.Multer.File) => ({
+          url: `/uploads/properties/${file.filename}`,
+          caption: ''
+        }))
+        : [];
+
+      // Create new property
+      const newProperty = new Property({
+        owner: req.user?.id,
+        title: req.body.title,
+        description: req.body.description,
+        propertyType: req.body.propertyType,
+        listingType: req.body.listingType,
+        address: req.body.address,
+        price: req.body.price,
+        availability: req.body.availability,
+        features: req.body.features || {},
+        images,
+        currentOccupants: req.body.currentOccupants || { total: 0, details: [] },
+        preferences: req.body.preferences || {}
+      });
+
+      const property = await newProperty.save();
+
+      res.json(property);
     } catch (err: any) {
-  console.error(err.message);
-  res.status(500).send('Server error');
-}
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
   }
 );
 
