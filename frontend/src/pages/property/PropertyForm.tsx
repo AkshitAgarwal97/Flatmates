@@ -194,33 +194,39 @@ const PropertyForm = () => {
       .min(20, "Description must be at least 20 characters"),
     propertyType: Yup.string().required("Property type is required"),
     userType: Yup.string().required("User type is required"),
-    "price.amount": Yup.number()
-      .required("Price is required")
-      .positive("Price must be positive"),
-    "price.brokerage": Yup.number().when(
-      "userType",
-      (userType: any, schema: any) =>
-        userType === "broker_dealer"
-          ? schema
-              .required("Brokerage is required")
-              .min(0, "Brokerage cannot be negative")
-          : schema.optional()
+    price: Yup.object({
+      amount: Yup.number()
+        .required("Price is required")
+        .positive("Price must be positive"),
+      brokerage: Yup.number().min(0, "Brokerage cannot be negative"),
+    }).test(
+      "brokerage-required",
+      "Brokerage is required for brokers",
+      function (value) {
+        const userType = (this as any).from?.[1]?.value?.userType;
+        if (
+          userType === "broker_dealer" &&
+          ((value as any)?.brokerage === undefined || (value as any)?.brokerage === null)
+        ) {
+          return this.createError({
+            path: "price.brokerage",
+            message: "Brokerage is required",
+          });
+        }
+        return true;
+      }
     ),
-    "address.street": Yup.string().required("Street address is required"),
-    "address.city": Yup.string().required("City is required"),
-    "address.state": Yup.string().required("State/Province is required"),
-    "address.zipCode": Yup.string().required("ZIP/Postal code is required"),
-    "address.country": Yup.string().required("Country is required"),
+    address: Yup.object({
+      street: Yup.string().required("Street address is required"),
+      city: Yup.string().required("City is required"),
+      state: Yup.string().required("State/Province is required"),
+      zipCode: Yup.string().required("ZIP/Postal code is required"),
+      country: Yup.string().required("Country is required"),
+    }),
     bedrooms: Yup.number().min(0, "Cannot be negative").nullable(),
     bathrooms: Yup.number().min(0, "Cannot be negative").nullable(),
     size: Yup.number().min(0, "Cannot be negative").nullable(),
     availableFrom: Yup.date().nullable(),
-    // amenities: Yup.array().of(Yup.string()),
-    // rules: Yup.array().of(Yup.string()),
-    // "preferences.gender": Yup.string().nullable(),
-    // "preferences.occupation": Yup.string().nullable(),
-    // "preferences.lifestyle": Yup.string().nullable(),
-    // "preferences.ageRange": Yup.string().nullable(),
   });
 
   // Get initial values for the form
@@ -380,8 +386,6 @@ const PropertyForm = () => {
             touched,
             handleChange,
             handleBlur,
-            isValid,
-            dirty,
           }) => (
             <Form>
               <Grid container spacing={3}>
@@ -502,7 +506,7 @@ const PropertyForm = () => {
                     helperText={touched.price?.amount && errors.price?.amount}
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">$</InputAdornment>
+                        <InputAdornment position="start">₹</InputAdornment>
                       ),
                     }}
                   />
@@ -1006,9 +1010,7 @@ const PropertyForm = () => {
                     <Button
                       type="submit"
                       variant="contained"
-                      disabled={
-                        isSubmitting || !(isValid && (dirty || isEditMode))
-                      }
+                      disabled={isSubmitting}
                       startIcon={
                         isSubmitting ? (
                           <CircularProgress size={20} />

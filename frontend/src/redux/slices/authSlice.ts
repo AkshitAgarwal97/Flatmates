@@ -68,7 +68,7 @@ export const loadUser = createAsyncThunk(
     try {
       const token = localStorage.getItem('token');
       if (!token) return rejectWithValue('No token found');
-      
+
       setAuthToken(token);
       const res = await axios.get<User>('/api/auth/user');
       return res.data;
@@ -76,9 +76,9 @@ export const loadUser = createAsyncThunk(
       const err = error as AxiosError<ErrorResponse>;
       localStorage.removeItem('token');
       setAuthToken(null);
-      return rejectWithValue(err.response?.data?.msg || 
-        err.response?.data?.message || 
-        err.response?.data?.error || 
+      return rejectWithValue(err.response?.data?.msg ||
+        err.response?.data?.message ||
+        err.response?.data?.error ||
         'Server Error');
     }
   }
@@ -93,8 +93,11 @@ export const register = createAsyncThunk(
       setAuthToken(res.data.token);
       return res.data;
     } catch (error) {
-      const err = error as AxiosError;
-      return rejectWithValue(err.response?.data || 'Registration failed');
+      const err = error as AxiosError<ErrorResponse>;
+      return rejectWithValue(err.response?.data?.msg ||
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Registration failed');
     }
   }
 );
@@ -132,27 +135,27 @@ export const updateProfile = createAsyncThunk(
   async (profileData: Partial<CompleteProfileFormValues> & { avatar?: File }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      
+
       Object.entries(profileData).forEach(([key, value]) => {
         if (key !== 'avatar' && key !== 'preferences') {
           formData.append(key, value as string);
         }
       });
-      
+
       if (profileData.preferences) {
         Object.entries(profileData.preferences).forEach(([key, value]) => {
           formData.append(`preferences[${key}]`, value);
         });
       }
-      
+
       if (profileData.avatar instanceof File) {
         formData.append('avatar', profileData.avatar);
       }
-      
+
       const res = await axios.put<User>('/api/users/me', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       return res.data;
     } catch (error) {
       const err = error as AxiosError;
@@ -178,15 +181,18 @@ const authSlice = createSlice({
     logout: (state) => {
       localStorage.removeItem('token');
       setAuthToken(null);
-      return initialState;
+      state.token = null;
+      state.isAuthenticated = false;
+      state.user = null;
+      state.loading = false;
     },
     clearError: (state) => {
       state.error = null;
     },
     setToken: (state, action: PayloadAction<string>) => {
-      state.token = action.payload;
       localStorage.setItem('token', action.payload);
       setAuthToken(action.payload);
+      state.token = action.payload;
       state.isAuthenticated = true;
     }
   },

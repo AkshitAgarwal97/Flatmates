@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import { check, validationResult, ValidationError } from 'express-validator';
+import User from '../models/User';
 
 const router = express.Router();
 
@@ -64,9 +65,6 @@ router.post(
     const { name, email, password, userType } = req.body;
 
     try {
-      // Import User model dynamically to avoid circular dependencies
-      const User = require('../models/User').default;
-      
       // Check if user exists
       let user = await User.findOne({ email });
 
@@ -128,9 +126,6 @@ router.post(
     const { email, password } = req.body;
 
     try {
-      // Import User model dynamically to avoid circular dependencies
-      const User = require('../models/User').default;
-      
       // Check if user exists
       let user = await User.findOne({ email, socialProvider: 'local' });
 
@@ -139,7 +134,7 @@ router.post(
       }
 
       // Check password
-      const isMatch = await bcrypt.compare(password, user.password);
+      const isMatch = await bcrypt.compare(password, user.password || '');
 
       if (!isMatch) {
         return res.status(400).json({ errors: [{ msg: 'Invalid credentials' }] });
@@ -172,15 +167,12 @@ router.post(
 // @access  Private
 router.get('/user', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Import User model dynamically to avoid circular dependencies
-    const User = require('../models/User').default;
-    
     const user = await User.findById(req.user?.id).select('-password');
     res.json(user);
   } catch (err: any) {
     console.error(err.message);
     res.status(500).send('Server error');
-    }
+  }
 });
 
 // @route   PUT api/auth/complete-profile
@@ -204,9 +196,6 @@ router.put(
     }
 
     try {
-      // Import User model dynamically to avoid circular dependencies
-      const User = require('../models/User').default;
-      
       const { userType, phone, bio, preferences } = req.body;
 
       // Update user profile

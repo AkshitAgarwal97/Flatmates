@@ -74,9 +74,17 @@ const Register = () => {
   // Show error alert if registration fails
   useEffect(() => {
     if (error) {
-      dispatch(showAlert("error", error));
+      const errorMessage = typeof error === 'string' ? error.toLowerCase() : '';
+      if (errorMessage.includes("already registered") || errorMessage.includes("already exists")) {
+        dispatch(showAlert("info", "You are already registered. Please login."));
+        navigate("/login");
+      } else {
+        dispatch(showAlert("error", error));
+      }
+      // Clear error to avoid repeated alerts
+      // dispatch(clearError()); // Assuming clearError action exists and is imported
     }
-  }, [error, dispatch]);
+  }, [error, dispatch, navigate]);
 
   // Formik setup
   const formik = useFormik({
