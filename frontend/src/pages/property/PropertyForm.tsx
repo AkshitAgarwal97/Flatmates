@@ -83,7 +83,6 @@ const PropertyForm = () => {
   const { property, loading } = useSelector(
     (state: RootState) => state.property
   );
-  const { user } = useSelector((state: RootState) => state.auth);
 
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
