@@ -225,7 +225,11 @@ const authSlice = createSlice({
         state.user = action.payload.user || null;
       })
       .addCase(register.rejected, (state, action) => {
-        Object.assign(state, initialState, { error: action.payload });
+        state.loading = false;
+        state.error = action.payload;
+        state.isAuthenticated = false;
+        state.token = null;
+        state.user = null;
       })
       .addCase(login.pending, (state) => {
         state.loading = true;
@@ -237,7 +241,11 @@ const authSlice = createSlice({
         state.user = action.payload.user || null;
       })
       .addCase(login.rejected, (state, action) => {
-        Object.assign(state, initialState, { error: action.payload });
+        state.loading = false;
+        state.error = action.payload;
+        state.isAuthenticated = false;
+        state.token = null;
+        state.user = null;
       })
       .addCase(completeProfile.pending, (state) => {
         state.loading = true;

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { login } from "../../redux/slices/authSlice";
-import { showAlert } from "../../redux/slices/alertSlice";
+import { login, clearError } from "../../redux/slices/authSlice";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAppDispatch, RootState } from "../../redux/store";
@@ -19,6 +18,11 @@ import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogActions from "@mui/material/DialogActions";
 
 // MUI icons
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -46,6 +50,17 @@ const Login = () => {
     (state: RootState) => state.auth
   );
   const [rememberMe, setRememberMe] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{
+    open: boolean;
+    message: string;
+    showRegisterButton: boolean;
+    showForgotPasswordButton: boolean;
+  }>({
+    open: false,
+    message: '',
+    showRegisterButton: false,
+    showForgotPasswordButton: false
+  });
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -54,12 +69,46 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Show error alert if login fails
+  // Clear error when component unmounts (user navigates away)
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  // Show error dialog if login fails
   useEffect(() => {
     if (error) {
-      dispatch(showAlert("error", error));
+      // Don't show dialog for "No token found" - this is expected when user first visits
+      if (error === 'No token found' || (typeof error === 'string' && error.includes('No token found'))) {
+        return;
+      }
+      
+      const errorData = typeof error === 'object' ? error : { errors: [{ msg: error }] };
+      const errorMsg = errorData?.errors?.[0]?.msg || errorData?.msg || 'Login failed';
+      const errorType = errorData?.errors?.[0]?.type;
+      
+      setErrorDialog({
+        open: true,
+        message: errorMsg,
+        showRegisterButton: errorType === 'USER_NOT_FOUND',
+        showForgotPasswordButton: errorType === 'INVALID_PASSWORD'
+      });
     }
-  }, [error, dispatch]);
+  }, [error]);
+
+  const handleCloseErrorDialog = () => {
+    setErrorDialog({ open: false, message: '', showRegisterButton: false, showForgotPasswordButton: false });
+    dispatch(clearError());
+  };
+
+  const handleNavigateToRegister = () => {
+    navigate('/register');
+  };
+
+  const handleNavigateToForgotPassword = () => {
+    navigate('/forgot-password');
+  };
 
   // Formik setup
   const formik = useFormik({
@@ -183,6 +232,37 @@ const Login = () => {
             </Grid>
           </Box>
         </Box>
+
+        {/* Error Dialog */}
+        <Dialog
+          open={errorDialog.open}
+          onClose={handleCloseErrorDialog}
+          aria-labelledby="error-dialog-title"
+        >
+          <DialogTitle id="error-dialog-title">
+            Login Failed
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              {errorDialog.message}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            {errorDialog.showRegisterButton && (
+              <Button onClick={handleNavigateToRegister} color="primary" variant="contained">
+                Register
+              </Button>
+            )}
+            {errorDialog.showForgotPasswordButton && (
+              <Button onClick={handleNavigateToForgotPassword} color="primary" variant="contained">
+                Forgot Password
+              </Button>
+            )}
+            <Button onClick={handleCloseErrorDialog} color="primary" autoFocus>
+              Retry
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Grid>
     </Grid>
   );

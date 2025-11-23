@@ -78,12 +78,12 @@ router.post('/login', [
         // Check if user exists
         let user = await User_1.default.findOne({ email, socialProvider: 'local' });
         if (!user) {
-            return res.status(400).json({ errors: [{ msg: 'Invalid credentials' }] });
+            return res.status(400).json({ errors: [{ msg: 'User not found', type: 'USER_NOT_FOUND' }] });
         }
         // Check password
         const isMatch = await bcryptjs_1.default.compare(password, user.password || '');
         if (!isMatch) {
-            return res.status(400).json({ errors: [{ msg: 'Invalid credentials' }] });
+            return res.status(400).json({ errors: [{ msg: 'Invalid password', type: 'INVALID_PASSWORD' }] });
         }
         // Return jsonwebtoken
         const payload = {
