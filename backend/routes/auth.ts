@@ -220,4 +220,121 @@ router.put(
   }
 );
 
+// @route   POST api/auth/forgot-password
+// @desc    Send OTP to email for password reset
+// @access  Public
+router.post(
+  '/forgot-password',
+  [check('email', 'Please include a valid email').isEmail()],
+  async (req: Request<{}, {}, { email: string }>, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    try {
+      const User = (await import('../models/User')).default;
+      const OTP = (await import('../models/OTP')).default;
+      const { generateOTP, sendOTPEmail } = await import('../utils/emailService');
+
+      const user = await User.findOne({ email: email.toLowerCase() });
+      if (!user) {
+        return res.status(404).json({ errors: [{ msg: 'User not found' }] });
+      }
+
+      const otp = generateOTP();
+      await OTP.deleteMany({ email: email.toLowerCase() });
+
+      const otpDoc = new OTP({ email: email.toLowerCase(), otp });
+      await otpDoc.save();
+      await sendOTPEmail(email, otp);
+
+      res.json({ msg: 'OTP sent to your email' });
+    } catch (err: any) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  }
+);
+
+// @route   POST api/auth/verify-otp
+// @desc    Verify OTP code
+// @access  Public
+router.post(
+  '/verify-otp',
+  [
+    check('email', 'Please include a valid email').isEmail(),
+    check('otp', 'OTP is required').not().isEmpty()
+  ],
+  async (req: Request<{}, {}, { email: string; otp: string }>, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, otp } = req.body;
+
+    try {
+      const OTP = (await import('../models/OTP')).default;
+      const otpDoc = await OTP.findOne({ email: email.toLowerCase(), otp });
+
+      if (!otpDoc) {
+        return res.status(400).json({ errors: [{ msg: 'Invalid or expired OTP' }] });
+      }
+
+      res.json({ msg: 'OTP verified successfully' });
+    } catch (err: any) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  }
+);
+
+// @route   POST api/auth/reset-password
+// @desc    Reset password with OTP
+// @access  Public
+router.post(
+  '/reset-password',
+  [
+    check('email', 'Please include a valid email').isEmail(),
+    check('otp', 'OTP is required').not().isEmpty(),
+    check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
+  ],
+  async (req: Request<{}, {}, { email: string; otp: string; password: string }>, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, otp, password } = req.body;
+
+    try {
+      const User = (await import('../models/User')).default;
+      const OTP = (await import('../models/OTP')).default;
+
+      const otpDoc = await OTP.findOne({ email: email.toLowerCase(), otp });
+      if (!otpDoc) {
+        return res.status(400).json({ errors: [{ msg: 'Invalid or expired OTP' }] });
+      }
+
+      const user = await User.findOne({ email: email.toLowerCase() });
+      if (!user) {
+        return res.status(404).json({ errors: [{ msg: 'User not found' }] });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+      await user.save();
+      await OTP.deleteOne({ _id: otpDoc._id });
+
+      res.json({ msg: 'Password reset successfully' });
+    } catch (err: any) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  }
+);
+
 export default router;

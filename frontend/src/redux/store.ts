@@ -4,13 +4,15 @@ import authReducer from './slices/authSlice';
 import propertyReducer from './slices/propertySlice';
 import messageReducer from './slices/messageSlice';
 import alertReducer from './slices/alertSlice';
+import passwordResetReducer from './slices/passwordResetSlice';
 
 const store = configureStore({
   reducer: {
     auth: authReducer,
     property: propertyReducer,
     message: messageReducer,
-    alert: alertReducer
+    alert: alertReducer,
+    passwordReset: passwordResetReducer
   },
   devTools: process.env.NODE_ENV !== 'production'
 });

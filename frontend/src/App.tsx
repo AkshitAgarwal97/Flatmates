@@ -16,6 +16,7 @@ import PrivateRoute from "./components/routing/PrivateRoute";
 // Pages
 import Home from "./pages/Home";
 import { Login, Register, AuthSuccess } from "./pages/auth";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import {
   PropertyListing,
@@ -71,6 +72,7 @@ const App: React.FC = () => {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/auth/success" element={<AuthSuccess />} />
 
               <Route element={<PrivateRoute />}>

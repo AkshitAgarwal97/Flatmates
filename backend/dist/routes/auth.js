@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -146,6 +179,95 @@ router.put('/complete-profile', [
             user.preferences = preferences;
         await user.save();
         res.json(user);
+    }
+    catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+// @route   POST api/auth/forgot-password
+// @desc    Send OTP to email for password reset
+// @access  Public
+router.post('/forgot-password', [(0, express_validator_1.check)('email', 'Please include a valid email').isEmail()], async (req, res) => {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    const { email } = req.body;
+    try {
+        const User = (await Promise.resolve().then(() => __importStar(require('../models/User')))).default;
+        const OTP = (await Promise.resolve().then(() => __importStar(require('../models/OTP')))).default;
+        const { generateOTP, sendOTPEmail } = await Promise.resolve().then(() => __importStar(require('../utils/emailService')));
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            return res.status(404).json({ errors: [{ msg: 'User not found' }] });
+        }
+        const otp = generateOTP();
+        await OTP.deleteMany({ email: email.toLowerCase() });
+        const otpDoc = new OTP({ email: email.toLowerCase(), otp });
+        await otpDoc.save();
+        await sendOTPEmail(email, otp);
+        res.json({ msg: 'OTP sent to your email' });
+    }
+    catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+// @route   POST api/auth/verify-otp
+// @desc    Verify OTP code
+// @access  Public
+router.post('/verify-otp', [
+    (0, express_validator_1.check)('email', 'Please include a valid email').isEmail(),
+    (0, express_validator_1.check)('otp', 'OTP is required').not().isEmpty()
+], async (req, res) => {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    const { email, otp } = req.body;
+    try {
+        const OTP = (await Promise.resolve().then(() => __importStar(require('../models/OTP')))).default;
+        const otpDoc = await OTP.findOne({ email: email.toLowerCase(), otp });
+        if (!otpDoc) {
+            return res.status(400).json({ errors: [{ msg: 'Invalid or expired OTP' }] });
+        }
+        res.json({ msg: 'OTP verified successfully' });
+    }
+    catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+// @route   POST api/auth/reset-password
+// @desc    Reset password with OTP
+// @access  Public
+router.post('/reset-password', [
+    (0, express_validator_1.check)('email', 'Please include a valid email').isEmail(),
+    (0, express_validator_1.check)('otp', 'OTP is required').not().isEmpty(),
+    (0, express_validator_1.check)('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
+], async (req, res) => {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    const { email, otp, password } = req.body;
+    try {
+        const User = (await Promise.resolve().then(() => __importStar(require('../models/User')))).default;
+        const OTP = (await Promise.resolve().then(() => __importStar(require('../models/OTP')))).default;
+        const otpDoc = await OTP.findOne({ email: email.toLowerCase(), otp });
+        if (!otpDoc) {
+            return res.status(400).json({ errors: [{ msg: 'Invalid or expired OTP' }] });
+        }
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            return res.status(404).json({ errors: [{ msg: 'User not found' }] });
+        }
+        const salt = await bcryptjs_1.default.genSalt(10);
+        user.password = await bcryptjs_1.default.hash(password, salt);
+        await user.save();
+        await OTP.deleteOne({ _id: otpDoc._id });
+        res.json({ msg: 'Password reset successfully' });
     }
     catch (err) {
         console.error(err.message);
