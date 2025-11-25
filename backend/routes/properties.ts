@@ -4,6 +4,7 @@ import { check, validationResult } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
 import mongoose from 'mongoose';
+import { parseFormDataJSON } from '../utils/formDataHelper';
 
 const router = express.Router();
 
@@ -114,10 +115,22 @@ router.post(
       'occupied_flat',
       'entire_property'
     ]),
-    check('address.city', 'City is required').not().isEmpty(),
-    check('address.country', 'Country is required').not().isEmpty(),
-    check('price.amount', 'Price amount is required').isNumeric(),
-    check('availability.availableFrom', 'Available from date is required').not().isEmpty()
+    check('address').custom((value) => {
+      const address = parseFormDataJSON(value);
+      if (!address || !address.city) return false;
+      if (!address.country) return false;
+      return true;
+    }).withMessage('City and Country are required'),
+    check('price').custom((value) => {
+      const price = parseFormDataJSON(value);
+      if (!price || !price.amount) return false;
+      return true;
+    }).withMessage('Price amount is required'),
+    check('availability').custom((value) => {
+      const availability = parseFormDataJSON(value);
+      if (!availability || !availability.availableFrom) return false;
+      return true;
+    }).withMessage('Available from date is required')
   ],
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -137,6 +150,18 @@ router.post(
         }))
         : [];
 
+      // Parse nested objects from FormData
+      const parsedPreferences = parseFormDataJSON(req.body.preferences) || {};
+      const filteredPreferences: any = {};
+
+      // Only include non-empty preference values
+      if (parsedPreferences.gender && parsedPreferences.gender !== '') {
+        filteredPreferences.gender = parsedPreferences.gender;
+      }
+      if (parsedPreferences.occupation && parsedPreferences.occupation !== '') {
+        filteredPreferences.occupation = parsedPreferences.occupation;
+      }
+
       // Create new property
       const newProperty = new Property({
         owner: req.user?.id,
@@ -144,13 +169,13 @@ router.post(
         description: req.body.description,
         propertyType: req.body.propertyType,
         listingType: req.body.listingType,
-        address: req.body.address,
-        price: req.body.price,
-        availability: req.body.availability,
-        features: req.body.features || {},
+        address: parseFormDataJSON(req.body.address),
+        price: parseFormDataJSON(req.body.price),
+        availability: parseFormDataJSON(req.body.availability),
+        features: parseFormDataJSON(req.body.features) || {},
         images,
-        currentOccupants: req.body.currentOccupants || { total: 0, details: [] },
-        preferences: req.body.preferences || {}
+        currentOccupants: parseFormDataJSON(req.body.currentOccupants) || { total: 0, details: [] },
+        preferences: filteredPreferences
       });
 
       const property = await newProperty.save();

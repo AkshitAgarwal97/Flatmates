@@ -42,34 +42,48 @@ export const createProperty = createAsyncThunk(
   async (propertyData: PropertyFormValues & { images?: File[] }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      
-      // Handle nested objects and arrays
+
+      // List of keys that should be JSON stringified (nested objects)
+      const jsonKeys = ['address', 'price', 'availability', 'features', 'currentOccupants', 'preferences'];
+
+      // Handle nested objects and simple values
       for (const key in propertyData) {
         if (key !== 'images') {
           const value = (propertyData as any)[key];
-          if (typeof value === 'object' && value !== null) {
-            for (const nestedKey in value) {
-              formData.append(`${key}[${nestedKey}]`, value[nestedKey]);
-            }
-          } else {
+
+          // Skip undefined or null values
+          if (value === undefined || value === null) {
+            continue;
+          }
+
+          // If it's a nested object that needs JSON stringification
+          if (jsonKeys.includes(key) && typeof value === 'object') {
+            formData.append(key, JSON.stringify(value));
+          }
+          // If it's an array
+          else if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          }
+          // Simple values
+          else {
             formData.append(key, value);
           }
         }
       }
-      
+
       // Append images if they exist
       if (propertyData.images && propertyData.images.length > 0) {
         for (let i = 0; i < propertyData.images.length; i++) {
           formData.append('images', propertyData.images[i]);
         }
       }
-      
+
       const res = await axios.post('/api/properties', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       return res.data;
     } catch (err: any) {
       return rejectWithValue(err.response.data);
@@ -83,7 +97,7 @@ export const updateProperty = createAsyncThunk(
   async ({ id, propertyData }: { id: string; propertyData: PropertyFormValues & { images?: File[]; removeImages?: string[] } }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      
+
       // Handle nested objects and arrays
       for (const key in propertyData) {
         if (key !== 'images' && key !== 'removeImages') {
@@ -97,25 +111,25 @@ export const updateProperty = createAsyncThunk(
           }
         }
       }
-      
+
       // Append images if they exist
       if (propertyData.images && propertyData.images.length > 0) {
         for (let i = 0; i < propertyData.images.length; i++) {
           formData.append('images', propertyData.images[i]);
         }
       }
-      
+
       // Add removeImages if specified
       if (propertyData.removeImages) {
         formData.append('removeImages', propertyData.removeImages.join(','));
       }
-      
+
       const res = await axios.put(`/api/properties/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       return res.data;
     } catch (err) {
       return rejectWithValue((err as any).response.data);
@@ -218,7 +232,7 @@ const propertySlice = createSlice({
         state.loading = false;
         state.error = action.payload as string | null;
       })
-      
+
       // Get property by ID
       .addCase(getPropertyById.pending, (state) => {
         state.loading = true;
@@ -231,7 +245,7 @@ const propertySlice = createSlice({
         state.loading = false;
         state.error = action.payload as string | null;
       })
-      
+
       // Create property
       .addCase(createProperty.pending, (state) => {
         state.loading = true;
@@ -244,7 +258,7 @@ const propertySlice = createSlice({
         state.loading = false;
         state.error = action.payload as string | null;
       })
-      
+
       // Update property
       .addCase(updateProperty.pending, (state) => {
         state.loading = true;
@@ -260,7 +274,7 @@ const propertySlice = createSlice({
         state.loading = false;
         state.error = action.payload as string | null;
       })
-      
+
       // Delete property
       .addCase(deleteProperty.pending, (state) => {
         state.loading = true;
@@ -275,7 +289,7 @@ const propertySlice = createSlice({
         state.loading = false;
         state.error = action.payload as string | null;
       })
-      
+
       // Toggle save property
       .addCase(toggleSaveProperty.fulfilled, (state, action) => {
         if (action.payload.saved) {
@@ -290,7 +304,7 @@ const propertySlice = createSlice({
           );
         }
       })
-      
+
       // Get saved properties
       .addCase(getSavedProperties.pending, (state) => {
         state.loading = true;
@@ -303,7 +317,7 @@ const propertySlice = createSlice({
         state.loading = false;
         state.error = action.payload as string | null;
       })
-      
+
       // Get user listings
       .addCase(getUserListings.pending, (state) => {
         state.loading = true;

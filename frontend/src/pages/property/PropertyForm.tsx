@@ -198,29 +198,18 @@ const PropertyForm = () => {
         .required("Price is required")
         .positive("Price must be positive"),
       brokerage: Yup.number().min(0, "Brokerage cannot be negative"),
-    }).test(
-      "brokerage-required",
-      "Brokerage is required for brokers",
-      function (value) {
-        // Brokerage validation logic can be adjusted or removed if not tied to userType anymore
-        // For now, we'll remove the strict userType check or adapt it if needed.
-        // Since any user can post any listing, we might want to enforce brokerage only if explicitly required by some other logic,
-        // or perhaps just leave it optional/validated by amount > 0 if provided.
-        // Let's simplify for now as the user wants to relax restrictions.
-        return true;
-      }
-    ),
+    }),
     address: Yup.object({
-      street: Yup.string().required("Street address is required"),
+      street: Yup.string(), // Optional
       city: Yup.string().required("City is required"),
-      state: Yup.string().required("State/Province is required"),
-      zipCode: Yup.string().required("ZIP/Postal code is required"),
+      state: Yup.string(), // Optional
+      zipCode: Yup.string(), // Optional
       country: Yup.string().required("Country is required"),
     }),
     bedrooms: Yup.number().min(0, "Cannot be negative").nullable(),
     bathrooms: Yup.number().min(0, "Cannot be negative").nullable(),
     size: Yup.number().min(0, "Cannot be negative").nullable(),
-    availableFrom: Yup.date().nullable(),
+    availableFrom: Yup.date().required("Available from date is required").nullable(),
   });
 
   // Get initial values for the form
@@ -308,8 +297,21 @@ const PropertyForm = () => {
       const listingType = values.listingType;
 
       const propertyData: any = {
-        ...values,
+        title: values.title,
+        description: values.description,
+        propertyType: values.propertyType,
         listingType,
+        address: {
+          street: values.address.street || '',
+          city: values.address.city,
+          state: values.address.state || '',
+          zipCode: values.address.zipCode || '',
+          country: values.address.country,
+        },
+        price: {
+          amount: Number(values.price.amount),
+          brokerage: Number(values.price.brokerage) || 0,
+        },
         availability: {
           availableFrom: values.availableFrom,
         },
@@ -319,6 +321,7 @@ const PropertyForm = () => {
           area: Number(values.size) || 0,
           amenities: values.amenities,
         },
+        preferences: values.preferences || {},
         images,
         removeImages: removedImages,
       };
@@ -449,7 +452,6 @@ const PropertyForm = () => {
                     >
                       <MenuItem value="apartment">Apartment</MenuItem>
                       <MenuItem value="house">House</MenuItem>
-                      <MenuItem value="condo">Condo</MenuItem>
                       <MenuItem value="studio">Studio</MenuItem>
                       <MenuItem value="room">Room</MenuItem>
                     </Field>
@@ -887,7 +889,7 @@ const PropertyForm = () => {
                       <MenuItem value="">No Preference</MenuItem>
                       <MenuItem value="male">Male</MenuItem>
                       <MenuItem value="female">Female</MenuItem>
-                      <MenuItem value="other">Other</MenuItem>
+                      <MenuItem value="Family">Family</MenuItem>
                     </Field>
                   </FormControl>
                 </Grid>

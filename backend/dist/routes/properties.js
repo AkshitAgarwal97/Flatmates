@@ -8,6 +8,7 @@ const passport_1 = __importDefault(require("passport"));
 const express_validator_1 = require("express-validator");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
+const formDataHelper_1 = require("../utils/formDataHelper");
 const router = express_1.default.Router();
 // Set up multer for file uploads
 const storage = multer_1.default.diskStorage({
@@ -48,10 +49,26 @@ router.post('/', [
         'occupied_flat',
         'entire_property'
     ]),
-    (0, express_validator_1.check)('address.city', 'City is required').not().isEmpty(),
-    (0, express_validator_1.check)('address.country', 'Country is required').not().isEmpty(),
-    (0, express_validator_1.check)('price.amount', 'Price amount is required').isNumeric(),
-    (0, express_validator_1.check)('availability.availableFrom', 'Available from date is required').not().isEmpty()
+    (0, express_validator_1.check)('address').custom((value) => {
+        const address = (0, formDataHelper_1.parseFormDataJSON)(value);
+        if (!address || !address.city)
+            return false;
+        if (!address.country)
+            return false;
+        return true;
+    }).withMessage('City and Country are required'),
+    (0, express_validator_1.check)('price').custom((value) => {
+        const price = (0, formDataHelper_1.parseFormDataJSON)(value);
+        if (!price || !price.amount)
+            return false;
+        return true;
+    }).withMessage('Price amount is required'),
+    (0, express_validator_1.check)('availability').custom((value) => {
+        const availability = (0, formDataHelper_1.parseFormDataJSON)(value);
+        if (!availability || !availability.availableFrom)
+            return false;
+        return true;
+    }).withMessage('Available from date is required')
 ], async (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (!errors.isEmpty()) {
@@ -67,6 +84,16 @@ router.post('/', [
                 caption: ''
             }))
             : [];
+        // Parse nested objects from FormData
+        const parsedPreferences = (0, formDataHelper_1.parseFormDataJSON)(req.body.preferences) || {};
+        const filteredPreferences = {};
+        // Only include non-empty preference values
+        if (parsedPreferences.gender && parsedPreferences.gender !== '') {
+            filteredPreferences.gender = parsedPreferences.gender;
+        }
+        if (parsedPreferences.occupation && parsedPreferences.occupation !== '') {
+            filteredPreferences.occupation = parsedPreferences.occupation;
+        }
         // Create new property
         const newProperty = new Property({
             owner: req.user?.id,
@@ -74,13 +101,13 @@ router.post('/', [
             description: req.body.description,
             propertyType: req.body.propertyType,
             listingType: req.body.listingType,
-            address: req.body.address,
-            price: req.body.price,
-            availability: req.body.availability,
-            features: req.body.features || {},
+            address: (0, formDataHelper_1.parseFormDataJSON)(req.body.address),
+            price: (0, formDataHelper_1.parseFormDataJSON)(req.body.price),
+            availability: (0, formDataHelper_1.parseFormDataJSON)(req.body.availability),
+            features: (0, formDataHelper_1.parseFormDataJSON)(req.body.features) || {},
             images,
-            currentOccupants: req.body.currentOccupants || { total: 0, details: [] },
-            preferences: req.body.preferences || {}
+            currentOccupants: (0, formDataHelper_1.parseFormDataJSON)(req.body.currentOccupants) || { total: 0, details: [] },
+            preferences: filteredPreferences
         });
         const property = await newProperty.save();
         res.json(property);
