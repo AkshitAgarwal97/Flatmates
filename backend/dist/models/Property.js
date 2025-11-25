@@ -44,20 +44,6 @@ const PropertySchema = new mongoose_1.Schema({
         type: String,
         required: true
     },
-    description: {
-        type: String,
-        required: true
-    },
-    propertyType: {
-        type: String,
-        enum: ['room', 'flat', 'house', 'studio'],
-        required: true
-    },
-    listingType: {
-        type: String,
-        enum: ['room_in_flat', 'roommates_for_flat', 'occupied_flat', 'entire_property'],
-        required: true
-    },
     address: {
         street: String,
         city: {

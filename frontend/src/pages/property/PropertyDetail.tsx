@@ -390,8 +390,10 @@ const PropertyDetails: React.FC = () => {
           />
           <Chip
             label={
-              property.propertyType.charAt(0).toUpperCase() +
-              property.propertyType.slice(1)
+              property.propertyType
+                ? property.propertyType.charAt(0).toUpperCase() +
+                  property.propertyType.slice(1)
+                : "N/A"
             }
             color="primary"
             variant="outlined"
@@ -572,8 +574,10 @@ const PropertyDetails: React.FC = () => {
               <Grid item xs={6}>
                 <Typography variant="subtitle2">Property Type:</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {property.propertyType.charAt(0).toUpperCase() +
-                    property.propertyType.slice(1)}
+                  {property.propertyType
+                    ? property.propertyType.charAt(0).toUpperCase() +
+                      property.propertyType.slice(1)
+                    : "N/A"}
                 </Typography>
               </Grid>
               <Grid item xs={6}>

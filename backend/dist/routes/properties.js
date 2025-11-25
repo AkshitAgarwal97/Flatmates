@@ -42,7 +42,7 @@ router.post('/', [
     upload.array('images', 10),
     (0, express_validator_1.check)('title', 'Title is required').not().isEmpty(),
     (0, express_validator_1.check)('description', 'Description is required').not().isEmpty(),
-    (0, express_validator_1.check)('propertyType', 'Property type is required').isIn(['room', 'flat', 'house', 'studio']),
+    (0, express_validator_1.check)('propertyType', 'Property type is required').isIn(['room', 'flat', 'house', 'studio', 'apartment']),
     (0, express_validator_1.check)('listingType', 'Listing type is required').isIn([
         'room_in_flat',
         'roommates_for_flat',
@@ -174,6 +174,38 @@ router.get('/', async (req, res) => {
                 pages: Math.ceil(total / Number(limit))
             }
         });
+    }
+    catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+// @route   GET api/properties/user/saved
+// @desc    Get user's saved properties
+// @access  Private
+router.get('/user/saved', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // Import models dynamically to avoid circular dependencies
+        const Property = require('../models/Property').default;
+        const User = require('../models/User').default;
+        const user = await User.findById(req.user?.id);
+        const properties = await Property.find({ _id: { $in: user?.savedProperties } }).populate('owner', 'name avatar');
+        res.json(properties);
+    }
+    catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+// @route   GET api/properties/user/listings
+// @desc    Get user's property listings
+// @access  Private
+router.get('/user/listings', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // Import models dynamically to avoid circular dependencies
+        const Property = require('../models/Property').default;
+        const properties = await Property.find({ owner: req.user?.id }).sort({ createdAt: -1 });
+        res.json(properties);
     }
     catch (err) {
         console.error(err.message);
@@ -326,38 +358,6 @@ router.post('/:id/save', passport_1.default.authenticate('jwt', { session: false
             await user.save();
             return res.json({ saved: true, savedProperties: user.savedProperties });
         }
-    }
-    catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
-});
-// @route   GET api/properties/user/saved
-// @desc    Get user's saved properties
-// @access  Private
-router.get('/user/saved', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
-    try {
-        // Import models dynamically to avoid circular dependencies
-        const Property = require('../models/Property').default;
-        const User = require('../models/User').default;
-        const user = await User.findById(req.user?.id);
-        const properties = await Property.find({ _id: { $in: user?.savedProperties } }).populate('owner', 'name avatar');
-        res.json(properties);
-    }
-    catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
-});
-// @route   GET api/properties/user/listings
-// @desc    Get user's property listings
-// @access  Private
-router.get('/user/listings', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
-    try {
-        // Import models dynamically to avoid circular dependencies
-        const Property = require('../models/Property').default;
-        const properties = await Property.find({ owner: req.user?.id }).sort({ createdAt: -1 });
-        res.json(properties);
     }
     catch (err) {
         console.error(err.message);

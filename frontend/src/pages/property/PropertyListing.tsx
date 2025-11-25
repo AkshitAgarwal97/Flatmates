@@ -82,7 +82,7 @@ const PropertyListing = () => {
   if (error) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error">{typeof error === 'string' ? error : (error as any).msg || 'An error occurred'}</Alert>
       </Container>
     );
   }

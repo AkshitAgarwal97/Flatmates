@@ -64,7 +64,7 @@ export interface IProperty extends Document {
   owner: mongoose.Types.ObjectId;
   title: string;
   description: string;
-  propertyType: 'room' | 'flat' | 'house' | 'studio';
+  propertyType: 'room' | 'flat' | 'house' | 'studio' | 'apartment';
   listingType: 'room_in_flat' | 'roommates_for_flat' | 'occupied_flat' | 'entire_property';
   address: IPropertyAddress;
   price: IPropertyPrice;
@@ -88,20 +88,6 @@ const PropertySchema: Schema = new Schema({
   },
   title: {
     type: String,
-    required: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  propertyType: {
-    type: String,
-    enum: ['room', 'flat', 'house', 'studio'],
-    required: true
-  },
-  listingType: {
-    type: String,
-    enum: ['room_in_flat', 'roommates_for_flat', 'occupied_flat', 'entire_property'],
     required: true
   },
   address: {
@@ -210,7 +196,7 @@ const PropertySchema: Schema = new Schema({
 });
 
 // Update the updatedAt field on save
-PropertySchema.pre('save', function(next) {
+PropertySchema.pre('save', function (next) {
   this.updatedAt = new Date();
   next();
 });

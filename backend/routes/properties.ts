@@ -108,7 +108,7 @@ router.post(
     upload.array('images', 10),
     check('title', 'Title is required').not().isEmpty(),
     check('description', 'Description is required').not().isEmpty(),
-    check('propertyType', 'Property type is required').isIn(['room', 'flat', 'house', 'studio']),
+    check('propertyType', 'Property type is required').isIn(['room', 'flat', 'house', 'studio', 'apartment']),
     check('listingType', 'Listing type is required').isIn([
       'room_in_flat',
       'roommates_for_flat',
@@ -268,6 +268,43 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// @route   GET api/properties/user/saved
+// @desc    Get user's saved properties
+// @access  Private
+router.get('/user/saved', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Import models dynamically to avoid circular dependencies
+    const Property = require('../models/Property').default;
+    const User = require('../models/User').default;
+
+    const user = await User.findById(req.user?.id);
+    const properties = await Property.find({ _id: { $in: user?.savedProperties } }).populate(
+      'owner',
+      'name avatar'
+    );
+
+    res.json(properties);
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/properties/user/listings
+// @desc    Get user's property listings
+// @access  Private
+router.get('/user/listings', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Import models dynamically to avoid circular dependencies
+    const Property = require('../models/Property').default;
+
+    const properties = await Property.find({ owner: req.user?.id }).sort({ createdAt: -1 });
+    res.json(properties);
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
 // @route   GET api/properties/:id
 // @desc    Get property by ID
 // @access  Public
@@ -442,44 +479,6 @@ router.post('/:id/save', passport.authenticate('jwt', { session: false }), async
       await user.save();
       return res.json({ saved: true, savedProperties: user.savedProperties });
     }
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-// @route   GET api/properties/user/saved
-// @desc    Get user's saved properties
-// @access  Private
-router.get('/user/saved', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    // Import models dynamically to avoid circular dependencies
-    const Property = require('../models/Property').default;
-    const User = require('../models/User').default;
-
-    const user = await User.findById(req.user?.id);
-    const properties = await Property.find({ _id: { $in: user?.savedProperties } }).populate(
-      'owner',
-      'name avatar'
-    );
-
-    res.json(properties);
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-// @route   GET api/properties/user/listings
-// @desc    Get user's property listings
-// @access  Private
-router.get('/user/listings', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    // Import models dynamically to avoid circular dependencies
-    const Property = require('../models/Property').default;
-
-    const properties = await Property.find({ owner: req.user?.id }).sort({ createdAt: -1 });
-    res.json(properties);
   } catch (err: any) {
     console.error(err.message);
     res.status(500).send('Server error');

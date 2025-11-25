@@ -55,7 +55,7 @@ export interface IProperty extends Document {
     owner: mongoose.Types.ObjectId;
     title: string;
     description: string;
-    propertyType: 'room' | 'flat' | 'house' | 'studio';
+    propertyType: 'room' | 'flat' | 'house' | 'studio' | 'apartment';
     listingType: 'room_in_flat' | 'roommates_for_flat' | 'occupied_flat' | 'entire_property';
     address: IPropertyAddress;
     price: IPropertyPrice;
