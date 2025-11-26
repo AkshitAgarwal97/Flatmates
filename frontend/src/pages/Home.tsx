@@ -159,7 +159,7 @@ const Home = () => {
             </CardMedia>
             <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="h2">
-                Room Seeker
+                Property Seeker
               </Typography>
               <Typography>
                 Looking for a room in an existing flat? Browse listings from

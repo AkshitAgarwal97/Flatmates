@@ -236,7 +236,11 @@ const PropertyDetails: React.FC = () => {
           <>
             <Box
               component="img"
-              src={property.images[currentImageIndex]}
+              src={
+                property.images[currentImageIndex]?.url
+                  ? `http://localhost:5000${property.images[currentImageIndex].url}`
+                  : property.images[currentImageIndex]
+              }
               alt={property.title}
               sx={{
                 width: "100%",
@@ -351,8 +355,7 @@ const PropertyDetails: React.FC = () => {
           {property.title}
         </Typography>
         <Typography variant="h5" color="primary" gutterBottom>
-          ${property?.price?.amount?.toLocaleString?.() ?? "N/A"}{" "}
-          {property?.price?.currency ?? ""}
+          ₹{property?.price?.amount?.toLocaleString?.() ?? "N/A"}/month
         </Typography>
         <Typography variant="body1" color="text.secondary" gutterBottom>
           {property.address.street}, {property.address.city},{" "}

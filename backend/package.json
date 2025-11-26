@@ -4,7 +4,7 @@
   "description": "Backend for Flatmates website",
   "main": "dist/server.js",
   "scripts": {
-    "start": "node backend/server.js",
+    "start": "ts-node server.ts",
     "dev": "nodemon --exec ts-node server.ts",
     "build": "tsc",
     "build:dev": "tsc --watch",
@@ -19,6 +19,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/serve-index": "^1.9.4",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -36,6 +37,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-instagram": "^1.0.0",
     "passport-jwt": "^4.0.1",
+    "serve-index": "^1.9.1",
     "socket.io": "^4.6.1"
   },
   "devDependencies": {

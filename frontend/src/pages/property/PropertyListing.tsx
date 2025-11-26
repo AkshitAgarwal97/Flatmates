@@ -58,7 +58,10 @@ const PropertyListing = () => {
         );
       });
       setFilteredProperties(filtered);
+    } else {
+      setFilteredProperties([]);
     }
+
   }, [properties, searchTerm]);
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -155,8 +158,9 @@ const PropertyListing = () => {
                   component="img"
                   height="200"
                   image={
-                    property.images?.[0] ||
-                    "https://picsum.photos/seed/no-image-listing/300/200"
+                    property.images?.[0]?.url
+                      ? `http://localhost:5000${property.images[0].url}`
+                      : "https://picsum.photos/seed/no-image-listing/300/200"
                   }
                   alt={property.title}
                 />
@@ -183,7 +187,7 @@ const PropertyListing = () => {
                       sx={{ fontSize: 16, mr: 0.5, color: "text.secondary" }}
                     />
                     <Typography variant="h6" color="primary">
-                      {String(property.price)}/month
+                      ₹{property.price?.amount || 0}/month
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" paragraph>

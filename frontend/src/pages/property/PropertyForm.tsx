@@ -6,6 +6,7 @@ import {
   createProperty,
   updateProperty,
   getPropertyById,
+  getProperties,
 } from "../../redux/slices/propertySlice";
 import { showAlert } from "../../redux/slices/alertSlice";
 import { Formik, Form, Field, FieldArray } from "formik";
@@ -342,7 +343,11 @@ const PropertyForm = () => {
               : "Property created successfully"
           )
         );
-        navigate(isEditMode ? `/properties/${id}` : "/properties/my-listings");
+        // Refresh property list before navigating
+        if (!isEditMode) {
+          await dispatch(getProperties({}) as any).unwrap();
+        }
+        navigate(isEditMode ? `/properties/${id}` : "/properties");
       }
     } catch (error: any) {
       console.error("Error submitting form:", error);
@@ -889,7 +894,7 @@ const PropertyForm = () => {
                       <MenuItem value="">No Preference</MenuItem>
                       <MenuItem value="male">Male</MenuItem>
                       <MenuItem value="female">Female</MenuItem>
-                      <MenuItem value="Family">Family</MenuItem>
+                      <MenuItem value="any">Any</MenuItem>
                     </Field>
                   </FormControl>
                 </Grid>

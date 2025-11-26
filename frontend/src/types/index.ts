@@ -61,7 +61,7 @@ export interface Property {
   amenities: string[];
   rules?: string[];
   preferences?: Preferences;
-  images: string[];
+  images: Array<{ url: string; caption?: string }>;
   availableFrom: string;
   leaseDuration?: string;
   availabilityDate?: string;

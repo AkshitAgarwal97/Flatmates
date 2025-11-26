@@ -52,6 +52,8 @@ catch (e) {
 // Security Middleware
 app.use((0, helmet_1.default)());
 app.use((0, express_mongo_sanitize_1.default)());
+// Trust proxy for rate limiting (fixes X-Forwarded-For warning)
+app.set('trust proxy', 1);
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100 // limit each IP to 100 requests per windowMs
