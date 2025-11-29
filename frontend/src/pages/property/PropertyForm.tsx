@@ -1,4 +1,4 @@
-import * as React from "react";
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -33,6 +33,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Card from "@mui/material/Card";
 import CardMedia from "@mui/material/CardMedia";
 import CardActions from "@mui/material/CardActions";
+import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
 
 // MUI icons
 import AddIcon from "@mui/icons-material/Add";
@@ -89,6 +91,7 @@ const PropertyForm = () => {
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   const isEditMode = Boolean(id);
 
@@ -233,18 +236,13 @@ const PropertyForm = () => {
           zipCode: p.address?.zipCode || "",
           country: p.address?.country || "",
         },
-        bedrooms: p.bedrooms != null ? String(p.bedrooms) : "",
-        bathrooms: p.bathrooms != null ? String(p.bathrooms) : "",
-        size:
-          p.size != null
-            ? String(p.size)
-            : p.area != null
-            ? String(p.area)
-            : "",
-        availableFrom: p.availableFrom
-          ? new Date(p.availableFrom).toISOString().split("T")[0]
+        bedrooms: p.features?.bedrooms != null ? String(p.features.bedrooms) : "",
+        bathrooms: p.features?.bathrooms != null ? String(p.features.bathrooms) : "",
+        size: p.features?.area != null ? String(p.features.area) : "",
+        availableFrom: p.availability?.availableFrom
+          ? new Date(p.availability.availableFrom).toISOString().split("T")[0]
           : "",
-        amenities: p.amenities || [],
+        amenities: p.features?.amenities || [],
         rules: p.rules || [],
         preferences: {
           gender: p.preferences?.gender || "",
@@ -292,8 +290,31 @@ const PropertyForm = () => {
     { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
   ) => {
     setIsSubmitting(true);
+    
+    // Clear previous errors
+    setFormErrors([]);
 
     try {
+      // Validate images
+      const errors: string[] = [];
+      
+      if (!isEditMode && images.length === 0) {
+        errors.push("At least one property image is required");
+      }
+      if (isEditMode && images.length === 0 && imagePreviewUrls.length === 0) {
+        errors.push("At least one property image is required");
+      }
+      
+      if (errors.length > 0) {
+        setFormErrors(errors);
+        dispatch(showAlert("error", "Please fix the errors before submitting"));
+        setIsSubmitting(false);
+        setSubmitting(false);
+        // Scroll to top to show errors
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
       // Use listingType directly
       const listingType = values.listingType;
 
@@ -404,6 +425,20 @@ const PropertyForm = () => {
           }) => (
             <Form>
               <Grid container spacing={3}>
+                {/* Error Display */}
+                {formErrors.length > 0 && (
+                  <Grid item xs={12}>
+                    <Alert severity="error" onClose={() => setFormErrors([])}>
+                      <AlertTitle>Please fix the following errors:</AlertTitle>
+                      <ul style={{ margin: 0, paddingLeft: 20 }}>
+                        {formErrors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </Alert>
+                  </Grid>
+                )}
+
                 {/* Basic Information */}
                 <Grid item xs={12}>
                   <Typography variant="h6" gutterBottom>
@@ -956,7 +991,15 @@ const PropertyForm = () => {
                 </Grid>
 
                 <Grid item xs={12}>
-                  <Box sx={{ mb: 2 }}>
+                  <Box 
+                    sx={{ 
+                      mb: 2,
+                      p: 2,
+                      border: formErrors.some(e => e.includes('image')) ? '2px solid #d32f2f' : '1px solid #e0e0e0',
+                      borderRadius: 1,
+                      backgroundColor: formErrors.some(e => e.includes('image')) ? '#ffebee' : 'transparent'
+                    }}
+                  >
                     <Button
                       variant="outlined"
                       component="label"
@@ -975,10 +1018,13 @@ const PropertyForm = () => {
                     <Typography
                       variant="caption"
                       display="block"
-                      sx={{ mt: 1 }}
+                      sx={{ 
+                        mt: 1,
+                        color: formErrors.some(e => e.includes('image')) ? '#d32f2f' : 'text.secondary'
+                      }}
                     >
-                      Max 5 images. Supported formats: JPEG, JPG, PNG. Max size:
-                      5MB per image.
+                      {formErrors.some(e => e.includes('image')) ? '⚠️ ' : ''}Max 5 images. Supported formats: JPEG, JPG, PNG. Max size: 5MB per image.
+                      {!isEditMode && ' (Required)'}
                     </Typography>
                   </Box>
 

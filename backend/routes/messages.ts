@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import passport from 'passport';
 import { check, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
+import multer from 'multer';
+import path from 'path';
 
 const router = express.Router();
 
@@ -29,6 +31,30 @@ interface SendMessageRequest {
   }>;
 }
 
+// Set up multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/messages/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10000000 }, // 10MB limit
+  fileFilter: function (req, file, cb) {
+    const filetypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    if (extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Error: Images and documents only!'));
+    }
+  }
+});
+
 // @route   GET api/messages/conversations
 // @desc    Get all conversations for a user
 // @access  Private
@@ -39,7 +65,7 @@ router.get(
     try {
       // Import models dynamically to avoid circular dependencies
       const Conversation = require('../models/Conversation').default;
-      
+
       const conversations = await Conversation.find({
         participants: (req.user as AuthenticatedUser)?._id,
         isActive: true
@@ -49,7 +75,14 @@ router.get(
         .populate('lastMessage')
         .sort({ updatedAt: -1 });
 
-      res.json(conversations);
+      // Transform unreadCount to number for the requesting user
+      const conversationsWithUnread = conversations.map((conv: any) => {
+        const convObj = conv.toObject();
+        const unread = conv.unreadCount.get((req.user as AuthenticatedUser)?._id.toString()) || 0;
+        return { ...convObj, unreadCount: unread };
+      });
+
+      res.json(conversationsWithUnread);
     } catch (err: any) {
       console.error(err.message);
       res.status(500).send('Server error');
@@ -78,7 +111,7 @@ router.post(
       const Conversation = require('../models/Conversation').default;
       const Message = require('../models/Message').default;
       const User = require('../models/User').default;
-      
+
       const { recipient, property, initialMessage } = req.body;
 
       // Check if recipient exists
@@ -100,7 +133,21 @@ router.post(
           await conversation.save();
         }
 
-        return res.json(conversation);
+        // Populate and return existing conversation
+        const populatedExisting = await Conversation.findById(conversation._id)
+          .populate('participants', 'name avatar')
+          .populate('property', 'title images')
+          .populate({
+            path: 'lastMessage',
+            populate: { path: 'sender', select: 'name avatar' }
+          });
+
+        if (!populatedExisting) return res.status(500).send('Server error');
+
+        const convObj = populatedExisting.toObject();
+        const unread = conversation.unreadCount.get((req.user as AuthenticatedUser)?._id.toString()) || 0;
+
+        return res.json({ ...convObj, unreadCount: unread });
       }
 
       // Create new conversation
@@ -142,9 +189,18 @@ router.post(
       const populatedConversation = await Conversation.findById(conversation._id)
         .populate('participants', 'name avatar')
         .populate('property', 'title images')
-        .populate('lastMessage');
+        .populate({
+          path: 'lastMessage',
+          populate: { path: 'sender', select: 'name avatar' }
+        });
 
-      res.json(populatedConversation);
+      if (!populatedConversation) return res.status(500).send('Server error');
+
+      const convObj = populatedConversation.toObject();
+      // For new conversation creator, unread count is 0
+      const unread = 0;
+
+      res.json({ ...convObj, unreadCount: unread });
     } catch (err: any) {
       console.error(err.message);
       res.status(500).send('Server error');
@@ -163,7 +219,7 @@ router.get(
       // Import models dynamically to avoid circular dependencies
       const Conversation = require('../models/Conversation').default;
       const Message = require('../models/Message').default;
-      
+
       const conversation = await Conversation.findById(req.params.id);
 
       if (!conversation) {
@@ -208,6 +264,7 @@ router.post(
   '/conversations/:id',
   [
     passport.authenticate('jwt', { session: false }),
+    upload.array('attachments', 5),
     check('content', 'Message content is required').not().isEmpty()
   ],
   async (req: Request<{ id: string }, {}, SendMessageRequest>, res: Response) => {
@@ -221,7 +278,7 @@ router.post(
       const Conversation = require('../models/Conversation').default;
       const Message = require('../models/Message').default;
       const User = require('../models/User').default;
-      
+
       const conversation = await Conversation.findById(req.params.id);
 
       if (!conversation) {
@@ -240,6 +297,17 @@ router.post(
         content: req.body.content,
         attachments: req.body.attachments || []
       });
+
+      // Handle file uploads if any
+      if (req.files && Array.isArray(req.files)) {
+        const files = req.files as Express.Multer.File[];
+        const attachments = files.map(file => ({
+          type: file.mimetype.startsWith('image/') ? 'image' : 'document',
+          url: `/uploads/messages/${file.filename}`,
+          fileType: file.mimetype
+        }));
+        newMessage.attachments = attachments;
+      }
 
       const message = await newMessage.save();
 
@@ -292,7 +360,7 @@ router.delete(
     try {
       // Import models dynamically to avoid circular dependencies
       const Conversation = require('../models/Conversation').default;
-      
+
       const conversation = await Conversation.findById(req.params.id);
 
       if (!conversation) {

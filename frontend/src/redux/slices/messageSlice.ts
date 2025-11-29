@@ -28,8 +28,7 @@ interface MessageState {
 }
 
 interface SendMessagePayload {
-   conversationId: string;
-  formData: FormData;
+  conversationId: string;
   content: string;
   attachments?: File[];
 }
@@ -63,9 +62,9 @@ export const getConversations = createAsyncThunk(
 
 export const createConversation = createAsyncThunk(
   'message/createConversation',
-  async (formData: { recipient: string }, { rejectWithValue }) => {
+  async (formData: { recipient: string; initialMessage?: string; property?: string }, { rejectWithValue }) => {
     try {
-      const res = await axios.post<ConversationMessagesResponse>('/api/messages/conversations', formData);
+      const res = await axios.post<Conversation>('/api/messages/conversations', formData);
       return res.data;
     } catch (error) {
       const err = error as AxiosError;
@@ -93,13 +92,13 @@ export const sendMessage = createAsyncThunk(
     try {
       const formData = new FormData();
       formData.append('content', content);
-      
+
       if (attachments && attachments.length > 0) {
         attachments.forEach(file => {
           formData.append('attachments', file);
         });
       }
-      
+
       const res = await axios.post<MessageResponse>(
         `/api/messages/conversations/${conversationId}`,
         formData,
@@ -154,30 +153,30 @@ const messageSlice = createSlice({
     },
     receiveMessage: (state, action: PayloadAction<{ message: Message; conversationId: string }>) => {
       const { message, conversationId } = action.payload;
-      
+
       if (state.currentConversation?._id === conversationId) {
         state.messages.push(message);
       }
-      
+
       const conversationIndex = state.conversations.findIndex(
         conv => conv._id === conversationId
       );
-      
+
       if (conversationIndex !== -1) {
         const updatedConversation = {
           ...state.conversations[conversationIndex],
           lastMessage: message,
           unreadCount: state.currentConversation?._id === conversationId
-            ? 0 
+            ? 0
             : (state.conversations[conversationIndex].unreadCount + 1)
         };
-        
+
         const updatedConversations = state.conversations.filter(
           conv => conv._id !== conversationId
         );
-        
+
         state.conversations = [updatedConversation, ...updatedConversations];
-        
+
         if (state.currentConversation?._id !== conversationId) {
           state.unreadCount += 1;
         }
@@ -187,7 +186,7 @@ const messageSlice = createSlice({
       const conversationIndex = state.conversations.findIndex(
         conv => conv._id === action.payload
       );
-      
+
       if (conversationIndex !== -1) {
         state.unreadCount -= state.conversations[conversationIndex].unreadCount;
         state.conversations[conversationIndex].unreadCount = 0;
@@ -198,7 +197,68 @@ const messageSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
-    // ...existing extraReducers code...
+    // Get conversations
+    builder.addCase(getConversations.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(getConversations.fulfilled, (state, action) => {
+      state.loading = false;
+      state.conversations = action.payload as any;
+    });
+    builder.addCase(getConversations.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Create conversation
+    builder.addCase(createConversation.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(createConversation.fulfilled, (state, action) => {
+      state.loading = false;
+      // Check if conversation already exists to avoid duplicates
+      const exists = state.conversations.some(c => c._id === action.payload._id);
+      if (!exists) {
+        state.conversations.unshift(action.payload);
+      }
+    });
+    builder.addCase(createConversation.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Get messages
+    builder.addCase(getMessages.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(getMessages.fulfilled, (state, action) => {
+      state.loading = false;
+      state.messages = action.payload as any;
+    });
+    builder.addCase(getMessages.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Send message
+    builder.addCase(sendMessage.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(sendMessage.fulfilled, (state, action) => {
+      state.loading = false;
+      state.messages.push(action.payload as any);
+    });
+    builder.addCase(sendMessage.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Archive conversation
+    builder.addCase(archiveConversation.fulfilled, (state, action) => {
+      state.conversations = state.conversations.filter(
+        conv => conv._id !== action.payload
+      );
+    });
   }
 });
 

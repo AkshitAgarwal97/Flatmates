@@ -152,7 +152,7 @@ const ConversationList = () => {
   const filteredConversations = conversations.filter(
     (conversation: Conversation) => {
       const otherParticipant = getOtherParticipant(conversation);
-      if (!otherParticipant) return false;
+      if (!otherParticipant || !otherParticipant.name) return false;
 
       return otherParticipant.name
         .toLowerCase()

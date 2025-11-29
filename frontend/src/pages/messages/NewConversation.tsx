@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createConversation } from "../../redux/slices/messageSlice";
-import searchUsers from "../../services/api";
 import { RootState, useAppDispatch } from "../../redux/store";
+import axios from "axios";
 
 // MUI components
 import Dialog from "@mui/material/Dialog";
@@ -68,13 +68,35 @@ const NewConversation = ({
   const [searching, setSearching] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
-  // Check if we have a pre-selected owner from property details
+  // Auto-fetch owner details when ownerId is provided
   useEffect(() => {
-    if (ownerId && !selectedUser) {
-      // If ownerId is provided, we might want to pre-select that user
-      // This would require fetching the user details first
-    }
-  }, [ownerId, selectedUser]);
+    const fetchOwnerDetails = async () => {
+      if (ownerId && !selectedUser && open) {
+        try {
+          setLoading(true);
+          const response = await axios.get(`/api/users/${ownerId}`);
+          const ownerData = response.data;
+          
+          // Auto-select the owner
+          setSelectedUser(ownerData);
+          
+          // Auto-generate a message if coming from a property
+          if (propertyId && !message) {
+            setMessage(
+              `Hi! I'm interested in your property. Could you tell me more about it?`
+            );
+          }
+        } catch (err) {
+          console.error("Error fetching owner details:", err);
+          setError("Unable to load property owner information. Please search manually.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchOwnerDetails();
+  }, [ownerId, selectedUser, open, propertyId, message]);
 
   // Check if we're coming from a property page
   useEffect(() => {
@@ -100,9 +122,11 @@ const NewConversation = ({
 
       setSearching(true);
       try {
-        const response = await searchUsers(searchTerm);
+        const response = await axios.get(`/api/users`, {
+          params: { search: searchTerm }
+        });
         // Filter out current user from search results
-        const filteredResults = response.data.filter(
+        const filteredResults = response.data.users.filter(
           (userResult: User) => userResult._id !== user?._id
         );
         setSearchResults(filteredResults);
@@ -162,12 +186,14 @@ const NewConversation = ({
       const result = await dispatch(
         createConversation({
           recipient: selectedUser._id,
+          initialMessage: message.trim(),
+          property: propertyId || undefined,
         }) as any
       ).unwrap();
 
       // Close dialog and navigate to the new conversation
       onClose();
-      navigate(`/messages/${result.conversation._id}`);
+      navigate(`/messages/${result._id}`);
     } catch (err: any) {
       console.error("Error creating conversation:", err);
       setError(err.message || "Failed to create conversation");

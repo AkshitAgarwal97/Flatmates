@@ -99,8 +99,7 @@ const App: React.FC = () => {
               </Route>
 
               <Route element={<PrivateRoute />}>
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/messages/:id" element={<Messages />} />
+                <Route path="/messages/*" element={<Messages />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

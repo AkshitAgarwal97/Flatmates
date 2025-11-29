@@ -60,7 +60,7 @@ interface Attachment {
 interface Message {
   _id: string;
   content?: string;
-  sender: string | User; // Accept both string (user ID) and User object
+  sender: string | User | any; // Accept string (user ID), User object, or ObjectId object
   attachments?: Attachment[];
   createdAt: string;
   read?: boolean;
@@ -201,19 +201,11 @@ const Conversation = () => {
     setIsSending(true);
 
     try {
-      const formData = new FormData();
-      formData.append("content", messageText.trim());
-
-      // Append attachments
-      attachments.forEach((file) => {
-        formData.append("attachments", file);
-      });
-
       await dispatch(
         sendMessage({
           conversationId: id!,
-          formData,
           content: messageText.trim(),
+          attachments: attachments,
         })
       );
 
@@ -378,7 +370,7 @@ const Conversation = () => {
     if (isImage) {
       return (
         <Box
-          key={attachment._id}
+          key={String(attachment._id)}
           component="img"
           src={attachment.url}
           alt="Attachment"
@@ -394,7 +386,7 @@ const Conversation = () => {
 
     return (
       <Box
-        key={attachment._id}
+        key={String(attachment._id)}
         component="a"
         href={attachment.url}
         target="_blank"
@@ -566,20 +558,55 @@ const Conversation = () => {
                   </Divider>
 
                   {dateMessages.map((message) => {
+                    // Handle sender which can be: string ID, ObjectId object, or User object
+                    let senderId: string;
+                    
+                    if (typeof message.sender === 'string') {
+                      senderId = message.sender;
+                    } else if (message.sender && typeof message.sender === 'object') {
+                      // Check if it's a User object with _id
+                      if ('_id' in message.sender && message.sender._id) {
+                        // User object with _id
+                        if (typeof message.sender._id === 'string') {
+                          senderId = message.sender._id;
+                        } else {
+                          // Handle ObjectId object
+                          const json = JSON.parse(JSON.stringify(message.sender._id));
+                          senderId = typeof json === 'string' ? json : (json.$oid || json.toString());
+                        }
+                      } else {
+                        // It's an ObjectId - convert via JSON to get the actual ID string
+                        const jsonStr = JSON.stringify(message.sender);
+                        try {
+                          const parsed = JSON.parse(jsonStr);
+                          senderId = parsed.$oid || parsed.toString() || jsonStr.replace(/[{}"]/g, '');
+                        } catch {
+                          senderId = jsonStr.replace(/[{}"]/g, '');
+                        }
+                      }
+                    } else {
+                      senderId = '';
+                    }
+                    
                     const senderUser =
-                      typeof message.sender === "string"
-                        ? currentConversation?.participants.find(
-                            (p) => p._id === message.sender
-                          )
-                        : message.sender;
-                    const isCurrentUser =
-                      (typeof message.sender === "string"
-                        ? message.sender
-                        : message.sender._id) === user?._id;
+                      typeof message.sender === "object" && message.sender?.name
+                        ? message.sender  // Already populated User object
+                        : currentConversation?.participants.find(
+                            (p) => p._id === senderId
+                          );
+                    
+                    const isCurrentUser = senderId === user?._id;
+
+                    const getStringId = (id: any): string => {
+                      if (typeof id === 'string') return id;
+                      if (!id) return Math.random().toString();
+                      const json = JSON.parse(JSON.stringify(id));
+                      return typeof json === 'string' ? json : (json.$oid || json.toString());
+                    };
 
                     return (
                       <Box
-                        key={message._id}
+                        key={getStringId(message._id)}
                         sx={{
                           display: "flex",
                           flexDirection: isCurrentUser ? "row-reverse" : "row",

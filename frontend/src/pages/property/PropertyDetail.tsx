@@ -36,6 +36,7 @@ import { RootState, AppDispatch } from "../../redux/store";
 import {
   getPropertyById,
   toggleSaveProperty,
+  deleteProperty,
 } from "../../redux/slices/propertySlice";
 import { showAlert } from "../../redux/slices/alertSlice";
 import NewConversation from "../messages/NewConversation";
@@ -199,7 +200,19 @@ const PropertyDetails: React.FC = () => {
 
   const handleEditProperty = () => {
     if (property) {
-      navigate(`/edit-property/${property._id}`);
+      navigate(`/properties/edit/${property._id}`);
+    }
+  };
+
+  const handleDeleteProperty = async () => {
+    if (window.confirm("Are you sure you want to delete this property?")) {
+      try {
+        await dispatch(deleteProperty(property._id)).unwrap();
+        dispatch(showAlert("success", "Property deleted successfully"));
+        navigate("/properties");
+      } catch (error: any) {
+        dispatch(showAlert("error", error.message || "Failed to delete property"));
+      }
     }
   };
 
@@ -337,6 +350,7 @@ const PropertyDetails: React.FC = () => {
                 <Edit />
               </IconButton>
               <IconButton
+                onClick={handleDeleteProperty}
                 sx={{
                   bgcolor: "rgba(255, 255, 255, 0.8)",
                   "&:hover": { bgcolor: "rgba(255, 255, 255, 0.9)" },
@@ -363,31 +377,33 @@ const PropertyDetails: React.FC = () => {
         </Typography>
         <Box sx={{ display: "flex", gap: 3, mt: 2 }}>
           <Chip
-            label={`${property.bedrooms} Bed${
-              property.bedrooms !== 1 ? "s" : ""
+            label={`${property.features?.bedrooms || 0} Bed${
+              property.features?.bedrooms !== 1 ? "s" : ""
             }`}
             color="primary"
             variant="outlined"
           />
           <Chip
-            label={`${property.bathrooms} Bath${
-              property.bathrooms !== 1 ? "s" : ""
+            label={`${property.features?.bathrooms || 0} Bath${
+              property.features?.bathrooms !== 1 ? "s" : ""
             }`}
             color="primary"
             variant="outlined"
           />
           <Chip
             label={`${
-              property.size ? property.size.toLocaleString() : "N/A"
+              property.features?.area ? property.features.area.toLocaleString() : "N/A"
             } sq ft`}
             color="primary"
             variant="outlined"
           />
 
           <Chip
-            label={`Available: ${new Date(
-              property.availabilityDate
-            ).toLocaleDateString()}`}
+            label={`Available: ${
+              property.availability?.availableFrom
+                ? new Date(property.availability.availableFrom).toLocaleDateString()
+                : "N/A"
+            }`}
             color="primary"
             variant="outlined"
           />
@@ -430,14 +446,14 @@ const PropertyDetails: React.FC = () => {
               {property.description}
             </Typography>
 
-            {property.amenities && property.amenities.length > 0 && (
+            {property.features?.amenities && property.features.amenities.length > 0 && (
               <>
                 <Divider sx={{ my: 3 }} />
                 <Typography variant="h6" gutterBottom>
                   Amenities
                 </Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                  {property.amenities.map((amenity: string, index: number) => (
+                  {property.features.amenities.map((amenity: string, index: number) => (
                     <Chip key={index} label={amenity} variant="outlined" />
                   ))}
                 </Box>

@@ -1,7 +1,4 @@
-import React, { useEffect } from "react";
-import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { getPropertyById } from "../../redux/slices/propertySlice";
 import PropertyForm from "./PropertyForm";
 
 // MUI components
@@ -11,21 +8,12 @@ import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
-import { useAppDispatch } from "../../redux/store";
 
 const EditProperty = () => {
-  const { id } = useParams();
-  const dispatch = useAppDispatch();
   const { property, loading, error } = useSelector(
     (state: any) => state.property
   );
   const { user } = useSelector((state: any) => state.auth);
-
-  useEffect(() => {
-    if (id) {
-      dispatch(getPropertyById(id) as any);
-    }
-  }, [dispatch, id]);
 
   if (loading) {
     return (

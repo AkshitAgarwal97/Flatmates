@@ -157,10 +157,10 @@ const PropertyList: React.FC = () => {
                     </Typography>
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2">
-                        {property.bedrooms} beds • {property.bathrooms} baths
+                        {property.bedrooms || 0} beds • {property.bathrooms || 0} baths
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {property.propertyType}
+                        {property.propertyType || 'Property'}
                       </Typography>
                     </Box>
                     <Button

@@ -1,0 +1,121 @@
+{
+  "project": {
+    "name": "Flatmates",
+    "description": "A platform that connects people looking for flatmates or properties to rent",
+    "version": "1.0.0"
+  },
+  "application": {
+    "frontend": {
+      "type": "react",
+      "url": "http://localhost:3000",
+      "framework": "React 18 with TypeScript",
+      "uiLibrary": "Material-UI",
+      "stateManagement": "Redux Toolkit"
+    },
+    "backend": {
+      "type": "api",
+      "url": "http://localhost:5000",
+      "framework": "Express.js with TypeScript",
+      "database": "MongoDB",
+      "authentication": "JWT with Passport.js",
+      "realtime": "Socket.io"
+    }
+  },
+  "testing": {
+    "type": "fullstack",
+    "scopes": [
+      "frontend",
+      "backend"
+    ],
+    "testAccount": {
+      "email": "namritasaxena2000@gmail.com",
+      "password": "Hello@123",
+      "note": "Create a test account with these credentials before running tests"
+    },
+    "endpoints": {
+      "baseUrl": "http://localhost:5000/api",
+      "auth": {
+        "register": "/api/auth/register",
+        "login": "/api/auth/login",
+        "logout": "/api/auth/logout",
+        "verify": "/api/auth/verify",
+        "forgotPassword": "/api/auth/forgot-password",
+        "resetPassword": "/api/auth/reset-password"
+      },
+      "users": {
+        "profile": "/api/users/profile",
+        "update": "/api/users/update",
+        "getById": "/api/users/:id"
+      },
+      "properties": {
+        "list": "/api/properties",
+        "create": "/api/properties",
+        "getById": "/api/properties/:id",
+        "update": "/api/properties/:id",
+        "delete": "/api/properties/:id",
+        "search": "/api/properties/search"
+      },
+      "messages": {
+        "conversations": "/api/messages/conversations",
+        "messages": "/api/messages/:conversationId",
+        "send": "/api/messages",
+        "markRead": "/api/messages/:id/read"
+      }
+    },
+    "routes": {
+      "public": [
+        "/",
+        "/login",
+        "/register",
+        "/forgot-password",
+        "/properties",
+        "/properties/:id"
+      ],
+      "protected": [
+        "/dashboard",
+        "/profile",
+        "/profile/edit",
+        "/properties/create",
+        "/properties/edit/:id",
+        "/messages",
+        "/messages/:id"
+      ]
+    },
+    "userTypes": [
+      "Users searching for a room in a preoccupied flat",
+      "Users looking for roommates to find a flat together",
+      "Users willing to rent out a preoccupied flat",
+      "Users willing to rent out the whole property"
+    ],
+    "features": [
+      "Social login (Google, Facebook, Instagram)",
+      "User registration and authentication",
+      "User profiles based on user type",
+      "Property listings and search",
+      "Property creation and editing",
+      "Real-time messaging system",
+      "Message notifications",
+      "Conversation management",
+      "Property sharing through messages"
+    ]
+  },
+  "environment": {
+    "development": {
+      "frontendUrl": "http://localhost:3000",
+      "backendUrl": "http://localhost:5000",
+      "database": "mongodb://localhost:27017/flatmates"
+    },
+    "test": {
+      "frontendUrl": "http://localhost:3000",
+      "backendUrl": "http://localhost:5000",
+      "database": "mongodb://localhost:27017/flatmates-test"
+    }
+  },
+  "prerequisites": [
+    "Node.js (v14 or higher)",
+    "MongoDB running locally",
+    "Backend server running on port 5000",
+    "Frontend server running on port 3000"
+  ]
+}
+
