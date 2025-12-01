@@ -103,10 +103,19 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Connect to MongoDB
+const mongoURI = process.env.MONGO_URI || process.env.MONGO_URL || process.env.DATABASE_URL || 'mongodb://localhost:27017/flatmates';
+
+console.log(`Attempting to connect to MongoDB... (URI length: ${mongoURI.length})`);
+
 mongoose
-  .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/flatmates')
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log('MongoDB connection error:', err));
+  .connect(mongoURI)
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Critical: Could not connect to database in production.');
+    }
+  });
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
