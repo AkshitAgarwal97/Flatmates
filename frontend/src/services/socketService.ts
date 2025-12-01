@@ -12,7 +12,8 @@ const initSocket = (token: string, dispatch: AppDispatch) => {
   }
 
   // Create new socket connection with auth token
-  socket = io('http://localhost:5000', {
+  const SOCKET_URL = process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:5000';
+  socket = io(SOCKET_URL, {
     auth: {
       token
     },

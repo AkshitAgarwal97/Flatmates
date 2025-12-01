@@ -191,12 +191,12 @@ const PropertyListing = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" paragraph>
-                    {property.description?.substring(0, 100)}...
+                    {property.description ? `${property.description.substring(0, 100)}...` : 'No description available'}
                   </Typography>
                   <Box display="flex" flexWrap="wrap" gap={0.5} mb={2}>
-                    <Chip label={`${property.bedrooms} bed`} size="small" />
-                    <Chip label={`${property.bathrooms} bath`} size="small" />
-                    <Chip label={property.propertyType} size="small" />
+                    <Chip label={`${property.features?.bedrooms || property.bedrooms || 0} bed`} size="small" />
+                    <Chip label={`${property.features?.bathrooms || property.bathrooms || 0} bath`} size="small" />
+                    <Chip label={property.propertyType || 'N/A'} size="small" />
                   </Box>
                 </CardContent>
                 <Box sx={{ p: 2, pt: 0 }}>

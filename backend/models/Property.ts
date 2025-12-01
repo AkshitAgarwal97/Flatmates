@@ -90,6 +90,10 @@ const PropertySchema: Schema = new Schema({
     type: String,
     required: true
   },
+  description: {
+    type: String,
+    required: true
+  },
   address: {
     street: String,
     city: {

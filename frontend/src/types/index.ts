@@ -46,6 +46,15 @@ export interface Address {
   };
 }
 
+export interface PropertyFeatures {
+  bedrooms?: number;
+  bathrooms?: number;
+  area?: number;
+  furnishing?: 'furnished' | 'unfurnished' | 'semi-furnished';
+  amenities?: string[];
+  utilities?: string[];
+}
+
 export interface Property {
   _id: string;
   title: string;
@@ -53,12 +62,16 @@ export interface Property {
   price: Price;
   address: Address;
   propertyType: string;
+  listingType?: string;
   userType?: string;
+  // Legacy flat properties (for backward compatibility)
   bedrooms?: number;
   bathrooms?: number;
   area?: number;
   size?: number;
   amenities: string[];
+  // New nested structure matching backend
+  features?: PropertyFeatures;
   rules?: string[];
   preferences?: Preferences;
   images: Array<{ url: string; caption?: string }>;
