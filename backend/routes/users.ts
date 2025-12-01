@@ -14,7 +14,7 @@ interface AuthenticatedRequest extends Request {
 // Set up multer for avatar uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/avatars/');
+    cb(null, path.join(process.cwd(), 'uploads/avatars/'));
   },
   filename: function (req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -44,7 +44,7 @@ router.get('/me', passport.authenticate('jwt', { session: false }), async (req: 
   try {
     // Import User model dynamically to avoid circular dependencies
     const User = require('../models/User').default;
-    
+
     const user = await User.findById(req.user?.id).select('-password');
     res.json(user);
   } catch (err: any) {
@@ -74,7 +74,7 @@ router.put(
     try {
       // Import User model dynamically to avoid circular dependencies
       const User = require('../models/User').default;
-      
+
       const { name, email, phone, bio, preferences } = req.body;
 
       // Build profile object
@@ -112,7 +112,7 @@ router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
   try {
     // Import User model dynamically to avoid circular dependencies
     const User = require('../models/User').default;
-    
+
     const user = await User.findById(req.params.id).select('-password -notifications');
 
     if (!user) {
@@ -138,7 +138,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     // Import User model dynamically to avoid circular dependencies
     const User = require('../models/User').default;
-    
+
     // Build filter object
     const filter: any = {};
 
@@ -184,7 +184,7 @@ router.get('/me/notifications', passport.authenticate('jwt', { session: false })
   try {
     // Import User model dynamically to avoid circular dependencies
     const User = require('../models/User').default;
-    
+
     const user = await User.findById(req.user?.id).select('notifications');
     res.json(user?.notifications || []);
   } catch (err: any) {
@@ -200,9 +200,9 @@ router.put('/notifications/:id', passport.authenticate('jwt', { session: false }
   try {
     // Import User model dynamically to avoid circular dependencies
     const User = require('../models/User').default;
-    
+
     const user = await User.findById(req.user?.id);
-    
+
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
     }

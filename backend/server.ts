@@ -40,7 +40,7 @@ const io = new SocketIo(server, {
 });
 
 // Ensure upload directories exist
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.join(process.cwd(), 'uploads');
 const avatarsDir = path.join(uploadsDir, 'avatars');
 const propertiesDir = path.join(uploadsDir, 'properties');
 try {
