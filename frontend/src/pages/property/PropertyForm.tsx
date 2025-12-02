@@ -207,7 +207,9 @@ const PropertyForm = () => {
       street: Yup.string(), // Optional
       city: Yup.string().required("City is required"),
       state: Yup.string(), // Optional
-      zipCode: Yup.string(), // Optional
+      zipCode: Yup.string()
+        .required("Zip Code is required")
+        .matches(/^[0-9]{6}$/, "Zip Code must be exactly 6 digits"),
       country: Yup.string().required("Country is required"),
     }),
     bedrooms: Yup.number().min(0, "Cannot be negative").nullable(),
@@ -267,7 +269,7 @@ const PropertyForm = () => {
         city: "",
         state: "",
         zipCode: "",
-        country: "",
+        country: "India",
       },
       bedrooms: "",
       bathrooms: "",
@@ -422,6 +424,7 @@ const PropertyForm = () => {
             touched,
             handleChange,
             handleBlur,
+            setFieldValue,
           }) => (
             <Form>
               <Grid container spacing={3}>
@@ -586,7 +589,6 @@ const PropertyForm = () => {
                   />
                 </Grid>
 
-                {/* Address Information */}
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="h6" gutterBottom>
@@ -616,6 +618,41 @@ const PropertyForm = () => {
                   <Field
                     as={TextField}
                     fullWidth
+                    label="ZIP/Postal Code"
+                    name="address.zipCode"
+                    value={values.address.zipCode}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      handleChange(e);
+                      const pincode = e.target.value;
+                      if (pincode.length === 6) {
+                        fetch(`https://api.postalpincode.in/pincode/${pincode}`)
+                          .then(res => res.json())
+                          .then(data => {
+                            if (data[0].Status === 'Success') {
+                              const postOffice = data[0].PostOffice[0];
+                              setFieldValue('address.city', postOffice.District);
+                              setFieldValue('address.state', postOffice.State);
+                              setFieldValue('address.country', 'India');
+                            }
+                          })
+                          .catch(err => console.error("Failed to fetch pincode details", err));
+                      }
+                    }}
+                    onBlur={handleBlur}
+                    error={
+                      touched.address?.zipCode &&
+                      Boolean(errors.address?.zipCode)
+                    }
+                    helperText={
+                      touched.address?.zipCode && errors.address?.zipCode
+                    }
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Field
+                    as={TextField}
+                    fullWidth
                     label="City"
                     name="address.city"
                     value={values.address.city}
@@ -625,6 +662,9 @@ const PropertyForm = () => {
                       touched.address?.city && Boolean(errors.address?.city)
                     }
                     helperText={touched.address?.city && errors.address?.city}
+                    InputProps={{
+                      readOnly: false, // Allow manual edit if needed
+                    }}
                   />
                 </Grid>
 
@@ -648,30 +688,12 @@ const PropertyForm = () => {
                   <Field
                     as={TextField}
                     fullWidth
-                    label="ZIP/Postal Code"
-                    name="address.zipCode"
-                    value={values.address.zipCode}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    error={
-                      touched.address?.zipCode &&
-                      Boolean(errors.address?.zipCode)
-                    }
-                    helperText={
-                      touched.address?.zipCode && errors.address?.zipCode
-                    }
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Field
-                    as={TextField}
-                    fullWidth
                     label="Country"
                     name="address.country"
                     value={values.address.country}
                     onChange={handleChange}
                     onBlur={handleBlur}
+                    disabled // Make it read-only/disabled
                     error={
                       touched.address?.country &&
                       Boolean(errors.address?.country)

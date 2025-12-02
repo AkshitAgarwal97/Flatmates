@@ -161,7 +161,7 @@ const PropertyListing = () => {
                     property.images?.[0]?.url
                       ? (property.images[0].url.startsWith('http') 
                           ? property.images[0].url 
-                          : `http://localhost:5000${property.images[0].url}`)
+                          : `${process.env.REACT_APP_API_URL || ''}${property.images[0].url}`)
                       : "https://picsum.photos/seed/no-image-listing/300/200"
                   }
                   alt={property.title}

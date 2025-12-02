@@ -251,7 +251,9 @@ const PropertyDetails: React.FC = () => {
               component="img"
               src={
                 property.images[currentImageIndex]?.url
-                  ? `${process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000'}${property.images[currentImageIndex].url}`
+                  ? (property.images[currentImageIndex].url.startsWith('http')
+                      ? property.images[currentImageIndex].url
+                      : `${process.env.REACT_APP_API_URL || ''}${property.images[currentImageIndex].url}`)
                   : property.images[currentImageIndex]
               }
               alt={property.title}
