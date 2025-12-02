@@ -5,6 +5,8 @@ import multer from 'multer';
 import path from 'path';
 import mongoose from 'mongoose';
 import { parseFormDataJSON } from '../utils/formDataHelper';
+import cloudinary from '../config/cloudinaryConfig';
+import fs from 'fs';
 
 const router = express.Router();
 
@@ -143,12 +145,26 @@ router.post(
       const Property = require('../models/Property').default;
 
       // Process uploaded images
-      const images = req.files && Array.isArray(req.files) && req.files.length > 0
-        ? req.files.map((file: Express.Multer.File) => ({
-          url: `/uploads/properties/${file.filename}`,
-          caption: ''
-        }))
-        : [];
+      const images = [];
+      if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+        for (const file of req.files as Express.Multer.File[]) {
+          try {
+            const result = await cloudinary.uploader.upload(file.path, {
+              folder: 'flatmates/properties',
+            });
+            images.push({
+              url: result.secure_url,
+              caption: ''
+            });
+            // Remove file from local storage after upload
+            fs.unlinkSync(file.path);
+          } catch (uploadError) {
+            console.error('Cloudinary upload error:', uploadError);
+            // Try to remove local file if upload fails
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+          }
+        }
+      }
 
       // Parse nested objects from FormData
       const parsedPreferences = parseFormDataJSON(req.body.preferences) || {};
@@ -370,14 +386,26 @@ router.put(
       // Process uploaded images
       let images = property.images;
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-        const newImages = req.files.map((file: Express.Multer.File) => ({
-          url: `/uploads/properties/${file.filename}`,
-          caption: ''
-        }));
-        images = [...images, ...newImages];
+        for (const file of req.files as Express.Multer.File[]) {
+          try {
+            const result = await cloudinary.uploader.upload(file.path, {
+              folder: 'flatmates/properties',
+            });
+            images.push({
+              url: result.secure_url,
+              caption: ''
+            });
+            // Remove file from local storage after upload
+            fs.unlinkSync(file.path);
+          } catch (uploadError) {
+            console.error('Cloudinary upload error:', uploadError);
+            // Try to remove local file if upload fails
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+          }
+        }
       }
 
-      // Remove images if specified
+      // Remove images if specified (removes from DB, future TODO: remove from Cloudinary)
       if (req.body.removeImages) {
         const removeImages = (req.body.removeImages as string).split(',');
         images = images.filter((image: any) => !removeImages.includes(image.url));
