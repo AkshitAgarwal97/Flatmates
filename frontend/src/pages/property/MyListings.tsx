@@ -33,7 +33,6 @@ const MyListings = () => {
   useEffect(() => {
     dispatch(getUserListings());
   }, [dispatch]);
-console.log(userListings);
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
