@@ -159,7 +159,9 @@ const PropertyListing = () => {
                   height="200"
                   image={
                     property.images?.[0]?.url
-                      ? `http://localhost:5000${property.images[0].url}`
+                      ? (property.images[0].url.startsWith('http') 
+                          ? property.images[0].url 
+                          : `http://localhost:5000${property.images[0].url}`)
                       : "https://picsum.photos/seed/no-image-listing/300/200"
                   }
                   alt={property.title}

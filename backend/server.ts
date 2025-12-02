@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -6,7 +9,6 @@ import path from 'path';
 import http from 'http';
 import { Server as SocketIo } from 'socket.io';
 import fs from 'fs';
-import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -24,8 +26,6 @@ import configurePassport from './config/passport';
 import socketHandler from './services/socket';
 // Import Property model for background jobs
 import Property from './models/Property';
-
-dotenv.config();
 
 // Initialize express app
 const app = express();
