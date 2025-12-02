@@ -23,6 +23,7 @@ import {
   PropertyDetails,
   CreateProperty,
   EditProperty,
+  MyListings,
 } from "./pages/property";
 import { UserProfile, EditProfile } from "./pages/user";
 import { Messages } from "./pages/messages";
@@ -84,6 +85,10 @@ const App: React.FC = () => {
 
               <Route element={<PrivateRoute />}>
                 <Route path="/properties/create" element={<CreateProperty />} />
+              </Route>
+
+              <Route element={<PrivateRoute />}>
+                <Route path="/properties/my-listings" element={<MyListings />} />
               </Route>
 
               <Route element={<PrivateRoute />}>

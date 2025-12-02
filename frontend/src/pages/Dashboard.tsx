@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Link as RouterLink } from "react-router-dom";
-import { getProperties } from "../redux/slices/propertySlice";
+import { getUserListings } from "../redux/slices/propertySlice";
 import { getConversations } from "../redux/slices/messageSlice";
 import { useAppDispatch, RootState } from "../redux/store";
 
@@ -43,17 +43,6 @@ interface Property {
   };
 }
 
-// interface User {
-//   _id: string;
-//   name: string;
-//   avatar?: string;
-// }
-
-// interface Message {
-//   content: string;
-//   createdAt: string;
-// }
-
 const Dashboard = () => {
   const dispatch = useAppDispatch();
   const { user } = useSelector((state: RootState) => state.auth as any);
@@ -70,7 +59,7 @@ const Dashboard = () => {
 
   // Fetch user's properties and conversations on component mount
   useEffect(() => {
-    dispatch(getProperties({ limit: 3, userOnly: true }) as any);
+    dispatch(getUserListings() as any);
     dispatch(getConversations() as any);
   }, [dispatch]);
 

@@ -80,6 +80,7 @@ export interface Property {
   availabilityDate?: string;
   createdBy?: User;
   isActive: boolean;
+  status?: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
   savedBy?: string[];
