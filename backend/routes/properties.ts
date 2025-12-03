@@ -167,13 +167,9 @@ router.post(
 
         cloudinary.config(cloudConfig);
 
-        // Calculate timestamp for 2024 (subtract 1 year approx if year is 2025)
-        // 365 * 24 * 60 * 60 = 31536000 seconds
+        // Use current timestamp for Cloudinary
         let timestamp = Math.floor(Date.now() / 1000);
-        if (new Date().getFullYear() === 2025) {
-          timestamp -= 31536000;
-          console.log('Adjusting timestamp from 2025 to 2024:', timestamp);
-        }
+        console.log('Using timestamp:', timestamp);
 
         for (const file of req.files as Express.Multer.File[]) {
           try {
@@ -450,13 +446,9 @@ router.put(
 
         cloudinary.config(cloudConfig);
 
-        // Calculate timestamp for 2024 (subtract 1 year approx if year is 2025)
-        // 365 * 24 * 60 * 60 = 31536000 seconds
+        // Use current timestamp for Cloudinary
         let timestamp = Math.floor(Date.now() / 1000);
-        if (new Date().getFullYear() === 2025) {
-          timestamp -= 31536000;
-          console.log('Adjusting timestamp from 2025 to 2024:', timestamp);
-        }
+        console.log('Using timestamp:', timestamp);
 
         for (const file of req.files as Express.Multer.File[]) {
           try {
