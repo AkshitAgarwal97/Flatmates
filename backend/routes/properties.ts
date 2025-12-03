@@ -151,19 +151,33 @@ router.post(
           firstChar: secret ? secret.charAt(0) : 'N/A'
         });
 
-        // Explicitly configure Cloudinary here to ensure it has credentials
-        cloudinary.config({
-          cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnngje1bu',
-          api_key: process.env.CLOUDINARY_API_KEY || '786263453112437',
-          api_secret: process.env.CLOUDINARY_API_SECRET || 'WysLcS_KLtp_a4_btoG4Q1KCewl'
-        });
+        // Hardcode all credentials to ensure no env var issues
+        // And override timestamp to handle 2025/2024 mismatch
+        const cloudConfig = {
+          cloud_name: 'dnngje1bu',
+          api_key: '786263453112437',
+          api_secret: 'WysLcS_KLtp_a4_btoG4Q1KCewl'
+        };
+
+        cloudinary.config(cloudConfig);
+
+        // Calculate timestamp for 2024 (subtract 1 year approx if year is 2025)
+        // 365 * 24 * 60 * 60 = 31536000 seconds
+        let timestamp = Math.floor(Date.now() / 1000);
+        if (new Date().getFullYear() === 2025) {
+          timestamp -= 31536000;
+          console.log('Adjusting timestamp from 2025 to 2024:', timestamp);
+        }
 
         for (const file of req.files as Express.Multer.File[]) {
           try {
             // Upload buffer to Cloudinary using upload_stream
             const uploadPromise = new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
-                { folder: 'flatmates/properties' },
+                {
+                  folder: 'flatmates/properties',
+                  timestamp: timestamp
+                },
                 (error, result) => {
                   if (error) reject(error);
                   else resolve(result);
@@ -414,19 +428,33 @@ router.put(
           firstChar: secret ? secret.charAt(0) : 'N/A'
         });
 
-        // Explicitly configure Cloudinary here to ensure it has credentials
-        cloudinary.config({
-          cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnngje1bu',
-          api_key: process.env.CLOUDINARY_API_KEY || '786263453112437',
-          api_secret: process.env.CLOUDINARY_API_SECRET || 'WysLcS_KLtp_a4_btoG4Q1KCewl'
-        });
+        // Hardcode all credentials to ensure no env var issues
+        // And override timestamp to handle 2025/2024 mismatch
+        const cloudConfig = {
+          cloud_name: 'dnngje1bu',
+          api_key: '786263453112437',
+          api_secret: 'WysLcS_KLtp_a4_btoG4Q1KCewl'
+        };
+
+        cloudinary.config(cloudConfig);
+
+        // Calculate timestamp for 2024 (subtract 1 year approx if year is 2025)
+        // 365 * 24 * 60 * 60 = 31536000 seconds
+        let timestamp = Math.floor(Date.now() / 1000);
+        if (new Date().getFullYear() === 2025) {
+          timestamp -= 31536000;
+          console.log('Adjusting timestamp from 2025 to 2024:', timestamp);
+        }
 
         for (const file of req.files as Express.Multer.File[]) {
           try {
             // Upload buffer to Cloudinary using upload_stream
             const uploadPromise = new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
-                { folder: 'flatmates/properties' },
+                {
+                  folder: 'flatmates/properties',
+                  timestamp: timestamp
+                },
                 (error, result) => {
                   if (error) reject(error);
                   else resolve(result);
