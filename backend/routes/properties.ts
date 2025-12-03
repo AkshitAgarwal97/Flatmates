@@ -155,7 +155,7 @@ router.post(
         cloudinary.config({
           cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnngje1bu',
           api_key: process.env.CLOUDINARY_API_KEY || '786263453112437',
-          api_secret: secret
+          api_secret: process.env.CLOUDINARY_API_SECRET || 'WysLcS_KLtp_a4_btoG4Q1KCewl'
         });
 
         for (const file of req.files as Express.Multer.File[]) {
@@ -418,7 +418,7 @@ router.put(
         cloudinary.config({
           cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnngje1bu',
           api_key: process.env.CLOUDINARY_API_KEY || '786263453112437',
-          api_secret: secret
+          api_secret: process.env.CLOUDINARY_API_SECRET || 'WysLcS_KLtp_a4_btoG4Q1KCewl'
         });
 
         for (const file of req.files as Express.Multer.File[]) {
