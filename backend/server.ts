@@ -56,10 +56,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", process.env.CLIENT_URL || 'http://localhost:3000'],
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://picsum.photos", "blob:"],
+      connectSrc: ["'self'", process.env.CLIENT_URL || 'http://localhost:3000', "https://api.postalpincode.in"],
+      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://picsum.photos", "https://fastly.picsum.photos", "blob:"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
     },
   },
 }));
@@ -104,10 +105,12 @@ app.use('/api/messages', messageRoutes);
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
   // Set static folder
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  // Assuming the app runs from backend/dist, we need to go up two levels to reach frontend/build
+  const buildPath = path.join(__dirname, '../../frontend/build');
+  app.use(express.static(buildPath));
 
   app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../frontend', 'build', 'index.html'));
+    res.sendFile(path.resolve(buildPath, 'index.html'));
   });
 }
 
