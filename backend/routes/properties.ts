@@ -74,15 +74,8 @@ interface UpdatePropertyRequest extends Partial<CreatePropertyRequest> {
   removeImages?: string;
 }
 
-// Set up multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(process.cwd(), 'uploads/properties/'));
-  },
-  filename: function (req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
+// Set up multer for file uploads - using memory storage since we upload to Cloudinary immediately
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -149,19 +142,26 @@ router.post(
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
         for (const file of req.files as Express.Multer.File[]) {
           try {
-            const result = await cloudinary.uploader.upload(file.path, {
-              folder: 'flatmates/properties',
+            // Upload buffer to Cloudinary using upload_stream
+            const uploadPromise = new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: 'flatemates/properties' },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(file.buffer);
             });
+
+            const result: any = await uploadPromise;
             images.push({
               url: result.secure_url,
               caption: ''
             });
-            // Remove file from local storage after upload
-            fs.unlinkSync(file.path);
+            console.log('Successfully uploaded image to Cloudinary:', result.secure_url);
           } catch (uploadError) {
             console.error('Cloudinary upload error:', uploadError);
-            // Try to remove local file if upload fails
-            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
           }
         }
       }
@@ -388,19 +388,26 @@ router.put(
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
         for (const file of req.files as Express.Multer.File[]) {
           try {
-            const result = await cloudinary.uploader.upload(file.path, {
-              folder: 'flatmates/properties',
+            // Upload buffer to Cloudinary using upload_stream
+            const uploadPromise = new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: 'flatmates/properties' },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(file.buffer);
             });
+
+            const result: any = await uploadPromise;
             images.push({
               url: result.secure_url,
               caption: ''
             });
-            // Remove file from local storage after upload
-            fs.unlinkSync(file.path);
+            console.log('Successfully uploaded image to Cloudinary:', result.secure_url);
           } catch (uploadError) {
             console.error('Cloudinary upload error:', uploadError);
-            // Try to remove local file if upload fails
-            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
           }
         }
       }
