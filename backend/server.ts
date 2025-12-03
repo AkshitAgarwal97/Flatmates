@@ -1,28 +1,3 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import passport from 'passport';
-import path from 'path';
-import http from 'http';
-import { Server as SocketIo } from 'socket.io';
-import fs from 'fs';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import mongoSanitize from 'express-mongo-sanitize';
-
-// Import routes
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import propertyRoutes from './routes/properties';
-import messageRoutes from './routes/messages';
-
-// Import passport config
-import configurePassport from './config/passport';
-
-// Import socket service
 import socketHandler from './services/socket';
 // Import Property model for background jobs
 import Property from './models/Property';
