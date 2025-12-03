@@ -156,7 +156,7 @@ router.post(
         const cloudConfig = {
           cloud_name: 'dnngje1bu',
           api_key: '786263453112437'.trim(),
-          api_secret: 'WysLcS_KLtp_a4_btoG4Q1KCewl'.trim()
+          api_secret: 'WysLcS_KLtp_a4_btoG4QIKCewI'.trim()
         };
 
         console.log('POST Route - Using Cloudinary Config:', {
@@ -439,7 +439,7 @@ router.put(
         const cloudConfig = {
           cloud_name: 'dnngje1bu',
           api_key: '786263453112437'.trim(),
-          api_secret: 'WysLcS_KLtp_a4_btoG4Q1KCewl'.trim()
+          api_secret: 'WysLcS_KLtp_a4_btoG4QIKCewI'.trim()
         };
 
         console.log('PUT Route - Using Cloudinary Config:', {
