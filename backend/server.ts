@@ -1,16 +1,3 @@
-import socketHandler from './services/socket';
-// Import Property model for background jobs
-import Property from './models/Property';
-
-// Initialize express app
-const app = express();
-const server = http.createServer(app);
-const io = new SocketIo(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
   }
 });
 
