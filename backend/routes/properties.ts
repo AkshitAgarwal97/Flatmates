@@ -5,8 +5,9 @@ import multer from 'multer';
 import path from 'path';
 import mongoose from 'mongoose';
 import { parseFormDataJSON } from '../utils/formDataHelper';
-import cloudinary from '../config/cloudinaryConfig';
+import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
+import Property from '../models/Property';
 
 const router = express.Router();
 
@@ -135,24 +136,26 @@ router.post(
 
     try {
       // Import Property model dynamically to avoid circular dependencies
-      const Property = require('../models/Property').default;
+      // const Property = require('../models/Property').default; // Already imported at top
 
       // Process uploaded images
       const images = [];
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
 
+        const secret = process.env.CLOUDINARY_API_SECRET;
+        console.log('Environment Keys:', Object.keys(process.env).sort());
+        console.log('Cloudinary Secret Debug:', {
+          exists: !!secret,
+          length: secret ? secret.length : 0,
+          type: typeof secret,
+          firstChar: secret ? secret.charAt(0) : 'N/A'
+        });
+
         // Explicitly configure Cloudinary here to ensure it has credentials
-        // This fixes the "Must supply api_key" error if global config failed
         cloudinary.config({
           cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnngje1bu',
           api_key: process.env.CLOUDINARY_API_KEY || '786263453112437',
-          api_secret: process.env.CLOUDINARY_API_SECRET
-        });
-
-        console.log('Uploading to Cloudinary with config:', {
-          cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
-          api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
-          api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+          api_secret: secret
         });
 
         for (const file of req.files as Express.Multer.File[]) {
@@ -402,11 +405,20 @@ router.put(
       let images = property.images;
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
 
+        const secret = process.env.CLOUDINARY_API_SECRET;
+        console.log('PUT Route - Environment Keys:', Object.keys(process.env).sort());
+        console.log('PUT Route - Cloudinary Secret Debug:', {
+          exists: !!secret,
+          length: secret ? secret.length : 0,
+          type: typeof secret,
+          firstChar: secret ? secret.charAt(0) : 'N/A'
+        });
+
         // Explicitly configure Cloudinary here to ensure it has credentials
         cloudinary.config({
           cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnngje1bu',
           api_key: process.env.CLOUDINARY_API_KEY || '786263453112437',
-          api_secret: process.env.CLOUDINARY_API_SECRET
+          api_secret: secret
         });
 
         for (const file of req.files as Express.Multer.File[]) {
