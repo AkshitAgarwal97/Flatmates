@@ -155,9 +155,15 @@ router.post(
         // And override timestamp to handle 2025/2024 mismatch
         const cloudConfig = {
           cloud_name: 'dnngje1bu',
-          api_key: '786263453112437',
-          api_secret: 'WysLcS_KLtp_a4_btoG4Q1KCewl'
+          api_key: '786263453112437'.trim(),
+          api_secret: 'WysLcS_KLtp_a4_btoG4Q1KCewl'.trim()
         };
+
+        console.log('POST Route - Using Cloudinary Config:', {
+          cloud_name: cloudConfig.cloud_name,
+          api_key: cloudConfig.api_key,
+          api_secret_masked: cloudConfig.api_secret.substring(0, 5) + '...' + cloudConfig.api_secret.substring(cloudConfig.api_secret.length - 5)
+        });
 
         cloudinary.config(cloudConfig);
 
@@ -175,7 +181,7 @@ router.post(
             const uploadPromise = new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
                 {
-                  folder: 'flatmates/properties',
+                  // folder: 'flatmates/properties',
                   timestamp: timestamp
                 },
                 (error, result) => {
@@ -432,9 +438,15 @@ router.put(
         // And override timestamp to handle 2025/2024 mismatch
         const cloudConfig = {
           cloud_name: 'dnngje1bu',
-          api_key: '786263453112437',
-          api_secret: 'WysLcS_KLtp_a4_btoG4Q1KCewl'
+          api_key: '786263453112437'.trim(),
+          api_secret: 'WysLcS_KLtp_a4_btoG4Q1KCewl'.trim()
         };
+
+        console.log('PUT Route - Using Cloudinary Config:', {
+          cloud_name: cloudConfig.cloud_name,
+          api_key: cloudConfig.api_key,
+          api_secret_masked: cloudConfig.api_secret.substring(0, 5) + '...' + cloudConfig.api_secret.substring(cloudConfig.api_secret.length - 5)
+        });
 
         cloudinary.config(cloudConfig);
 
@@ -452,7 +464,7 @@ router.put(
             const uploadPromise = new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
                 {
-                  folder: 'flatmates/properties',
+                  // folder: 'flatmates/properties',
                   timestamp: timestamp
                 },
                 (error, result) => {
