@@ -140,12 +140,27 @@ router.post(
       // Process uploaded images
       const images = [];
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+
+        // Explicitly configure Cloudinary here to ensure it has credentials
+        // This fixes the "Must supply api_key" error if global config failed
+        cloudinary.config({
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnngje1bu',
+          api_key: process.env.CLOUDINARY_API_KEY || '786263453112437',
+          api_secret: process.env.CLOUDINARY_API_SECRET
+        });
+
+        console.log('Uploading to Cloudinary with config:', {
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+          api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+          api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+        });
+
         for (const file of req.files as Express.Multer.File[]) {
           try {
             // Upload buffer to Cloudinary using upload_stream
             const uploadPromise = new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
-                { folder: 'flatemates/properties' },
+                { folder: 'flatmates/properties' },
                 (error, result) => {
                   if (error) reject(error);
                   else resolve(result);
@@ -386,6 +401,14 @@ router.put(
       // Process uploaded images
       let images = property.images;
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+
+        // Explicitly configure Cloudinary here to ensure it has credentials
+        cloudinary.config({
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnngje1bu',
+          api_key: process.env.CLOUDINARY_API_KEY || '786263453112437',
+          api_secret: process.env.CLOUDINARY_API_SECRET
+        });
+
         for (const file of req.files as Express.Multer.File[]) {
           try {
             // Upload buffer to Cloudinary using upload_stream
