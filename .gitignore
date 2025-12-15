@@ -1,6 +1,10 @@
 node_modules/
 .cache/
 *.pack
+.DS_Store
+.env
+*.pem
+deploy.tar.gz
 
 .github/instructions/kluster-code-verify.instructions.md
 .kluster
