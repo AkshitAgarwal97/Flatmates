@@ -87,7 +87,8 @@ const MyListings = () => {
                           : `${process.env.REACT_APP_API_URL || ''}${property.images[0].url}`)
                       : "https://picsum.photos/seed/no-image-listing/300/200"
                   }
-                  alt={property.title}
+                  alt={`Property listing: ${property.title}`}
+                  loading="lazy"
                 />
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box sx={{ mb: 1 }}>

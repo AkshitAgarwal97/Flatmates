@@ -1,0 +1,590 @@
+import express, { Request, Response } from 'express';
+import passport from 'passport';
+import { check, validationResult } from 'express-validator';
+import multer from 'multer';
+import path from 'path';
+import mongoose from 'mongoose';
+import { parseFormDataJSON } from '../utils/formDataHelper';
+import { v2 as cloudinary } from 'cloudinary';
+import fs from 'fs';
+import Property from '../models/Property';
+
+const router = express.Router();
+
+// Extend Express Request to include user property
+interface AuthenticatedRequest extends Request {
+  user?: any;
+}
+
+// Property request body interfaces
+interface CreatePropertyRequest {
+  title: string;
+  description: string;
+  propertyType: 'room' | 'flat' | 'house' | 'studio';
+  listingType: 'room_in_flat' | 'roommates_for_flat' | 'occupied_flat' | 'entire_property';
+  address: {
+    street?: string;
+    city: string;
+    state?: string;
+    country: string;
+    zipCode?: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  price: {
+    amount: number;
+    brokerage?: number;
+  }
+  availability: {
+    availableFrom: string;
+    availableUntil?: string;
+    minimumStay?: number;
+    maximumStay?: number;
+  };
+  features?: {
+    bedrooms?: number;
+    bathrooms?: number;
+    area?: number;
+    furnishing?: 'furnished' | 'unfurnished' | 'semi-furnished';
+    amenities?: string[];
+    utilities?: string[];
+  };
+  currentOccupants?: {
+    total: number;
+    details: Array<{
+      gender: 'male' | 'female' | 'other';
+      age?: number;
+      occupation?: string;
+    }>;
+  };
+  preferences?: {
+    gender?: 'male' | 'female' | 'any';
+    ageRange?: {
+      min?: number;
+      max?: number;
+    };
+    occupation?: string[];
+    smoking?: boolean;
+    pets?: boolean;
+  };
+}
+
+interface UpdatePropertyRequest extends Partial<CreatePropertyRequest> {
+  removeImages?: string;
+}
+
+// Set up multer for file uploads - using memory storage since we upload to Cloudinary immediately
+const storage = multer.memoryStorage();
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10000000 }, // 10MB limit
+  fileFilter: function (req, file, cb) {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Error: Images only!'));
+    }
+  }
+});
+
+// @route   POST api/properties
+// @desc    Create a property listing
+// @access  Private
+router.post(
+  '/',
+  [
+    passport.authenticate('jwt', { session: false }),
+    upload.array('images', 10),
+    check('title', 'Title is required').not().isEmpty(),
+    check('description', 'Description is required').not().isEmpty(),
+    check('propertyType', 'Property type is required').isIn(['room', 'flat', 'house', 'studio', 'apartment']),
+    check('listingType', 'Listing type is required').isIn([
+      'room_in_flat',
+      'roommates_for_flat',
+      'occupied_flat',
+      'entire_property'
+    ]),
+    check('address').custom((value) => {
+      const address = parseFormDataJSON(value);
+      if (!address || !address.city) return false;
+      if (!address.country) return false;
+      return true;
+    }).withMessage('City and Country are required'),
+    check('price').custom((value) => {
+      const price = parseFormDataJSON(value);
+      if (!price || !price.amount) return false;
+      return true;
+    }).withMessage('Price amount is required'),
+    check('availability').custom((value) => {
+      const availability = parseFormDataJSON(value);
+      if (!availability || !availability.availableFrom) return false;
+      return true;
+    }).withMessage('Available from date is required')
+  ],
+  async (req: AuthenticatedRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      // Import Property model dynamically to avoid circular dependencies
+      // const Property = require('../models/Property').default; // Already imported at top
+
+      // Process uploaded images
+      const images = [];
+      if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+
+        const secret = process.env.CLOUDINARY_API_SECRET;
+        console.log('Environment Keys:', Object.keys(process.env).sort());
+        console.log('Cloudinary Secret Debug:', {
+          exists: !!secret,
+          length: secret ? secret.length : 0,
+          type: typeof secret,
+          firstChar: secret ? secret.charAt(0) : 'N/A'
+        });
+
+        // Hardcode all credentials to ensure no env var issues
+        // And override timestamp to handle 2025/2024 mismatch
+        const cloudConfig = {
+          cloud_name: 'dnngje1bu',
+          api_key: '786263453112437'.trim(),
+          api_secret: 'WysLcS_KLtp_a4_btoG4QIKCewI'.trim()
+        };
+
+        console.log('POST Route - Using Cloudinary Config:', {
+          cloud_name: cloudConfig.cloud_name,
+          api_key: cloudConfig.api_key,
+          api_secret_masked: cloudConfig.api_secret.substring(0, 5) + '...' + cloudConfig.api_secret.substring(cloudConfig.api_secret.length - 5)
+        });
+
+        cloudinary.config(cloudConfig);
+
+        // Use current timestamp for Cloudinary
+        let timestamp = Math.floor(Date.now() / 1000);
+        console.log('Using timestamp:', timestamp);
+
+        for (const file of req.files as Express.Multer.File[]) {
+          try {
+            // Upload buffer to Cloudinary using upload_stream
+            const uploadPromise = new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  // folder: 'flatmates/properties',
+                  timestamp: timestamp
+                },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(file.buffer);
+            });
+
+            const result: any = await uploadPromise;
+            images.push({
+              url: result.secure_url,
+              caption: ''
+            });
+            console.log('Successfully uploaded image to Cloudinary:', result.secure_url);
+          } catch (uploadError) {
+            console.error('Cloudinary upload error:', uploadError);
+          }
+        }
+      }
+
+      // Parse nested objects from FormData
+      const parsedPreferences = parseFormDataJSON(req.body.preferences) || {};
+      const filteredPreferences: any = {};
+
+      // Only include non-empty preference values
+      if (parsedPreferences.gender && parsedPreferences.gender !== '') {
+        filteredPreferences.gender = parsedPreferences.gender;
+      }
+      if (parsedPreferences.occupation && parsedPreferences.occupation !== '') {
+        filteredPreferences.occupation = parsedPreferences.occupation;
+      }
+
+      // Create new property
+      const newProperty = new Property({
+        owner: req.user?.id,
+        title: req.body.title,
+        description: req.body.description,
+        propertyType: req.body.propertyType,
+        listingType: req.body.listingType,
+        address: parseFormDataJSON(req.body.address),
+        price: parseFormDataJSON(req.body.price),
+        availability: parseFormDataJSON(req.body.availability),
+        features: parseFormDataJSON(req.body.features) || {},
+        images,
+        currentOccupants: parseFormDataJSON(req.body.currentOccupants) || { total: 0, details: [] },
+        preferences: filteredPreferences
+      });
+
+      const property = await newProperty.save();
+
+      res.json(property);
+    } catch (err: any) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  }
+);
+
+// @route   GET api/properties
+// @desc    Get all properties with filters
+// @access  Public
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const {
+      listingType,
+      propertyType,
+      city,
+      country,
+      minPrice,
+      maxPrice,
+      availableFrom,
+      bedrooms,
+      bathrooms,
+      furnishing,
+      amenities,
+      gender,
+      page = 1,
+      limit = 10
+    } = req.query;
+
+    // Import models dynamically to avoid circular dependencies
+    const Property = require('../models/Property').default;
+
+    // Build filter object
+    const filter: any = { status: 'active' };
+
+    if (listingType) filter.listingType = listingType;
+    if (propertyType) filter.propertyType = propertyType;
+    if (city) filter['address.city'] = new RegExp(city as string, 'i');
+    if (country) filter['address.country'] = new RegExp(country as string, 'i');
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.amount = { $gte: Number(minPrice) };
+      if (maxPrice) filter.price.amount = { ...filter.price.amount, $lte: Number(maxPrice) };
+    }
+
+    if (availableFrom) {
+      filter['availability.availableFrom'] = { $lte: new Date(availableFrom as string) };
+    }
+
+    if (bedrooms) filter['features.bedrooms'] = Number(bedrooms);
+    if (bathrooms) filter['features.bathrooms'] = Number(bathrooms);
+    if (furnishing) filter['features.furnishing'] = furnishing;
+
+    if (amenities) {
+      const amenitiesArray = (amenities as string).split(',');
+      filter['features.amenities'] = { $all: amenitiesArray };
+    }
+
+    if (gender) filter['preferences.gender'] = gender;
+
+    // Pagination
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const properties = await Property.find(filter)
+      .populate('owner', 'name avatar')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    const total = await Property.countDocuments(filter);
+
+    res.json({
+      properties,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/properties/user/saved
+// @desc    Get user's saved properties
+// @access  Private
+router.get('/user/saved', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Import models dynamically to avoid circular dependencies
+    const Property = require('../models/Property').default;
+    const User = require('../models/User').default;
+
+    const user = await User.findById(req.user?.id);
+    const properties = await Property.find({ _id: { $in: user?.savedProperties } }).populate(
+      'owner',
+      'name avatar'
+    );
+
+    res.json(properties);
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/properties/user/listings
+// @desc    Get user's property listings
+// @access  Private
+router.get('/user/listings', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Import models dynamically to avoid circular dependencies
+    const Property = require('../models/Property').default;
+
+    const properties = await Property.find({ owner: req.user?.id }).sort({ createdAt: -1 });
+    res.json(properties);
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+// @route   GET api/properties/:id
+// @desc    Get property by ID
+// @access  Public
+router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
+  try {
+    // Import models dynamically to avoid circular dependencies
+    const Property = require('../models/Property').default;
+
+    const property = await Property.findById(req.params.id).populate('owner', 'name avatar email phone');
+
+    if (!property) {
+      return res.status(404).json({ msg: 'Property not found' });
+    }
+
+    // Increment view count
+    property.views += 1;
+    await property.save();
+
+    res.json(property);
+  } catch (err: any) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Property not found' });
+    }
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   PUT api/properties/:id
+// @desc    Update a property
+// @access  Private
+router.put(
+  '/:id',
+  [
+    passport.authenticate('jwt', { session: false }),
+    upload.array('images', 10),
+    check('title', 'Title is required').optional().not().isEmpty(),
+    check('description', 'Description is required').optional().not().isEmpty(),
+    check('propertyType', 'Property type is required').optional().isIn(['room', 'flat', 'house', 'studio']),
+    check('price.amount', 'Price amount is required').optional().isNumeric()
+  ],
+  async (req: AuthenticatedRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      // Import models dynamically to avoid circular dependencies
+      const Property = require('../models/Property').default;
+
+      let property = await Property.findById(req.params.id);
+
+      if (!property) {
+        return res.status(404).json({ msg: 'Property not found' });
+      }
+
+      // Check ownership
+      if (property.owner.toString() !== req.user?.id) {
+        return res.status(401).json({ msg: 'Not authorized' });
+      }
+
+      // Process uploaded images
+      let images = property.images;
+      if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+
+        const secret = process.env.CLOUDINARY_API_SECRET;
+        console.log('PUT Route - Environment Keys:', Object.keys(process.env).sort());
+        console.log('PUT Route - Cloudinary Secret Debug:', {
+          exists: !!secret,
+          length: secret ? secret.length : 0,
+          type: typeof secret,
+          firstChar: secret ? secret.charAt(0) : 'N/A'
+        });
+
+        // Hardcode all credentials to ensure no env var issues
+        // And override timestamp to handle 2025/2024 mismatch
+        const cloudConfig = {
+          cloud_name: 'dnngje1bu',
+          api_key: '786263453112437'.trim(),
+          api_secret: 'WysLcS_KLtp_a4_btoG4QIKCewI'.trim()
+        };
+
+        console.log('PUT Route - Using Cloudinary Config:', {
+          cloud_name: cloudConfig.cloud_name,
+          api_key: cloudConfig.api_key,
+          api_secret_masked: cloudConfig.api_secret.substring(0, 5) + '...' + cloudConfig.api_secret.substring(cloudConfig.api_secret.length - 5)
+        });
+
+        cloudinary.config(cloudConfig);
+
+        // Use current timestamp for Cloudinary
+        let timestamp = Math.floor(Date.now() / 1000);
+        console.log('Using timestamp:', timestamp);
+
+        for (const file of req.files as Express.Multer.File[]) {
+          try {
+            // Upload buffer to Cloudinary using upload_stream
+            const uploadPromise = new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  // folder: 'flatmates/properties',
+                  timestamp: timestamp
+                },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(file.buffer);
+            });
+
+            const result: any = await uploadPromise;
+            images.push({
+              url: result.secure_url,
+              caption: ''
+            });
+            console.log('Successfully uploaded image to Cloudinary:', result.secure_url);
+          } catch (uploadError) {
+            console.error('Cloudinary upload error:', uploadError);
+          }
+        }
+      }
+
+      // Remove images if specified (removes from DB, future TODO: remove from Cloudinary)
+      if (req.body.removeImages) {
+        const removeImages = (req.body.removeImages as string).split(',');
+        images = images.filter((image: any) => !removeImages.includes(image.url));
+      }
+
+      // Update property fields
+      const propertyFields: any = {};
+      for (const [key, value] of Object.entries(req.body)) {
+        if (key !== 'removeImages') {
+          // Handle nested objects
+          if (key.includes('.')) {
+            const [parent, child] = key.split('.');
+            if (!propertyFields[parent]) propertyFields[parent] = {};
+            propertyFields[parent][child] = value;
+          } else {
+            propertyFields[key] = value;
+          }
+        }
+      }
+
+      // Add images to update fields
+      propertyFields.images = images;
+
+      // Update property
+      property = await Property.findByIdAndUpdate(
+        req.params.id,
+        { $set: propertyFields },
+        { new: true }
+      );
+
+      res.json(property);
+    } catch (err: any) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  }
+);
+
+// @route   DELETE api/properties/:id
+// @desc    Delete a property
+// @access  Private
+router.delete('/:id', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Import models dynamically to avoid circular dependencies
+    const Property = require('../models/Property').default;
+
+    const property = await Property.findById(req.params.id);
+
+    if (!property) {
+      return res.status(404).json({ msg: 'Property not found' });
+    }
+
+    // Check ownership
+    if (property.owner.toString() !== req.user?.id) {
+      return res.status(401).json({ msg: 'Not authorized' });
+    }
+
+    await property.deleteOne();
+
+    res.json({ msg: 'Property removed' });
+  } catch (err: any) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Property not found' });
+    }
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   POST api/properties/:id/save
+// @desc    Save/unsave a property
+// @access  Private
+router.post('/:id/save', passport.authenticate('jwt', { session: false }), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Import models dynamically to avoid circular dependencies
+    const Property = require('../models/Property').default;
+    const User = require('../models/User').default;
+
+    const user = await User.findById(req.user?.id);
+    const propertyId = req.params.id;
+
+    // Check if property exists
+    const property = await Property.findById(propertyId);
+    if (!property) {
+      return res.status(404).json({ msg: 'Property not found' });
+    }
+
+    // Check if already saved
+    const isSaved = user?.savedProperties.some((id: any) => id.toString() === propertyId);
+
+    if (isSaved) {
+      // Unsave property
+      user.savedProperties = user.savedProperties.filter((id: any) => id.toString() !== propertyId);
+      await user.save();
+      return res.json({ saved: false, savedProperties: user.savedProperties });
+    } else {
+      // Save property
+      user.savedProperties.push(propertyId);
+      await user.save();
+      return res.json({ saved: true, savedProperties: user.savedProperties });
+    }
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+export default router;

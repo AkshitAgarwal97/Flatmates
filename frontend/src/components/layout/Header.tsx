@@ -95,7 +95,7 @@ const Header: React.FC = () => {
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           {/* Desktop Logo */}
-          <HomeIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} />
+          {/* <HomeIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} /> */}
           <Typography
             variant="h6"
             noWrap
@@ -158,7 +158,7 @@ const Header: React.FC = () => {
           </Box>
 
           {/* Mobile Logo */}
-          <HomeIcon sx={{ display: { xs: "flex", md: "none" }, mr: 1 }} />
+          {/* <HomeIcon sx={{ display: { xs: "flex", md: "none" }, mr: 1 }} /> */}
           <Typography
             variant="h5"
             noWrap

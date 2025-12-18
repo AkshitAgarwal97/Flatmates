@@ -41,9 +41,9 @@ const Footer: React.FC = () => {
     {
       title: 'Connect',
       links: [
-        { name: 'Facebook', path: 'https://facebook.com' },
-        { name: 'Twitter', path: 'https://twitter.com' },
-        { name: 'Instagram', path: 'https://instagram.com' },
+        { name: 'Facebook', path: 'https://facebook.com/flatmates.india' },
+        { name: 'Twitter', path: 'https://twitter.com/flatmates_in' },
+        { name: 'Instagram', path: 'https://instagram.com/flatmates.co.in' },
       ],
     },
   ];

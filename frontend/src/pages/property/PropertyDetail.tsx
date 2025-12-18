@@ -256,7 +256,8 @@ const PropertyDetails: React.FC = () => {
                       : `${process.env.REACT_APP_API_URL || ''}${property.images[currentImageIndex].url}`)
                   : property.images[currentImageIndex]
               }
-              alt={property.title}
+              alt={`View of ${property.title}`}
+              loading="lazy"
               sx={{
                 width: "100%",
                 height: 400,

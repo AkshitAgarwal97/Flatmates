@@ -1,5 +1,5 @@
-import React from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useSelector } from "react-redux";
 
 // MUI components
@@ -11,12 +11,17 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CardMedia from "@mui/material/CardMedia";
 import Paper from "@mui/material/Paper";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
+import MenuItem from "@mui/material/MenuItem";
 
 // MUI icons
 import SearchIcon from "@mui/icons-material/Search";
 import HomeIcon from "@mui/icons-material/Home";
 import PeopleIcon from "@mui/icons-material/People";
 import ApartmentIcon from "@mui/icons-material/Apartment";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -26,6 +31,16 @@ const Home = () => {
   const { isAuthenticated } = useSelector(
     (state: { auth: AuthState }) => state.auth
   );
+  const navigate = useNavigate();
+  const [location, setLocation] = useState("");
+  const [budget, setBudget] = useState("");
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (location) params.append("location", location);
+    if (budget) params.append("maxPrice", budget);
+    navigate(`/properties?${params.toString()}`);
+  };
 
   return (
     <>
@@ -115,6 +130,63 @@ const Home = () => {
                   </Button>
                 )}
               </Box>
+              
+              {/* Search Section */}
+              <Paper sx={{ p: 2, mt: 2, maxWidth: 600, backgroundColor: 'rgba(255, 255, 255, 0.9)' }}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} sm={12}>
+                    <Typography variant="subtitle1" color="text.primary" gutterBottom>
+                      Quick Search
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={5}>
+                    <TextField
+                      fullWidth
+                      placeholder="Location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LocationOnIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                      size="small"
+                      inputProps={{ 'aria-label': 'Search by location' }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      placeholder="Max Budget (₹)"
+                      type="number"
+                      value={budget}
+                      onChange={(e) => setBudget(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Typography sx={{ color: 'text.secondary', fontWeight: 'bold' }}>₹</Typography>
+                          </InputAdornment>
+                        ),
+                      }}
+                      size="small"
+                      inputProps={{ 'aria-label': 'Search by maximum budget' }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={handleSearch}
+                      sx={{ height: 40 }}
+                      aria-label="Search Properties"
+                    >
+                      Search
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
             </Box>
           </Grid>
         </Grid>
@@ -156,6 +228,20 @@ const Home = () => {
                   transform: "translate(-50%, -50%)",
                 }}
               />
+              <Typography
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  width: '1px',
+                  height: '1px',
+                  padding: 0,
+                  margin: '-1px',
+                  overflow: 'hidden',
+                  clip: 'rect(0, 0, 0, 0)',
+                  whiteSpace: 'nowrap',
+                  border: 0,
+                }}
+              >Property Seeker Icon</Typography>
             </CardMedia>
             <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="h2">
@@ -201,6 +287,20 @@ const Home = () => {
                   transform: "translate(-50%, -50%)",
                 }}
               />
+              <Typography
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  width: '1px',
+                  height: '1px',
+                  padding: 0,
+                  margin: '-1px',
+                  overflow: 'hidden',
+                  clip: 'rect(0, 0, 0, 0)',
+                  whiteSpace: 'nowrap',
+                  border: 0,
+                }}
+              >Roommate Seeker Icon</Typography>
             </CardMedia>
             <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="h2">
@@ -246,6 +346,20 @@ const Home = () => {
                   transform: "translate(-50%, -50%)",
                 }}
               />
+              <Typography
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  width: '1px',
+                  height: '1px',
+                  padding: 0,
+                  margin: '-1px',
+                  overflow: 'hidden',
+                  clip: 'rect(0, 0, 0, 0)',
+                  whiteSpace: 'nowrap',
+                  border: 0,
+                }}
+              >Broker Dealer Icon</Typography>
             </CardMedia>
             <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="h2">
@@ -302,6 +416,20 @@ const Home = () => {
                   transform: "translate(-50%, -50%)",
                 }}
               />
+              <Typography
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  width: '1px',
+                  height: '1px',
+                  padding: 0,
+                  margin: '-1px',
+                  overflow: 'hidden',
+                  clip: 'rect(0, 0, 0, 0)',
+                  whiteSpace: 'nowrap',
+                  border: 0,
+                }}
+              >Property Owner Icon</Typography>
             </CardMedia>
             <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="h2">
@@ -354,8 +482,7 @@ const Home = () => {
                 Verified Users
               </Typography>
               <Typography>
-                Connect with confidence through our social login verification
-                system.
+                Connect with confidence through our verification system. (Social Login Coming Soon)
               </Typography>
             </Box>
           </Grid>

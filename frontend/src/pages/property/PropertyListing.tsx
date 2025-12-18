@@ -1,9 +1,10 @@
 import React, { useEffect, useState, ChangeEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link as RouterLink } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { getProperties } from "../../redux/slices/propertySlice";
 import { RootState, AppDispatch } from "../../redux/store";
 import { Property, PropertyState } from "../../types"; // Import types from central location
+import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
 
 // MUI components
 import Container from "@mui/material/Container";
@@ -33,6 +34,9 @@ const PropertyListing = () => {
   ) as PropertyState;
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Pass empty filters object to getProperties
@@ -65,6 +69,14 @@ const PropertyListing = () => {
   }, [properties, searchTerm]);
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
+  };
+
+  const handleViewDetails = (propertyId: string) => {
+    if (isAuthenticated) {
+      navigate(`/properties/${propertyId}`);
+    } else {
+      setIsAuthDialogOpen(true);
+    }
   };
 
   if (loading) {
@@ -164,7 +176,8 @@ const PropertyListing = () => {
                           : `${process.env.REACT_APP_API_URL || ''}${property.images[0].url}`)
                       : "https://picsum.photos/seed/no-image-listing/300/200"
                   }
-                  alt={property.title}
+                  alt={`Property: ${property.title} in ${property.address?.city || 'India'}`}
+                  loading="lazy"
                 />
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography gutterBottom variant="h6" component="h2">
@@ -185,11 +198,15 @@ const PropertyListing = () => {
                     </Typography>
                   </Box>
                   <Box display="flex" alignItems="center" mb={2}>
-                    <AttachMoneyIcon
-                      sx={{ fontSize: 16, mr: 0.5, color: "text.secondary" }}
-                    />
+                    <Typography 
+                      variant="h6" 
+                      color="primary" 
+                      sx={{ fontWeight: 'bold', mr: 0.5 }}
+                    >
+                      ₹
+                    </Typography>
                     <Typography variant="h6" color="primary">
-                      ₹{property.price?.amount || 0}/month
+                      {property.price?.amount || 0}/month
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" paragraph>
@@ -205,8 +222,7 @@ const PropertyListing = () => {
                   <Button
                     fullWidth
                     variant="contained"
-                    component={RouterLink}
-                    to={`/properties/${property._id}`}
+                    onClick={() => handleViewDetails(property._id)}
                   >
                     View Details
                   </Button>
@@ -216,6 +232,10 @@ const PropertyListing = () => {
           ))}
         </Grid>
       )}
+      <AuthPromptDialog 
+        open={isAuthDialogOpen} 
+        onClose={() => setIsAuthDialogOpen(false)} 
+      />
     </Container>
   );
 };

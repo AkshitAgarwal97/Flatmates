@@ -1,9 +1,10 @@
 import React, { useEffect, useState, ChangeEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link as RouterLink } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { getProperties } from "../../redux/slices/propertySlice";
 import { RootState, AppDispatch } from "../../redux/store";
 import { PropertyState, Property } from "../../types";
+import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
 
 // MUI components
 import {
@@ -17,6 +18,7 @@ import {
   TextField,
   CircularProgress,
   Pagination,
+  CardMedia,
 } from "@mui/material";
 
 const PropertyList: React.FC = () => {
@@ -24,8 +26,11 @@ const PropertyList: React.FC = () => {
   const { properties, loading, error } = useSelector(
     (state: RootState) => state.property as PropertyState
   );
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [propertiesPerPage] = useState<number>(9);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
@@ -59,6 +64,14 @@ const PropertyList: React.FC = () => {
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
     setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleViewDetails = (propertyId: string) => {
+    if (isAuthenticated) {
+      navigate(`/properties/${propertyId}`);
+    } else {
+      setIsAuthDialogOpen(true);
+    }
   };
 
   const handlePageChange = (
@@ -131,15 +144,18 @@ const PropertyList: React.FC = () => {
             {currentProperties.map((property) => (
               <Grid item xs={12} sm={6} md={4} key={property._id}>
                 <Card>
-                  <Box
-                    sx={{
-                      height: 200,
-                      backgroundImage: `url(${
-                        property.images?.[0] || "/default-property.jpg"
-                      })`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={
+                      property.images?.[0]?.url
+                        ? (property.images[0].url.startsWith('http') 
+                            ? property.images[0].url 
+                            : `${process.env.REACT_APP_API_URL || ''}${property.images[0].url}`)
+                        : "/default-property.jpg"
+                    }
+                    alt={`Property: ${property.title}`}
+                    loading="lazy"
                   />
                   <CardContent>
                     <Typography gutterBottom variant="h6" component="h2">
@@ -148,24 +164,28 @@ const PropertyList: React.FC = () => {
                     <Typography variant="body2" color="text.secondary">
                       {property.address.city}, {property.address.state}
                     </Typography>
-                    <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
-                      $
-                      {typeof property.price === "number"
-                        ? property.price
-                        : String(property.price)}
-                      /month
-                    </Typography>
+                    <Box display="flex" alignItems="center" mt={1}>
+                      <Typography 
+                        variant="h6" 
+                        color="primary" 
+                        sx={{ fontWeight: 'bold', mr: 0.5 }}
+                      >
+                        ₹
+                      </Typography>
+                      <Typography variant="h6" color="primary">
+                        {property.price?.amount || 0}/month
+                      </Typography>
+                    </Box>
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2">
                         {property.bedrooms || 0} beds • {property.bathrooms || 0} baths
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {property.propertyType || 'Property'}
+                        {property.propertyType || "Property"}
                       </Typography>
                     </Box>
                     <Button
-                      component={RouterLink}
-                      to={`/properties/${property._id}`}
+                      onClick={() => handleViewDetails(property._id)}
                       variant="contained"
                       fullWidth
                       sx={{ mt: 2 }}
@@ -189,6 +209,11 @@ const PropertyList: React.FC = () => {
           </Box>
         </>
       )}
+
+      <AuthPromptDialog
+        open={isAuthDialogOpen}
+        onClose={() => setIsAuthDialogOpen(false)}
+      />
     </Container>
   );
 };
