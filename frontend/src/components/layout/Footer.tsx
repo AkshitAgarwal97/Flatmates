@@ -79,6 +79,7 @@ const Footer: React.FC = () => {
                       underline="hover"
                       target={link.path.startsWith('http') ? '_blank' : undefined}
                       rel={link.path.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      aria-label={link.path.startsWith('http') ? `Follow us on ${link.name}` : undefined}
                     >
                       {link.name}
                     </Link>

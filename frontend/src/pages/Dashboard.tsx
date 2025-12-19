@@ -262,7 +262,7 @@ const Dashboard = () => {
                             invisible={!conversation.unreadCount}
                           >
                             <Avatar
-                              alt={otherParticipant?.name}
+                              alt={`Profile picture of ${otherParticipant?.name}`}
                               src={otherParticipant?.avatar}
                             />
                           </Badge>

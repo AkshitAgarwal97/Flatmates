@@ -230,6 +230,14 @@ const Login = () => {
                 </Link>
               </Grid>
             </Grid>
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary">
+                By signing in, you agree to our{" "}
+                <Link component={RouterLink} to="/privacy" color="primary">
+                  Privacy Policy
+                </Link>
+              </Typography>
+            </Box>
           </Box>
         </Box>
 

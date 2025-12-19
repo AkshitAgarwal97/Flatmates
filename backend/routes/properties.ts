@@ -256,6 +256,7 @@ router.get('/', async (req: Request, res: Response) => {
       furnishing,
       amenities,
       gender,
+      search,
       page = 1,
       limit = 10
     } = req.query;
@@ -268,6 +269,14 @@ router.get('/', async (req: Request, res: Response) => {
 
     if (listingType) filter.listingType = listingType;
     if (propertyType) filter.propertyType = propertyType;
+
+    if (search) {
+      filter.$or = [
+        { title: new RegExp(search as string, 'i') },
+        { description: new RegExp(search as string, 'i') }
+      ];
+    }
+
     if (city) filter['address.city'] = new RegExp(city as string, 'i');
     if (country) filter['address.country'] = new RegExp(country as string, 'i');
 

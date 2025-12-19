@@ -243,6 +243,25 @@ const PropertyDetails: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
+      {/* SEO Structured Data */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "RealEstateListing",
+          "name": property.title,
+          "description": property.description,
+          "url": window.location.href,
+          "image": property.images?.[0]?.url,
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": property.address.street,
+            "addressLocality": property.address.city,
+            "addressRegion": property.address.state,
+            "postalCode": property.address.zipCode,
+            "addressCountry": "IN"
+          }
+        })}
+      </script>
       {/* Image Gallery */}
       <Box sx={{ position: "relative", mb: 4 }}>
         {property.images && property.images.length > 0 ? (
@@ -543,7 +562,7 @@ const PropertyDetails: React.FC = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <Avatar
                   src={property.owner.avatar}
-                  alt={property.owner.name}
+                  alt={`Profile picture of owner ${property.owner.name}`}
                   sx={{ width: 56, height: 56, mr: 2 }}
                 />
                 <Box>

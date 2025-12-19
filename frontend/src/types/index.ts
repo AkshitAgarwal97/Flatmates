@@ -81,6 +81,8 @@ export interface Property {
   createdBy?: User;
   isActive: boolean;
   status?: 'active' | 'inactive';
+  isVerified?: boolean;
+  propertyVerified?: boolean;
   createdAt: string;
   updatedAt: string;
   savedBy?: string[];
@@ -125,6 +127,8 @@ export interface PropertyFilters {
   minPrice?: number;
   maxPrice?: number;
   propertyType?: string;
+  listingType?: string;
+  search?: string;
   bedrooms?: number;
   bathrooms?: number;
   page?: number;

@@ -12,6 +12,9 @@ import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Link from "@mui/material/Link";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
+import FormHelperText from "@mui/material/FormHelperText";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
@@ -27,7 +30,7 @@ interface RegisterFormValues {
   email: string;
   password: string;
   confirmPassword: string;
-
+  agreeToTerms: boolean;
 }
 
 interface AuthState {
@@ -48,7 +51,9 @@ const validationSchema = Yup.object({
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password") as any, undefined], "Passwords must match")
     .required("Confirm Password is required"),
-
+  agreeToTerms: Yup.boolean()
+    .oneOf([true], "You must agree to the privacy policy")
+    .required("Field is required"),
 });
 
 const Register = () => {
@@ -87,11 +92,11 @@ const Register = () => {
       email: "",
       password: "",
       confirmPassword: "",
-
+      agreeToTerms: false,
     },
     validationSchema: validationSchema,
     onSubmit: (values: RegisterFormValues) => {
-      const { confirmPassword, ...registerData } = values;
+      const { confirmPassword, agreeToTerms, ...registerData } = values;
       // Default userType to 'room_seeker' as it's required by backend but removed from frontend
       dispatch(register({ ...registerData, userType: "room_seeker" }));
     },
@@ -260,7 +265,33 @@ const Register = () => {
                   }
                 />
               </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      name="agreeToTerms"
+                      color="primary"
+                      checked={formik.values.agreeToTerms}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2">
+                      I agree to the{" "}
+                      <Link component={RouterLink} to="/privacy" target="_blank">
+                        Privacy Policy
+                      </Link>
+                    </Typography>
+                  }
+                />
+                {formik.touched.agreeToTerms && formik.errors.agreeToTerms && (
+                  <FormHelperText error sx={{ ml: 2 }}>
+                    {formik.errors.agreeToTerms}
+                  </FormHelperText>
+                )}
               </Grid>
+            </Grid>
 
             <Button
               type="submit"

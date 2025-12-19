@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link as RouterLink } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   createProperty,
@@ -28,6 +28,7 @@ import Paper from "@mui/material/Paper";
 import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+import Link from "@mui/material/Link";
 import InputAdornment from "@mui/material/InputAdornment";
 import CircularProgress from "@mui/material/CircularProgress";
 import Card from "@mui/material/Card";
@@ -1076,7 +1077,16 @@ const PropertyForm = () => {
                   </Grid>
                 </Grid>
 
-                {/* Submit Button */}
+                <Grid item xs={12}>
+                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 3, mb: 1 }}>
+                    By listing your property, you agree to our{" "}
+                    <Link component={RouterLink} to="/privacy" target="_blank" color="primary">
+                      Privacy Policy
+                    </Link>
+                    . Your contact details will only be visible to verified users.
+                  </Typography>
+                </Grid>
+
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
                   <Box

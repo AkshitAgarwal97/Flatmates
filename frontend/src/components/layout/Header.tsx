@@ -91,7 +91,15 @@ const Header: React.FC = () => {
   ];
 
   return (
-    <AppBar position="static">
+    <AppBar 
+      position="sticky" 
+      sx={{ 
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        backdropFilter: 'blur(10px)',
+        backgroundColor: 'rgba(25, 118, 210, 0.9)',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+      }}
+    >
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           {/* Desktop Logo */}
@@ -118,7 +126,7 @@ const Header: React.FC = () => {
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
             <IconButton
               size="large"
-              aria-label="account of current user"
+              aria-label="open navigation menu"
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleOpenNavMenu}
@@ -187,6 +195,7 @@ const Header: React.FC = () => {
                 to={page.path}
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: "white", display: "block" }}
+                aria-label={`Navigate to ${page.title}`}
               >
                 {page.title}
               </Button>
@@ -198,7 +207,11 @@ const Header: React.FC = () => {
             {isAuthenticated ? (
               <>
                 <Tooltip title="Open settings">
-                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                  <IconButton 
+                    aria-label="user profile menu" 
+                    onClick={handleOpenUserMenu} 
+                    sx={{ p: 0 }}
+                  >
                     <Avatar
                       alt={user?.name || "User"}
                       src={user?.avatar || "/static/images/avatar/2.jpg"}

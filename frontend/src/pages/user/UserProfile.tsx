@@ -138,6 +138,7 @@ const UserProfile: React.FC = () => {
           <Grid item xs={12} md={4}>
             <Box display="flex" flexDirection="column" alignItems="center">
               <Avatar
+                alt={`${user.firstName} ${user.lastName}'s profile picture`}
                 src={user.profilePicture}
                 sx={{ width: 150, height: 150, mb: 2 }}
               >

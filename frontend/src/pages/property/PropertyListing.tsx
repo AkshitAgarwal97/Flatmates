@@ -1,74 +1,83 @@
-import React, { useEffect, useState, ChangeEvent } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, Link as RouterLink } from "react-router-dom";
-import { getProperties } from "../../redux/slices/propertySlice";
-import { RootState, AppDispatch } from "../../redux/store";
-import { Property, PropertyState } from "../../types"; // Import types from central location
-import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
-
-// MUI components
-import Container from "@mui/material/Container";
-import Grid from "@mui/material/Grid";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardMedia from "@mui/material/CardMedia";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import TextField from "@mui/material/TextField";
-import InputAdornment from "@mui/material/InputAdornment";
-import CircularProgress from "@mui/material/CircularProgress";
-import Alert from "@mui/material/Alert";
-
-// MUI icons
+import React, { useEffect, useState } from "react";
+import { Container, Typography, Box, CircularProgress, Alert, Paper, ToggleButton, ToggleButtonGroup, MenuItem, Slider, Divider, Stack, Select, FormControl, InputLabel, TextField, InputAdornment, Grid, Card, CardContent, CardMedia, Button, Chip } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import MapIcon from "@mui/icons-material/Map";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import VerifiedIcon from "@mui/icons-material/Verified";
+import BeenhereIcon from "@mui/icons-material/Beenhere";
 import HomeIcon from "@mui/icons-material/Home";
+import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
+import PropertyMap from "../../components/ui/PropertyMap";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector, RootState } from "../../redux/store";
+import { getProperties } from "../../redux/slices/propertySlice";
+import { Property, PropertyState } from "../../types";
 
 const PropertyListing = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { properties, loading, error } = useSelector(
+  const dispatch = useAppDispatch();
+  const { properties, loading, error } = useAppSelector(
     (state: RootState) => state.property
   ) as PropertyState;
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
+  const [budgetRange, setBudgetRange] = useState<number[]>([0, 100000]);
+  const [propertyType, setPropertyType] = useState<string>("all");
+  const [listingType, setListingType] = useState<string>("all");
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated } = useAppSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Pass empty filters object to getProperties
-    dispatch(getProperties({}));
-  }, [dispatch]);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    const filters: any = {};
+    if (debouncedSearchTerm) filters.search = debouncedSearchTerm;
+    if (propertyType !== "all") filters.propertyType = propertyType;
+    if (listingType !== "all") filters.listingType = listingType;
+    filters.minPrice = budgetRange[0];
+    filters.maxPrice = budgetRange[1];
+
+    dispatch(getProperties(filters));
+  }, [dispatch, debouncedSearchTerm, budgetRange, propertyType, listingType]);
 
   useEffect(() => {
     if (properties) {
-      const filtered = properties.filter((property) => {
-        // Create a searchable address string from address object
-        const addressString = property.address
-          ? `${property.address.street || ""} ${property.address.city || ""} ${
-              property.address.state || ""
-            }`
-          : "";
-
-        return (
-          property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          addressString.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (property.description?.toLowerCase() || "").includes(
-            searchTerm.toLowerCase()
-          )
-        );
-      });
-      setFilteredProperties(filtered);
-    } else {
-      setFilteredProperties([]);
+      setFilteredProperties(properties);
     }
+  }, [properties]);
 
-  }, [properties, searchTerm]);
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
+  };
+
+  const handleBudgetChange = (event: Event, newValue: number | number[]) => {
+    setBudgetRange(newValue as number[]);
+  };
+
+  const handlePropertyTypeChange = (event: any) => {
+    setPropertyType(event.target.value as string);
+  };
+
+  const handleListingTypeChange = (event: any) => {
+    setListingType(event.target.value as string);
+  };
+
+  const handleViewModeChange = (
+    event: React.MouseEvent<HTMLElement>,
+    nextView: "list" | "map" | null
+  ) => {
+    if (nextView !== null) {
+      setViewMode(nextView);
+    }
   };
 
   const handleViewDetails = (propertyId: string) => {
@@ -78,7 +87,6 @@ const PropertyListing = () => {
       setIsAuthDialogOpen(true);
     }
   };
-
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -116,24 +124,90 @@ const PropertyListing = () => {
         <TextField
           fullWidth
           variant="outlined"
+          label="Search Properties"
           placeholder="Search properties by title, location, or description..."
           value={searchTerm}
           onChange={handleSearchChange}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon />
+                <SearchIcon aria-hidden="true" />
               </InputAdornment>
             ),
           }}
           sx={{ mb: 3 }}
         />
+
+        {/* Multi-Filter Bar */}
+        <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                Budget Range: ₹{budgetRange[0]} - ₹{budgetRange[1]}+
+              </Typography>
+              <Slider
+                value={budgetRange}
+                onChange={handleBudgetChange}
+                valueLabelDisplay="auto"
+                min={0}
+                max={100000}
+                step={1000}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Property Type</InputLabel>
+                <Select
+                  value={propertyType}
+                  label="Property Type"
+                  onChange={handlePropertyTypeChange}
+                >
+                  <MenuItem value="all">All Types</MenuItem>
+                  <MenuItem value="apartment">Apartment</MenuItem>
+                  <MenuItem value="house">House</MenuItem>
+                  <MenuItem value="pg">PG/Hostel</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Listing Type</InputLabel>
+                <Select
+                  value={listingType}
+                  label="Listing Type"
+                  onChange={handleListingTypeChange}
+                >
+                  <MenuItem value="all">All Listings</MenuItem>
+                  <MenuItem value="room_seeker">Find Flatmate</MenuItem>
+                  <MenuItem value="property_owner">Full Property</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={handleViewModeChange}
+                aria-label="view mode"
+                size="small"
+              >
+                <ToggleButton value="list" aria-label="list view">
+                  <ViewListIcon sx={{ mr: 1 }} /> List
+                </ToggleButton>
+                <ToggleButton value="map" aria-label="map view">
+                  <MapIcon sx={{ mr: 1 }} /> Map
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Grid>
+          </Grid>
+        </Paper>
       </Box>
 
       {filteredProperties.length === 0 ? (
         <Box textAlign="center" py={8}>
           <HomeIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h5" component="h2" gutterBottom>
             No properties found
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
@@ -150,7 +224,7 @@ const PropertyListing = () => {
             List Your Property
           </Button>
         </Box>
-      ) : (
+      ) : viewMode === "list" ? (
         <Grid container spacing={3}>
           {filteredProperties.map((property) => (
             <Grid item xs={12} sm={6} md={4} key={property._id}>
@@ -166,21 +240,59 @@ const PropertyListing = () => {
                   },
                 }}
               >
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={
-                    property.images?.[0]?.url
-                      ? (property.images[0].url.startsWith('http') 
-                          ? property.images[0].url 
-                          : `${process.env.REACT_APP_API_URL || ''}${property.images[0].url}`)
-                      : "https://picsum.photos/seed/no-image-listing/300/200"
-                  }
-                  alt={`Property: ${property.title} in ${property.address?.city || 'India'}`}
-                  loading="lazy"
-                />
+                <Box sx={{ position: 'relative' }}>
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={
+                      property.images?.[0]?.url
+                        ? (property.images[0].url.startsWith('http') 
+                            ? property.images[0].url 
+                            : `${process.env.REACT_APP_API_URL || ''}${property.images[0].url}`)
+                        : "https://picsum.photos/seed/no-image-listing/300/200"
+                    }
+                    alt={`Property: ${property.title} in ${property.address?.city || 'India'}`}
+                    loading="lazy"
+                  />
+                  {property.propertyVerified && (
+                    <Chip
+                      icon={<BeenhereIcon sx={{ fontSize: '14px !important' }} />}
+                      label="Verified Property"
+                      size="small"
+                      color="success"
+                      sx={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        height: 24,
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                        bgcolor: 'success.main',
+                        color: 'white'
+                      }}
+                    />
+                  )}
+                  {property.isVerified && (
+                    <Chip
+                      icon={<VerifiedIcon sx={{ fontSize: '14px !important' }} />}
+                      label="Verified Owner"
+                      size="small"
+                      color="info"
+                      sx={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        height: 24,
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                        bgcolor: 'info.main',
+                        color: 'white'
+                      }}
+                    />
+                  )}
+                </Box>
                 <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography gutterBottom variant="h6" component="h2">
+                  <Typography gutterBottom variant="h6" component="h3">
                     {property.title}
                   </Typography>
                   <Box display="flex" alignItems="center" mb={1}>
@@ -231,6 +343,8 @@ const PropertyListing = () => {
             </Grid>
           ))}
         </Grid>
+      ) : (
+        <PropertyMap properties={filteredProperties} onViewDetails={handleViewDetails} />
       )}
       <AuthPromptDialog 
         open={isAuthDialogOpen} 
