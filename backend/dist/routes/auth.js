@@ -42,6 +42,8 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const passport_1 = __importDefault(require("passport"));
 const express_validator_1 = require("express-validator");
 const User_1 = __importDefault(require("../models/User"));
+const emailService_1 = __importDefault(require("../services/emailService"));
+const security_1 = require("../utils/security");
 const router = express_1.default.Router();
 // @route   POST api/auth/register
 // @desc    Register user
@@ -61,7 +63,8 @@ router.post('/register', [
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-    const { name, email, password, userType } = req.body;
+    const { name, email, password: encryptedPassword, userType } = req.body;
+    const password = (0, security_1.decryptData)(encryptedPassword);
     try {
         // Check if user exists
         let user = await User_1.default.findOne({ email });
@@ -79,6 +82,15 @@ router.post('/register', [
         const salt = await bcryptjs_1.default.genSalt(10);
         user.password = await bcryptjs_1.default.hash(password, salt);
         await user.save();
+        // Send welcome email asynchronously (fire-and-forget)
+        try {
+            setImmediate(() => {
+                emailService_1.default.sendWelcomeEmail(user.email, user.name).catch((err) => console.error('Failed to send welcome email:', err));
+            });
+        }
+        catch (e) {
+            console.error('Failed to schedule welcome email send:', e);
+        }
         // Return jsonwebtoken
         const payload = {
             id: user.id,
@@ -106,10 +118,11 @@ router.post('/login', [
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-    const { email, password } = req.body;
+    const { email, password: encryptedPassword } = req.body;
+    const password = (0, security_1.decryptData)(encryptedPassword);
     try {
         // Check if user exists
-        let user = await User_1.default.findOne({ email, socialProvider: 'local' });
+        let user = await User_1.default.findOne({ email });
         if (!user) {
             return res.status(400).json({ errors: [{ msg: 'User not found', type: 'USER_NOT_FOUND' }] });
         }

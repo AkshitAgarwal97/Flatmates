@@ -44,6 +44,20 @@ const PropertySchema = new mongoose_1.Schema({
         type: String,
         required: true
     },
+    description: {
+        type: String,
+        required: true
+    },
+    propertyType: {
+        type: String,
+        enum: ['room', 'flat', 'house', 'studio', 'apartment'],
+        required: true
+    },
+    listingType: {
+        type: String,
+        enum: ['room_in_flat', 'roommates_for_flat', 'occupied_flat', 'entire_property'],
+        required: true
+    },
     address: {
         street: String,
         city: {
@@ -148,6 +162,8 @@ const PropertySchema = new mongoose_1.Schema({
         default: Date.now
     }
 });
+// Text index for faster text search on title and description
+PropertySchema.index({ title: 'text', description: 'text' });
 // Update the updatedAt field on save
 PropertySchema.pre('save', function (next) {
     this.updatedAt = new Date();

@@ -6,6 +6,7 @@ import { showAlert } from "../../redux/slices/alertSlice";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { RootState, useAppDispatch } from "../../redux/store";
+import { encryptData } from "../../utils/security";
 
 // MUI components
 import Avatar from "@mui/material/Avatar";
@@ -82,7 +83,8 @@ const Register = () => {
       }
       // Clear error to avoid repeated alerts
       // dispatch(clearError()); // Assuming clearError action exists and is imported
-    }
+      }
+
   }, [error, dispatch, navigate]);
 
   // Formik setup
@@ -97,8 +99,12 @@ const Register = () => {
     validationSchema: validationSchema,
     onSubmit: (values: RegisterFormValues) => {
       const { confirmPassword, agreeToTerms, ...registerData } = values;
+      const encryptedData = {
+        ...registerData,
+        password: encryptData(registerData.password)
+      };
       // Default userType to 'room_seeker' as it's required by backend but removed from frontend
-      dispatch(register({ ...registerData, userType: "room_seeker" }));
+      dispatch(register({ ...encryptedData, userType: "room_seeker" }));
     },
   });
 

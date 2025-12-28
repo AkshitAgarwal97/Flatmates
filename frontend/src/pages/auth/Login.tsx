@@ -5,6 +5,7 @@ import { login, clearError } from "../../redux/slices/authSlice";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAppDispatch, RootState } from "../../redux/store";
+import { encryptData } from "../../utils/security";
 
 // MUI components
 import Avatar from "@mui/material/Avatar";
@@ -118,7 +119,11 @@ const Login = () => {
     },
     validationSchema: validationSchema,
     onSubmit: (values: LoginFormValues) => {
-      dispatch(login(values) as any);
+      const encryptedValues = {
+        ...values,
+        password: encryptData(values.password)
+      };
+      dispatch(login(encryptedValues) as any);
     },
   });
 

@@ -10,6 +10,7 @@ import BeenhereIcon from "@mui/icons-material/Beenhere";
 import HomeIcon from "@mui/icons-material/Home";
 import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
 import PropertyMap from "../../components/ui/PropertyMap";
+import EnhancedFilters, { EnhancedFiltersState } from "../../components/property/EnhancedFilters";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector, RootState } from "../../redux/store";
 import { getProperties } from "../../redux/slices/propertySlice";
@@ -22,9 +23,14 @@ const PropertyListing = () => {
   ) as PropertyState;
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
-  const [budgetRange, setBudgetRange] = useState<number[]>([0, 100000]);
-  const [propertyType, setPropertyType] = useState<string>("all");
-  const [listingType, setListingType] = useState<string>("all");
+  const [filters, setFilters] = useState<EnhancedFiltersState>({
+    budgetRange: [0, 100000],
+    propertyType: "all",
+    listingType: "all",
+    amenities: [],
+    lifestyle: [],
+    ageRange: [18, 65],
+  });
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
@@ -39,15 +45,20 @@ const PropertyListing = () => {
   }, [searchTerm]);
 
   useEffect(() => {
-    const filters: any = {};
-    if (debouncedSearchTerm) filters.search = debouncedSearchTerm;
-    if (propertyType !== "all") filters.propertyType = propertyType;
-    if (listingType !== "all") filters.listingType = listingType;
-    filters.minPrice = budgetRange[0];
-    filters.maxPrice = budgetRange[1];
+    const apiFilters: any = {};
+    if (debouncedSearchTerm) apiFilters.search = debouncedSearchTerm;
+    if (filters.propertyType !== "all") apiFilters.propertyType = filters.propertyType;
+    if (filters.listingType !== "all") apiFilters.listingType = filters.listingType;
+    apiFilters.minPrice = filters.budgetRange[0];
+    apiFilters.maxPrice = filters.budgetRange[1];
+    if (filters.bedrooms) apiFilters.bedrooms = filters.bedrooms;
+    if (filters.bathrooms) apiFilters.bathrooms = filters.bathrooms;
+    if (filters.petFriendly !== undefined) apiFilters.petFriendly = filters.petFriendly;
+    if (filters.amenities.length > 0) apiFilters.amenities = filters.amenities.join(',');
+    if (filters.lifestyle.length > 0) apiFilters.lifestyle = filters.lifestyle.join(',');
 
-    dispatch(getProperties(filters));
-  }, [dispatch, debouncedSearchTerm, budgetRange, propertyType, listingType]);
+    dispatch(getProperties(apiFilters));
+  }, [dispatch, debouncedSearchTerm, filters]);
 
   useEffect(() => {
     if (properties) {
@@ -59,16 +70,19 @@ const PropertyListing = () => {
     setSearchTerm(event.target.value);
   };
 
-  const handleBudgetChange = (event: Event, newValue: number | number[]) => {
-    setBudgetRange(newValue as number[]);
+  const handleFiltersChange = (newFilters: EnhancedFiltersState) => {
+    setFilters(newFilters);
   };
 
-  const handlePropertyTypeChange = (event: any) => {
-    setPropertyType(event.target.value as string);
-  };
-
-  const handleListingTypeChange = (event: any) => {
-    setListingType(event.target.value as string);
+  const handleResetFilters = () => {
+    setFilters({
+      budgetRange: [0, 100000],
+      propertyType: "all",
+      listingType: "all",
+      amenities: [],
+      lifestyle: [],
+      ageRange: [18, 65],
+    });
   };
 
   const handleViewModeChange = (
@@ -138,70 +152,30 @@ const PropertyListing = () => {
           sx={{ mb: 3 }}
         />
 
-        {/* Multi-Filter Bar */}
-        <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
-              <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                Budget Range: ₹{budgetRange[0]} - ₹{budgetRange[1]}+
-              </Typography>
-              <Slider
-                value={budgetRange}
-                onChange={handleBudgetChange}
-                valueLabelDisplay="auto"
-                min={0}
-                max={100000}
-                step={1000}
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Property Type</InputLabel>
-                <Select
-                  value={propertyType}
-                  label="Property Type"
-                  onChange={handlePropertyTypeChange}
-                >
-                  <MenuItem value="all">All Types</MenuItem>
-                  <MenuItem value="apartment">Apartment</MenuItem>
-                  <MenuItem value="house">House</MenuItem>
-                  <MenuItem value="pg">PG/Hostel</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Listing Type</InputLabel>
-                <Select
-                  value={listingType}
-                  label="Listing Type"
-                  onChange={handleListingTypeChange}
-                >
-                  <MenuItem value="all">All Listings</MenuItem>
-                  <MenuItem value="room_seeker">Find Flatmate</MenuItem>
-                  <MenuItem value="property_owner">Full Property</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <ToggleButtonGroup
-                value={viewMode}
-                exclusive
-                onChange={handleViewModeChange}
-                aria-label="view mode"
-                size="small"
-              >
-                <ToggleButton value="list" aria-label="list view">
-                  <ViewListIcon sx={{ mr: 1 }} /> List
-                </ToggleButton>
-                <ToggleButton value="map" aria-label="map view">
-                  <MapIcon sx={{ mr: 1 }} /> Map
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Grid>
-          </Grid>
-        </Paper>
+        {/* Enhanced Filters */}
+        <EnhancedFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onReset={handleResetFilters}
+        />
+
+        {/* View Mode Toggle */}
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            aria-label="view mode"
+            size="small"
+          >
+            <ToggleButton value="list" aria-label="list view">
+              <ViewListIcon sx={{ mr: 1 }} /> List
+            </ToggleButton>
+            <ToggleButton value="map" aria-label="map view">
+              <MapIcon sx={{ mr: 1 }} /> Map
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
 
       {filteredProperties.length === 0 ? (

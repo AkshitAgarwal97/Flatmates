@@ -29,8 +29,6 @@ import {
   Message as MessageIcon,
   Edit,
   Delete,
-  ArrowBack,
-  ArrowForward,
 } from "@mui/icons-material";
 import { RootState, AppDispatch } from "../../redux/store";
 import {
@@ -40,6 +38,7 @@ import {
 } from "../../redux/slices/propertySlice";
 import { showAlert } from "../../redux/slices/alertSlice";
 import NewConversation from "../messages/NewConversation";
+import PropertyImageGallery from "../../components/property/PropertyImageGallery";
 
 // interface Address {
 //   street: string;
@@ -108,7 +107,6 @@ const PropertyDetails: React.FC = () => {
     (state: RootState) => state.auth as AuthState
   );
 
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
@@ -181,22 +179,6 @@ const PropertyDetails: React.FC = () => {
     handleShareDialogClose();
   };
 
-  const handleNextImage = () => {
-    if (property && property.images.length > 0) {
-      setCurrentImageIndex(
-        (prevIndex) => (prevIndex + 1) % property.images.length
-      );
-    }
-  };
-
-  const handlePrevImage = () => {
-    if (property && property.images.length > 0) {
-      setCurrentImageIndex(
-        (prevIndex) =>
-          (prevIndex - 1 + property.images.length) % property.images.length
-      );
-    }
-  };
 
   const handleEditProperty = () => {
     if (property) {
@@ -262,77 +244,12 @@ const PropertyDetails: React.FC = () => {
           }
         })}
       </script>
-      {/* Image Gallery */}
+      {/* Enhanced Image Gallery with Lightbox */}
       <Box sx={{ position: "relative", mb: 4 }}>
-        {property.images && property.images.length > 0 ? (
-          <>
-            <Box
-              component="img"
-              src={
-                property.images[currentImageIndex]?.url
-                  ? (property.images[currentImageIndex].url.startsWith('http')
-                      ? property.images[currentImageIndex].url
-                      : `${process.env.REACT_APP_API_URL || ''}${property.images[currentImageIndex].url}`)
-                  : property.images[currentImageIndex]
-              }
-              alt={`View of ${property.title}`}
-              loading="lazy"
-              sx={{
-                width: "100%",
-                height: 400,
-                objectFit: "cover",
-                borderRadius: 2,
-              }}
-            />
-            {property.images.length > 1 && (
-              <>
-                <IconButton
-                  onClick={handlePrevImage}
-                  sx={{
-                    position: "absolute",
-                    left: 16,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    bgcolor: "rgba(255, 255, 255, 0.8)",
-                    "&:hover": { bgcolor: "rgba(255, 255, 255, 0.9)" },
-                  }}
-                >
-                  <ArrowBack />
-                </IconButton>
-                <IconButton
-                  onClick={handleNextImage}
-                  sx={{
-                    position: "absolute",
-                    right: 16,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    bgcolor: "rgba(255, 255, 255, 0.8)",
-                    "&:hover": { bgcolor: "rgba(255, 255, 255, 0.9)" },
-                  }}
-                >
-                  <ArrowForward />
-                </IconButton>
-              </>
-            )}
-          </>
-        ) : (
-          <Box
-            sx={{
-              width: "100%",
-              height: 400,
-              bgcolor: "grey.200",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 2,
-            }}
-          >
-            <Typography variant="h6" color="text.secondary">
-              No Image Available
-            </Typography>
-          </Box>
-        )}
-
+        <PropertyImageGallery
+          images={property.images || []}
+          propertyTitle={property.title}
+        />
         <Box
           sx={{
             position: "absolute",
@@ -340,13 +257,14 @@ const PropertyDetails: React.FC = () => {
             right: 16,
             display: "flex",
             gap: 1,
+            zIndex: 10,
           }}
         >
           <IconButton
             onClick={handleSaveProperty}
             sx={{
-              bgcolor: "rgba(255, 255, 255, 0.8)",
-              "&:hover": { bgcolor: "rgba(255, 255, 255, 0.9)" },
+              bgcolor: "rgba(255, 255, 255, 0.9)",
+              "&:hover": { bgcolor: "rgba(255, 255, 255, 1)" },
             }}
           >
             {property.isSaved ? <Favorite color="error" /> : <FavoriteBorder />}
@@ -354,8 +272,8 @@ const PropertyDetails: React.FC = () => {
           <IconButton
             onClick={handleShareDialogOpen}
             sx={{
-              bgcolor: "rgba(255, 255, 255, 0.8)",
-              "&:hover": { bgcolor: "rgba(255, 255, 255, 0.9)" },
+              bgcolor: "rgba(255, 255, 255, 0.9)",
+              "&:hover": { bgcolor: "rgba(255, 255, 255, 1)" },
             }}
           >
             <Share />
@@ -365,8 +283,8 @@ const PropertyDetails: React.FC = () => {
               <IconButton
                 onClick={handleEditProperty}
                 sx={{
-                  bgcolor: "rgba(255, 255, 255, 0.8)",
-                  "&:hover": { bgcolor: "rgba(255, 255, 255, 0.9)" },
+                  bgcolor: "rgba(255, 255, 255, 0.9)",
+                  "&:hover": { bgcolor: "rgba(255, 255, 255, 1)" },
                 }}
               >
                 <Edit />
@@ -374,8 +292,8 @@ const PropertyDetails: React.FC = () => {
               <IconButton
                 onClick={handleDeleteProperty}
                 sx={{
-                  bgcolor: "rgba(255, 255, 255, 0.8)",
-                  "&:hover": { bgcolor: "rgba(255, 255, 255, 0.9)" },
+                  bgcolor: "rgba(255, 255, 255, 0.9)",
+                  "&:hover": { bgcolor: "rgba(255, 255, 255, 1)" },
                 }}
               >
                 <Delete />

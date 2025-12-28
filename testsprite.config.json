@@ -7,14 +7,14 @@
   "application": {
     "frontend": {
       "type": "react",
-      "url": "http://localhost:3000",
+      "url": "https://flatemates.co.in",
       "framework": "React 18 with TypeScript",
       "uiLibrary": "Material-UI",
       "stateManagement": "Redux Toolkit"
     },
     "backend": {
       "type": "api",
-      "url": "http://localhost:5000",
+      "url": "https://flatemates.co.in",
       "framework": "Express.js with TypeScript",
       "database": "MongoDB",
       "authentication": "JWT with Passport.js",
@@ -33,7 +33,7 @@
       "note": "Create a test account with these credentials before running tests"
     },
     "endpoints": {
-      "baseUrl": "http://localhost:5000/api",
+      "baseUrl": "https://flatemates.co.in/api",
       "auth": {
         "register": "/api/auth/register",
         "login": "/api/auth/login",
@@ -101,14 +101,19 @@
   },
   "environment": {
     "development": {
-      "frontendUrl": "http://localhost:3000",
-      "backendUrl": "http://localhost:5000",
+      "frontendUrl": "https://flatemates.co.in",
+      "backendUrl": "https://flatemates.co.in",
       "database": "mongodb://localhost:27017/flatmates"
     },
     "test": {
-      "frontendUrl": "http://localhost:3000",
-      "backendUrl": "http://localhost:5000",
+      "frontendUrl": "https://flatemates.co.in",
+      "backendUrl": "https://flatemates.co.in",
       "database": "mongodb://localhost:27017/flatmates-test"
+    },
+    "production": {
+      "frontendUrl": "https://flatemates.co.in",
+      "backendUrl": "https://flatemates.co.in",
+      "database": "Production MongoDB"
     }
   },
   "prerequisites": [

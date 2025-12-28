@@ -1,3 +1,6 @@
+import Property from '../models/Property';
+import User from '../models/User';
+import emailService from '../services/emailService';
 import express, { Request, Response } from 'express';
 import passport from 'passport';
 import { check, validationResult } from 'express-validator';
@@ -5,10 +8,8 @@ import multer from 'multer';
 import path from 'path';
 import mongoose from 'mongoose';
 import { parseFormDataJSON } from '../utils/formDataHelper';
-import { v2 as cloudinary } from 'cloudinary';
+import { cloudinary, configured as cloudinaryConfigured } from '../config/cloudinary';
 import fs from 'fs';
-import Property from '../models/Property';
-
 const router = express.Router();
 
 // Extend Express Request to include user property
@@ -142,60 +143,42 @@ router.post(
       const images = [];
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
 
-        const secret = process.env.CLOUDINARY_API_SECRET;
-        console.log('Environment Keys:', Object.keys(process.env).sort());
-        console.log('Cloudinary Secret Debug:', {
-          exists: !!secret,
-          length: secret ? secret.length : 0,
-          type: typeof secret,
-          firstChar: secret ? secret.charAt(0) : 'N/A'
-        });
-
-        // Hardcode all credentials to ensure no env var issues
-        // And override timestamp to handle 2025/2024 mismatch
-        const cloudConfig = {
-          cloud_name: 'dnngje1bu',
-          api_key: '786263453112437'.trim(),
-          api_secret: 'WysLcS_KLtp_a4_btoG4QIKCewI'.trim()
-        };
-
-        console.log('POST Route - Using Cloudinary Config:', {
-          cloud_name: cloudConfig.cloud_name,
-          api_key: cloudConfig.api_key,
-          api_secret_masked: cloudConfig.api_secret.substring(0, 5) + '...' + cloudConfig.api_secret.substring(cloudConfig.api_secret.length - 5)
-        });
-
-        cloudinary.config(cloudConfig);
-
-        // Use current timestamp for Cloudinary
-        let timestamp = Math.floor(Date.now() / 1000);
-        console.log('Using timestamp:', timestamp);
-
-        for (const file of req.files as Express.Multer.File[]) {
-          try {
-            // Upload buffer to Cloudinary using upload_stream
-            const uploadPromise = new Promise((resolve, reject) => {
+        // Upload images using module-level Cloudinary configuration
+        if (!cloudinaryConfigured) {
+          const files = req.files as Express.Multer.File[];
+          for (const file of files) {
+            const ext = path.extname(file.originalname).toLowerCase();
+            const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 100);
+            const filename = `${Date.now()}-${base}${ext}`;
+            const dest = path.join(__dirname, '../uploads/properties', filename);
+            fs.writeFileSync(dest, file.buffer);
+            images.push({ url: `/uploads/properties/${filename}`, caption: '' });
+          }
+        } else {
+          // Upload images in parallel to reduce total latency
+          const uploadPromises: Array<Promise<any>> = (req.files as Express.Multer.File[]).map((file) => {
+            return new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
                 {
-                  // folder: 'flatmates/properties',
-                  timestamp: timestamp
+                  // folder: 'flatmates/properties'
                 },
                 (error, result) => {
-                  if (error) reject(error);
-                  else resolve(result);
+                  if (error) return reject(error);
+                  resolve(result);
                 }
               );
               uploadStream.end(file.buffer);
             });
+          });
 
-            const result: any = await uploadPromise;
-            images.push({
-              url: result.secure_url,
-              caption: ''
-            });
-            console.log('Successfully uploaded image to Cloudinary:', result.secure_url);
-          } catch (uploadError) {
-            console.error('Cloudinary upload error:', uploadError);
+          const settled = await Promise.all(uploadPromises.map(p => p.catch(e => ({ error: e }))));
+          for (const r of settled) {
+            if (r && (r as any).error) {
+              console.error('Cloudinary upload error:', (r as any).error);
+              continue;
+            }
+            const result: any = r;
+            images.push({ url: result.secure_url, caption: '' });
           }
         }
       }
@@ -281,18 +264,18 @@ router.get('/', async (req: Request, res: Response) => {
     if (country) filter['address.country'] = new RegExp(country as string, 'i');
 
     if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.amount = { $gte: Number(minPrice) };
-      if (maxPrice) filter.price.amount = { ...filter.price.amount, $lte: Number(maxPrice) };
+      filter['price.amount'] = {};
+      if (minPrice) filter['price.amount'].$gte = Number(minPrice);
+      if (maxPrice) filter['price.amount'].$lte = Number(maxPrice);
     }
 
     if (availableFrom) {
       filter['availability.availableFrom'] = { $lte: new Date(availableFrom as string) };
     }
 
-    if (bedrooms) filter['features.bedrooms'] = Number(bedrooms);
-    if (bathrooms) filter['features.bathrooms'] = Number(bathrooms);
-    if (furnishing) filter['features.furnishing'] = furnishing;
+    if (bedrooms != null && bedrooms !== 'any' && bedrooms !== '') filter['features.bedrooms'] = Number(bedrooms);
+    if (bathrooms != null && bathrooms !== 'any' && bathrooms !== '') filter['features.bathrooms'] = Number(bathrooms);
+    if (furnishing != null && furnishing !== 'any' && furnishing !== '') filter['features.furnishing'] = furnishing;
 
     if (amenities) {
       const amenitiesArray = (amenities as string).split(',');
@@ -300,6 +283,28 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     if (gender) filter['preferences.gender'] = gender;
+
+    // Support pet-friendly filtering
+    if (req.query.petFriendly === 'true') {
+      filter['preferences.pets'] = true;
+    }
+
+    // Support lifestyle filtering (stored in preferences or features)
+    if (req.query.lifestyle) {
+      const lifestyleArray = (req.query.lifestyle as string).split(',').map(s => s.trim()).filter(Boolean);
+      const orConditions: any[] = filter.$or ? [...filter.$or] : [];
+      // Add explicit conditions for recognized lifestyle preferences
+      if (lifestyleArray.includes('Non-smoking')) {
+        orConditions.push({ 'preferences.smoking': false });
+      }
+      // Add other lifestyle mappings here as needed (e.g., 'Pet lover' -> preferences.pets: true)
+      if (lifestyleArray.includes('Pet lover')) {
+        orConditions.push({ 'preferences.pets': true });
+      }
+      if (orConditions.length > 0) {
+        filter.$or = orConditions;
+      }
+    }
 
     // Pagination
     const skip = (Number(page) - 1) * Number(limit);
@@ -382,6 +387,21 @@ router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
     property.views += 1;
     await property.save();
 
+    // Send email notification to property owner if viewed by authenticated user
+    if (req.user && property.owner && (property.owner as any).email) {
+      const viewer = await require('../models/User').default.findById((req.user as any)?.id);
+      if (viewer && (property.owner as any)._id.toString() !== viewer._id.toString()) {
+        const emailService = require('../services/emailService').default;
+        setImmediate(() => {
+          emailService.sendPropertyViewNotification(
+            (property.owner as any).email,
+            property.title,
+            viewer.name
+          ).catch((err: any) => console.error('Failed to send email notification:', err));
+        });
+      }
+    }
+
     res.json(property);
   } catch (err: any) {
     console.error(err.message);
@@ -412,9 +432,7 @@ router.put(
     }
 
     try {
-      // Import models dynamically to avoid circular dependencies
-      const Property = require('../models/Property').default;
-
+      // Use top-level imported Property model
       let property = await Property.findById(req.params.id);
 
       if (!property) {
@@ -429,61 +447,36 @@ router.put(
       // Process uploaded images
       let images = property.images;
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-
-        const secret = process.env.CLOUDINARY_API_SECRET;
-        console.log('PUT Route - Environment Keys:', Object.keys(process.env).sort());
-        console.log('PUT Route - Cloudinary Secret Debug:', {
-          exists: !!secret,
-          length: secret ? secret.length : 0,
-          type: typeof secret,
-          firstChar: secret ? secret.charAt(0) : 'N/A'
-        });
-
-        // Hardcode all credentials to ensure no env var issues
-        // And override timestamp to handle 2025/2024 mismatch
-        const cloudConfig = {
-          cloud_name: 'dnngje1bu',
-          api_key: '786263453112437'.trim(),
-          api_secret: 'WysLcS_KLtp_a4_btoG4QIKCewI'.trim()
-        };
-
-        console.log('PUT Route - Using Cloudinary Config:', {
-          cloud_name: cloudConfig.cloud_name,
-          api_key: cloudConfig.api_key,
-          api_secret_masked: cloudConfig.api_secret.substring(0, 5) + '...' + cloudConfig.api_secret.substring(cloudConfig.api_secret.length - 5)
-        });
-
-        cloudinary.config(cloudConfig);
-
-        // Use current timestamp for Cloudinary
-        let timestamp = Math.floor(Date.now() / 1000);
-        console.log('Using timestamp:', timestamp);
-
-        for (const file of req.files as Express.Multer.File[]) {
-          try {
-            // Upload buffer to Cloudinary using upload_stream
-            const uploadPromise = new Promise((resolve, reject) => {
-              const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                  // folder: 'flatmates/properties',
-                  timestamp: timestamp
-                },
-                (error, result) => {
-                  if (error) reject(error);
-                  else resolve(result);
-                }
-              );
+        if (!cloudinaryConfigured) {
+          const files = req.files as Express.Multer.File[];
+          for (const file of files) {
+            const ext = path.extname(file.originalname).toLowerCase();
+            const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 100);
+            const filename = `${Date.now()}-${base}${ext}`;
+            const dest = path.join(__dirname, '../uploads/properties', filename);
+            fs.writeFileSync(dest, file.buffer);
+            images.push({ url: `/uploads/properties/${filename}`, caption: '' });
+          }
+        } else {
+          // Upload all files in parallel and handle per-file errors
+          const uploadPromises: Array<Promise<any>> = (req.files as Express.Multer.File[]).map((file) => {
+            return new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream({}, (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+              });
               uploadStream.end(file.buffer);
             });
+          });
 
-            const result: any = await uploadPromise;
-            images.push({
-              url: result.secure_url,
-              caption: ''
-            });
-            console.log('Successfully uploaded image to Cloudinary:', result.secure_url);
-          } catch (uploadError) {
-            console.error('Cloudinary upload error:', uploadError);
+          const settled = await Promise.all(uploadPromises.map(p => p.catch(e => ({ error: e }))));
+          for (const r of settled) {
+            if (r && (r as any).error) {
+              console.error('Cloudinary upload error:', (r as any).error);
+              continue;
+            }
+            const result: any = r;
+            images.push({ url: result.secure_url, caption: '' });
           }
         }
       }
@@ -566,12 +559,13 @@ router.post('/:id/save', passport.authenticate('jwt', { session: false }), async
     // Import models dynamically to avoid circular dependencies
     const Property = require('../models/Property').default;
     const User = require('../models/User').default;
+    const emailService = require('../services/emailService').default;
 
     const user = await User.findById(req.user?.id);
     const propertyId = req.params.id;
 
     // Check if property exists
-    const property = await Property.findById(propertyId);
+    const property = await Property.findById(propertyId).populate('owner', 'name email');
     if (!property) {
       return res.status(404).json({ msg: 'Property not found' });
     }
@@ -588,6 +582,18 @@ router.post('/:id/save', passport.authenticate('jwt', { session: false }), async
       // Save property
       user.savedProperties.push(propertyId);
       await user.save();
+
+      // Send email notification to property owner
+      if (property.owner && (property.owner as any).email && (property.owner as any)._id.toString() !== user?._id.toString()) {
+        setImmediate(() => {
+          emailService.sendPropertySavedNotification(
+            (property.owner as any).email,
+            property.title,
+            user?.name || 'Someone'
+          ).catch((err: any) => console.error('Failed to send email notification:', err));
+        });
+      }
+
       return res.json({ saved: true, savedProperties: user.savedProperties });
     }
   } catch (err: any) {

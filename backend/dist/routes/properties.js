@@ -3,22 +3,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const Property_1 = __importDefault(require("../models/Property"));
 const express_1 = __importDefault(require("express"));
 const passport_1 = __importDefault(require("passport"));
 const express_validator_1 = require("express-validator");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const formDataHelper_1 = require("../utils/formDataHelper");
+const cloudinary_1 = require("../config/cloudinary");
+const fs_1 = __importDefault(require("fs"));
 const router = express_1.default.Router();
-// Set up multer for file uploads
-const storage = multer_1.default.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/properties/');
-    },
-    filename: function (req, file, cb) {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    }
-});
+// Set up multer for file uploads - using memory storage since we upload to Cloudinary immediately
+const storage = multer_1.default.memoryStorage();
 const upload = (0, multer_1.default)({
     storage: storage,
     limits: { fileSize: 10000000 }, // 10MB limit
@@ -76,14 +72,47 @@ router.post('/', [
     }
     try {
         // Import Property model dynamically to avoid circular dependencies
-        const Property = require('../models/Property').default;
+        // const Property = require('../models/Property').default; // Already imported at top
         // Process uploaded images
-        const images = req.files && Array.isArray(req.files) && req.files.length > 0
-            ? req.files.map((file) => ({
-                url: `/uploads/properties/${file.filename}`,
-                caption: ''
-            }))
-            : [];
+        const images = [];
+        if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+            // Upload images using module-level Cloudinary configuration
+            if (!cloudinary_1.configured) {
+                const files = req.files;
+                for (const file of files) {
+                    const ext = path_1.default.extname(file.originalname).toLowerCase();
+                    const base = path_1.default.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 100);
+                    const filename = `${Date.now()}-${base}${ext}`;
+                    const dest = path_1.default.join(__dirname, '../uploads/properties', filename);
+                    fs_1.default.writeFileSync(dest, file.buffer);
+                    images.push({ url: `/uploads/properties/${filename}`, caption: '' });
+                }
+            }
+            else {
+                // Upload images in parallel to reduce total latency
+                const uploadPromises = req.files.map((file) => {
+                    return new Promise((resolve, reject) => {
+                        const uploadStream = cloudinary_1.cloudinary.uploader.upload_stream({
+                        // folder: 'flatmates/properties'
+                        }, (error, result) => {
+                            if (error)
+                                return reject(error);
+                            resolve(result);
+                        });
+                        uploadStream.end(file.buffer);
+                    });
+                });
+                const settled = await Promise.all(uploadPromises.map(p => p.catch(e => ({ error: e }))));
+                for (const r of settled) {
+                    if (r && r.error) {
+                        console.error('Cloudinary upload error:', r.error);
+                        continue;
+                    }
+                    const result = r;
+                    images.push({ url: result.secure_url, caption: '' });
+                }
+            }
+        }
         // Parse nested objects from FormData
         const parsedPreferences = (0, formDataHelper_1.parseFormDataJSON)(req.body.preferences) || {};
         const filteredPreferences = {};
@@ -95,7 +124,7 @@ router.post('/', [
             filteredPreferences.occupation = parsedPreferences.occupation;
         }
         // Create new property
-        const newProperty = new Property({
+        const newProperty = new Property_1.default({
             owner: req.user?.id,
             title: req.body.title,
             description: req.body.description,
@@ -122,7 +151,7 @@ router.post('/', [
 // @access  Public
 router.get('/', async (req, res) => {
     try {
-        const { listingType, propertyType, city, country, minPrice, maxPrice, availableFrom, bedrooms, bathrooms, furnishing, amenities, gender, page = 1, limit = 10 } = req.query;
+        const { listingType, propertyType, city, country, minPrice, maxPrice, availableFrom, bedrooms, bathrooms, furnishing, amenities, gender, search, page = 1, limit = 10 } = req.query;
         // Import models dynamically to avoid circular dependencies
         const Property = require('../models/Property').default;
         // Build filter object
@@ -131,25 +160,31 @@ router.get('/', async (req, res) => {
             filter.listingType = listingType;
         if (propertyType)
             filter.propertyType = propertyType;
+        if (search) {
+            filter.$or = [
+                { title: new RegExp(search, 'i') },
+                { description: new RegExp(search, 'i') }
+            ];
+        }
         if (city)
             filter['address.city'] = new RegExp(city, 'i');
         if (country)
             filter['address.country'] = new RegExp(country, 'i');
         if (minPrice || maxPrice) {
-            filter.price = {};
+            filter['price.amount'] = {};
             if (minPrice)
-                filter.price.amount = { $gte: Number(minPrice) };
+                filter['price.amount'].$gte = Number(minPrice);
             if (maxPrice)
-                filter.price.amount = { ...filter.price.amount, $lte: Number(maxPrice) };
+                filter['price.amount'].$lte = Number(maxPrice);
         }
         if (availableFrom) {
             filter['availability.availableFrom'] = { $lte: new Date(availableFrom) };
         }
-        if (bedrooms)
+        if (bedrooms != null && bedrooms !== 'any' && bedrooms !== '')
             filter['features.bedrooms'] = Number(bedrooms);
-        if (bathrooms)
+        if (bathrooms != null && bathrooms !== 'any' && bathrooms !== '')
             filter['features.bathrooms'] = Number(bathrooms);
-        if (furnishing)
+        if (furnishing != null && furnishing !== 'any' && furnishing !== '')
             filter['features.furnishing'] = furnishing;
         if (amenities) {
             const amenitiesArray = amenities.split(',');
@@ -157,6 +192,26 @@ router.get('/', async (req, res) => {
         }
         if (gender)
             filter['preferences.gender'] = gender;
+        // Support pet-friendly filtering
+        if (req.query.petFriendly === 'true') {
+            filter['preferences.pets'] = true;
+        }
+        // Support lifestyle filtering (stored in preferences or features)
+        if (req.query.lifestyle) {
+            const lifestyleArray = req.query.lifestyle.split(',').map(s => s.trim()).filter(Boolean);
+            const orConditions = filter.$or ? [...filter.$or] : [];
+            // Add explicit conditions for recognized lifestyle preferences
+            if (lifestyleArray.includes('Non-smoking')) {
+                orConditions.push({ 'preferences.smoking': false });
+            }
+            // Add other lifestyle mappings here as needed (e.g., 'Pet lover' -> preferences.pets: true)
+            if (lifestyleArray.includes('Pet lover')) {
+                orConditions.push({ 'preferences.pets': true });
+            }
+            if (orConditions.length > 0) {
+                filter.$or = orConditions;
+            }
+        }
         // Pagination
         const skip = (Number(page) - 1) * Number(limit);
         const properties = await Property.find(filter)
@@ -226,6 +281,16 @@ router.get('/:id', async (req, res) => {
         // Increment view count
         property.views += 1;
         await property.save();
+        // Send email notification to property owner if viewed by authenticated user
+        if (req.user && property.owner && property.owner.email) {
+            const viewer = await require('../models/User').default.findById(req.user?.id);
+            if (viewer && property.owner._id.toString() !== viewer._id.toString()) {
+                const emailService = require('../services/emailService').default;
+                setImmediate(() => {
+                    emailService.sendPropertyViewNotification(property.owner.email, property.title, viewer.name).catch((err) => console.error('Failed to send email notification:', err));
+                });
+            }
+        }
         res.json(property);
     }
     catch (err) {
@@ -252,9 +317,8 @@ router.put('/:id', [
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        // Import models dynamically to avoid circular dependencies
-        const Property = require('../models/Property').default;
-        let property = await Property.findById(req.params.id);
+        // Use top-level imported Property model
+        let property = await Property_1.default.findById(req.params.id);
         if (!property) {
             return res.status(404).json({ msg: 'Property not found' });
         }
@@ -265,13 +329,41 @@ router.put('/:id', [
         // Process uploaded images
         let images = property.images;
         if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-            const newImages = req.files.map((file) => ({
-                url: `/uploads/properties/${file.filename}`,
-                caption: ''
-            }));
-            images = [...images, ...newImages];
+            if (!cloudinary_1.configured) {
+                const files = req.files;
+                for (const file of files) {
+                    const ext = path_1.default.extname(file.originalname).toLowerCase();
+                    const base = path_1.default.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 100);
+                    const filename = `${Date.now()}-${base}${ext}`;
+                    const dest = path_1.default.join(__dirname, '../uploads/properties', filename);
+                    fs_1.default.writeFileSync(dest, file.buffer);
+                    images.push({ url: `/uploads/properties/${filename}`, caption: '' });
+                }
+            }
+            else {
+                // Upload all files in parallel and handle per-file errors
+                const uploadPromises = req.files.map((file) => {
+                    return new Promise((resolve, reject) => {
+                        const uploadStream = cloudinary_1.cloudinary.uploader.upload_stream({}, (error, result) => {
+                            if (error)
+                                return reject(error);
+                            resolve(result);
+                        });
+                        uploadStream.end(file.buffer);
+                    });
+                });
+                const settled = await Promise.all(uploadPromises.map(p => p.catch(e => ({ error: e }))));
+                for (const r of settled) {
+                    if (r && r.error) {
+                        console.error('Cloudinary upload error:', r.error);
+                        continue;
+                    }
+                    const result = r;
+                    images.push({ url: result.secure_url, caption: '' });
+                }
+            }
         }
-        // Remove images if specified
+        // Remove images if specified (removes from DB, future TODO: remove from Cloudinary)
         if (req.body.removeImages) {
             const removeImages = req.body.removeImages.split(',');
             images = images.filter((image) => !removeImages.includes(image.url));
@@ -295,7 +387,7 @@ router.put('/:id', [
         // Add images to update fields
         propertyFields.images = images;
         // Update property
-        property = await Property.findByIdAndUpdate(req.params.id, { $set: propertyFields }, { new: true });
+        property = await Property_1.default.findByIdAndUpdate(req.params.id, { $set: propertyFields }, { new: true });
         res.json(property);
     }
     catch (err) {
@@ -337,10 +429,11 @@ router.post('/:id/save', passport_1.default.authenticate('jwt', { session: false
         // Import models dynamically to avoid circular dependencies
         const Property = require('../models/Property').default;
         const User = require('../models/User').default;
+        const emailService = require('../services/emailService').default;
         const user = await User.findById(req.user?.id);
         const propertyId = req.params.id;
         // Check if property exists
-        const property = await Property.findById(propertyId);
+        const property = await Property.findById(propertyId).populate('owner', 'name email');
         if (!property) {
             return res.status(404).json({ msg: 'Property not found' });
         }
@@ -356,6 +449,12 @@ router.post('/:id/save', passport_1.default.authenticate('jwt', { session: false
             // Save property
             user.savedProperties.push(propertyId);
             await user.save();
+            // Send email notification to property owner
+            if (property.owner && property.owner.email && property.owner._id.toString() !== user?._id.toString()) {
+                setImmediate(() => {
+                    emailService.sendPropertySavedNotification(property.owner.email, property.title, user?.name || 'Someone').catch((err) => console.error('Failed to send email notification:', err));
+                });
+            }
             return res.json({ saved: true, savedProperties: user.savedProperties });
         }
     }

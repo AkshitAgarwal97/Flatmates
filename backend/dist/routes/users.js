@@ -12,7 +12,7 @@ const router = express_1.default.Router();
 // Set up multer for avatar uploads
 const storage = multer_1.default.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/avatars/');
+        cb(null, path_1.default.join(__dirname, '../uploads/avatars/'));
     },
     filename: function (req, file, cb) {
         cb(null, `${Date.now()}-${file.originalname}`);

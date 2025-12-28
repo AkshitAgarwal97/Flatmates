@@ -23,7 +23,7 @@ import CardContent from "@mui/material/CardContent";
 
 // MUI icons
 import SendIcon from "@mui/icons-material/Send";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
+// import AttachFileIcon from "@mui/icons-material/AttachFile"; // Removed
 // removed unused: ImageIcon
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -93,7 +93,7 @@ const Conversation = () => {
   );
 
   const [messageText, setMessageText] = useState<string>("");
-  const [attachments, setAttachments] = useState<File[]>([]);
+  // const [attachments, setAttachments] = useState<File[]>([]); // Removed attachment support
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(
     null
@@ -101,7 +101,7 @@ const Conversation = () => {
   const [isSending, setIsSending] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null); // Removed attachment support
 
   // Get other participant (not the current user)
   const otherParticipant = currentConversation?.participants?.find(
@@ -166,37 +166,11 @@ const Conversation = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Handle file input change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    // Validate file types and sizes
-    const validFiles = files.filter((file) => {
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
-      if (!isValidSize) {
-        alert("File size should not exceed 5MB");
-      }
-      return isValidSize;
-    });
-
-    if (validFiles.length === 0) return;
-
-    // Add to attachments
-    setAttachments([...attachments, ...validFiles]);
-
-    // Reset file input
-    e.target.value = "";
-  };
-
-  // Remove attachment
-  const handleRemoveAttachment = (index: number) => {
-    setAttachments(attachments.filter((_, i) => i !== index));
-  };
+  // Removed attachment handling functions
 
   // Handle message submission
   const handleSendMessage = async () => {
-    if ((!messageText.trim() && attachments.length === 0) || isSending) return;
+    if (!messageText.trim() || isSending) return;
 
     setIsSending(true);
 
@@ -205,13 +179,13 @@ const Conversation = () => {
         sendMessage({
           conversationId: id!,
           content: messageText.trim(),
-          attachments: attachments,
+          attachments: [], // No attachments
         })
       );
 
       // Clear form
       setMessageText("");
-      setAttachments([]);
+      // setAttachments([]);
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {
@@ -287,81 +261,7 @@ const Conversation = () => {
     });
   };
 
-  // Render attachment preview
-  const renderAttachmentPreview = (file: File, index: number) => {
-    const isImage = file.type.startsWith("image/");
-
-    return (
-      <Box
-        key={index}
-        sx={{
-          position: "relative",
-          display: "inline-block",
-          m: 0.5,
-          borderRadius: 1,
-          overflow: "hidden",
-          border: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        {isImage ? (
-          <Box
-            component="img"
-            src={URL.createObjectURL(file)}
-            alt="Attachment preview"
-            sx={{ width: 80, height: 80, objectFit: "cover" }}
-          />
-        ) : (
-          <Box
-            sx={{
-              width: 80,
-              height: 80,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: "action.hover",
-            }}
-          >
-            <InsertDriveFileIcon />
-          </Box>
-        )}
-        <IconButton
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            bgcolor: "rgba(0,0,0,0.5)",
-            color: "white",
-            "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
-            p: 0.2,
-          }}
-          onClick={() => handleRemoveAttachment(index)}
-        >
-          ×
-        </IconButton>
-        <Typography
-          variant="caption"
-          sx={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            bgcolor: "rgba(0,0,0,0.5)",
-            color: "white",
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            px: 1,
-          }}
-        >
-          {file.name.length > 10
-            ? `${file.name.substring(0, 7)}...`
-            : file.name}
-        </Typography>
-      </Box>
-    );
-  };
+  // Render attachment preview - Removed
 
   // Render message attachment
   const renderMessageAttachment = (attachment: Attachment) => {
@@ -683,26 +583,8 @@ const Conversation = () => {
 
       {/* Message Input */}
       <Paper elevation={2} sx={{ p: 2 }}>
-        {/* Attachment previews */}
-        {attachments.length > 0 && (
-          <Box sx={{ mb: 2, display: "flex", flexWrap: "wrap" }}>
-            {attachments.map((file, index) =>
-              renderAttachmentPreview(file, index)
-            )}
-          </Box>
-        )}
-
         <Box sx={{ display: "flex", alignItems: "center" }}>
-          <IconButton onClick={() => fileInputRef.current?.click()}>
-            <AttachFileIcon />
-          </IconButton>
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-            multiple
-          />
+          {/* File input removed */}
 
           <TextField
             fullWidth
@@ -727,7 +609,7 @@ const Conversation = () => {
             endIcon={<SendIcon />}
             onClick={handleSendMessage}
             disabled={
-              (!messageText.trim() && attachments.length === 0) || isSending
+              !messageText.trim() || isSending
             }
           >
             {isSending ? <CircularProgress size={24} /> : "Send"}

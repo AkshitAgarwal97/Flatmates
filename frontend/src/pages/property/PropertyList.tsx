@@ -1,7 +1,7 @@
 import React, { useEffect, useState, ChangeEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
-import { getProperties } from "../../redux/slices/propertySlice";
+import { getProperties, clearError } from "../../redux/slices/propertySlice";
 import { RootState, AppDispatch } from "../../redux/store";
 import { PropertyState, Property } from "../../types";
 import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
@@ -36,6 +36,7 @@ const PropertyList: React.FC = () => {
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
 
   useEffect(() => {
+    dispatch(clearError());
     dispatch(getProperties({}));
   }, [dispatch]);
 

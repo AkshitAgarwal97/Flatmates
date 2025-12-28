@@ -142,30 +142,14 @@ router.post(
       const images = [];
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
 
-        const secret = process.env.CLOUDINARY_API_SECRET;
-        console.log('Environment Keys:', Object.keys(process.env).sort());
-        console.log('Cloudinary Secret Debug:', {
-          exists: !!secret,
-          length: secret ? secret.length : 0,
-          type: typeof secret,
-          firstChar: secret ? secret.charAt(0) : 'N/A'
-        });
-
-        // Hardcode all credentials to ensure no env var issues
-        // And override timestamp to handle 2025/2024 mismatch
-        const cloudConfig = {
-          cloud_name: 'dnngje1bu',
-          api_key: '786263453112437'.trim(),
-          api_secret: 'WysLcS_KLtp_a4_btoG4QIKCewI'.trim()
-        };
-
-        console.log('POST Route - Using Cloudinary Config:', {
-          cloud_name: cloudConfig.cloud_name,
-          api_key: cloudConfig.api_key,
-          api_secret_masked: cloudConfig.api_secret.substring(0, 5) + '...' + cloudConfig.api_secret.substring(cloudConfig.api_secret.length - 5)
-        });
-
-        cloudinary.config(cloudConfig);
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        const cloudKey = process.env.CLOUDINARY_API_KEY;
+        const cloudSecret = process.env.CLOUDINARY_API_SECRET;
+        if (!cloudName || !cloudKey || !cloudSecret) {
+          console.warn('Cloudinary not configured; skipping uploads.');
+        } else {
+          cloudinary.config({ cloud_name: cloudName, api_key: cloudKey, api_secret: cloudSecret });
+        }
 
         // Use current timestamp for Cloudinary
         let timestamp = Math.floor(Date.now() / 1000);
@@ -421,30 +405,14 @@ router.put(
       let images = property.images;
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
 
-        const secret = process.env.CLOUDINARY_API_SECRET;
-        console.log('PUT Route - Environment Keys:', Object.keys(process.env).sort());
-        console.log('PUT Route - Cloudinary Secret Debug:', {
-          exists: !!secret,
-          length: secret ? secret.length : 0,
-          type: typeof secret,
-          firstChar: secret ? secret.charAt(0) : 'N/A'
-        });
-
-        // Hardcode all credentials to ensure no env var issues
-        // And override timestamp to handle 2025/2024 mismatch
-        const cloudConfig = {
-          cloud_name: 'dnngje1bu',
-          api_key: '786263453112437'.trim(),
-          api_secret: 'WysLcS_KLtp_a4_btoG4QIKCewI'.trim()
-        };
-
-        console.log('PUT Route - Using Cloudinary Config:', {
-          cloud_name: cloudConfig.cloud_name,
-          api_key: cloudConfig.api_key,
-          api_secret_masked: cloudConfig.api_secret.substring(0, 5) + '...' + cloudConfig.api_secret.substring(cloudConfig.api_secret.length - 5)
-        });
-
-        cloudinary.config(cloudConfig);
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        const cloudKey = process.env.CLOUDINARY_API_KEY;
+        const cloudSecret = process.env.CLOUDINARY_API_SECRET;
+        if (!cloudName || !cloudKey || !cloudSecret) {
+          console.warn('Cloudinary not configured; skipping uploads.');
+        } else {
+          cloudinary.config({ cloud_name: cloudName, api_key: cloudKey, api_secret: cloudSecret });
+        }
 
         // Use current timestamp for Cloudinary
         let timestamp = Math.floor(Date.now() / 1000);

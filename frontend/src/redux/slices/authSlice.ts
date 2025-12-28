@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios, { AxiosError } from 'axios';
+import { RootState } from '../store';
 
 // Types
 interface User {
@@ -32,7 +33,7 @@ interface LoginCredentials {
 
 interface RegisterCredentials extends LoginCredentials {
   name: string;
-  userType: string;
+  userType?: string;
 }
 
 interface CompleteProfileFormValues {
@@ -94,11 +95,8 @@ export const register = createAsyncThunk(
       setAuthToken(res.data.token);
       return res.data;
     } catch (error) {
-      const err = error as AxiosError<ErrorResponse>;
-      return rejectWithValue(err.response?.data?.msg ||
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Registration failed');
+      const err = error as AxiosError;
+      return rejectWithValue(err.response?.data || 'Registration failed');
     }
   }
 );
@@ -184,16 +182,17 @@ const authSlice = createSlice({
       setAuthToken(null);
       state.token = null;
       state.isAuthenticated = false;
-      state.user = null;
       state.loading = false;
+      state.user = null;
+      state.error = null;
     },
     clearError: (state) => {
       state.error = null;
     },
     setToken: (state, action: PayloadAction<string>) => {
+      state.token = action.payload;
       localStorage.setItem('token', action.payload);
       setAuthToken(action.payload);
-      state.token = action.payload;
       state.isAuthenticated = true;
     }
   },
@@ -213,7 +212,11 @@ const authSlice = createSlice({
         );
       })
       .addCase(loadUser.rejected, (state, action) => {
-        Object.assign(state, initialState, { loading: false, error: action.payload });
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.token = null;
+        state.user = null;
+        state.error = action.payload;
       })
       .addCase(register.pending, (state) => {
         state.loading = true;
@@ -226,10 +229,10 @@ const authSlice = createSlice({
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
         state.isAuthenticated = false;
         state.token = null;
         state.user = null;
+        state.error = action.payload;
       })
       .addCase(login.pending, (state) => {
         state.loading = true;
@@ -242,10 +245,10 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
         state.isAuthenticated = false;
         state.token = null;
         state.user = null;
+        state.error = action.payload;
       })
       .addCase(completeProfile.pending, (state) => {
         state.loading = true;

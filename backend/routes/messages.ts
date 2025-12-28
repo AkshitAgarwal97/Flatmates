@@ -4,6 +4,11 @@ import { check, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
 import multer from 'multer';
 import path from 'path';
+import crypto from 'crypto';
+import Conversation from '../models/Conversation';
+import Message from '../models/Message';
+import User from '../models/User';
+import emailService from '../services/emailService';
 
 const router = express.Router();
 
@@ -34,10 +39,16 @@ interface SendMessageRequest {
 // Set up multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/messages/');
+    cb(null, path.join(__dirname, '../uploads/messages'));
   },
   filename: function (req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    // Sanitize original filename and append a short random suffix to avoid collisions
+    const ext = path.extname(file.originalname).toLowerCase();
+    const base = path.basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9-_]/g, '_')
+      .slice(0, 100);
+    const suffix = crypto.randomBytes(6).toString('hex');
+    cb(null, `${Date.now()}-${base}-${suffix}${ext}`);
   }
 });
 
@@ -63,9 +74,6 @@ router.get(
   passport.authenticate('jwt', { session: false }),
   async (req: Request, res: Response) => {
     try {
-      // Import models dynamically to avoid circular dependencies
-      const Conversation = require('../models/Conversation').default;
-
       const conversations = await Conversation.find({
         participants: (req.user as AuthenticatedUser)?._id,
         isActive: true
@@ -107,10 +115,8 @@ router.post(
     }
 
     try {
-      // Import models dynamically to avoid circular dependencies
-      const Conversation = require('../models/Conversation').default;
-      const Message = require('../models/Message').default;
-      const User = require('../models/User').default;
+      // Use top-level model imports
+      
 
       const { recipient, property, initialMessage } = req.body;
 
@@ -216,9 +222,7 @@ router.get(
   passport.authenticate('jwt', { session: false }),
   async (req: Request, res: Response) => {
     try {
-      // Import models dynamically to avoid circular dependencies
-      const Conversation = require('../models/Conversation').default;
-      const Message = require('../models/Message').default;
+      // Use top-level model imports
 
       const conversation = await Conversation.findById(req.params.id);
 
@@ -314,6 +318,33 @@ router.post(
       // Update conversation
       conversation.lastMessage = message._id;
       conversation.updatedAt = new Date();
+
+      // Get sender and recipient info for email notification in a single query to avoid N+1
+      const senderId = (req.user as AuthenticatedUser)?._id;
+      const recipientId = conversation.participants.find(
+        (p: any) => p.toString() !== (req.user as AuthenticatedUser)?._id.toString()
+      );
+      let sender = null;
+      let recipient = null;
+      if (senderId && recipientId) {
+        const users = await User.find({ _id: { $in: [senderId, recipientId] } }).select('name email');
+        for (const u of users) {
+          if (u._id.toString() === senderId.toString()) sender = u;
+          if (u._id.toString() === recipientId.toString()) recipient = u;
+        }
+      }
+
+      // Send email notification to recipient (fire-and-forget)
+      if (recipient && sender) {
+        const propertyTitle = (conversation as any).propertyId ? 'a property' : 'your message';
+        setImmediate(() => {
+          emailService.sendNewMessageNotification(
+            recipient.email,
+            sender.name,
+            propertyTitle
+          ).catch((err: any) => console.error('Failed to send email notification:', err));
+        });
+      }
 
       // Increment unread count for other participants
       conversation.participants.forEach((participant: any) => {

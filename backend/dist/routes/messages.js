@@ -6,15 +6,49 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const passport_1 = __importDefault(require("passport"));
 const express_validator_1 = require("express-validator");
+const multer_1 = __importDefault(require("multer"));
+const path_1 = __importDefault(require("path"));
+const crypto_1 = __importDefault(require("crypto"));
+const Conversation_1 = __importDefault(require("../models/Conversation"));
+const Message_1 = __importDefault(require("../models/Message"));
+const User_1 = __importDefault(require("../models/User"));
+const emailService_1 = __importDefault(require("../services/emailService"));
 const router = express_1.default.Router();
+// Set up multer for file uploads
+const storage = multer_1.default.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, path_1.default.join(__dirname, '../uploads/messages'));
+    },
+    filename: function (req, file, cb) {
+        // Sanitize original filename and append a short random suffix to avoid collisions
+        const ext = path_1.default.extname(file.originalname).toLowerCase();
+        const base = path_1.default.basename(file.originalname, ext)
+            .replace(/[^a-zA-Z0-9-_]/g, '_')
+            .slice(0, 100);
+        const suffix = crypto_1.default.randomBytes(6).toString('hex');
+        cb(null, `${Date.now()}-${base}-${suffix}${ext}`);
+    }
+});
+const upload = (0, multer_1.default)({
+    storage: storage,
+    limits: { fileSize: 10000000 }, // 10MB limit
+    fileFilter: function (req, file, cb) {
+        const filetypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
+        const extname = filetypes.test(path_1.default.extname(file.originalname).toLowerCase());
+        if (extname) {
+            return cb(null, true);
+        }
+        else {
+            cb(new Error('Error: Images and documents only!'));
+        }
+    }
+});
 // @route   GET api/messages/conversations
 // @desc    Get all conversations for a user
 // @access  Private
 router.get('/conversations', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
     try {
-        // Import models dynamically to avoid circular dependencies
-        const Conversation = require('../models/Conversation').default;
-        const conversations = await Conversation.find({
+        const conversations = await Conversation_1.default.find({
             participants: req.user?._id,
             isActive: true
         })
@@ -22,7 +56,13 @@ router.get('/conversations', passport_1.default.authenticate('jwt', { session: f
             .populate('property', 'title images')
             .populate('lastMessage')
             .sort({ updatedAt: -1 });
-        res.json(conversations);
+        // Transform unreadCount to number for the requesting user
+        const conversationsWithUnread = conversations.map((conv) => {
+            const convObj = conv.toObject();
+            const unread = conv.unreadCount.get(req.user?._id.toString()) || 0;
+            return { ...convObj, unreadCount: unread };
+        });
+        res.json(conversationsWithUnread);
     }
     catch (err) {
         console.error(err.message);
@@ -42,18 +82,15 @@ router.post('/conversations', [
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        // Import models dynamically to avoid circular dependencies
-        const Conversation = require('../models/Conversation').default;
-        const Message = require('../models/Message').default;
-        const User = require('../models/User').default;
+        // Use top-level model imports
         const { recipient, property, initialMessage } = req.body;
         // Check if recipient exists
-        const recipientUser = await User.findById(recipient);
+        const recipientUser = await User_1.default.findById(recipient);
         if (!recipientUser) {
             return res.status(404).json({ msg: 'Recipient not found' });
         }
         // Check if conversation already exists
-        let conversation = await Conversation.findOne({
+        let conversation = await Conversation_1.default.findOne({
             participants: { $all: [req.user?._id, recipient] },
             property: property || { $exists: false }
         });
@@ -63,10 +100,22 @@ router.post('/conversations', [
                 conversation.isActive = true;
                 await conversation.save();
             }
-            return res.json(conversation);
+            // Populate and return existing conversation
+            const populatedExisting = await Conversation_1.default.findById(conversation._id)
+                .populate('participants', 'name avatar')
+                .populate('property', 'title images')
+                .populate({
+                path: 'lastMessage',
+                populate: { path: 'sender', select: 'name avatar' }
+            });
+            if (!populatedExisting)
+                return res.status(500).send('Server error');
+            const convObj = populatedExisting.toObject();
+            const unread = conversation.unreadCount.get(req.user?._id.toString()) || 0;
+            return res.json({ ...convObj, unreadCount: unread });
         }
         // Create new conversation
-        conversation = new Conversation({
+        conversation = new Conversation_1.default({
             participants: [req.user?._id, recipient],
             property: property || null,
             unreadCount: { [recipient]: initialMessage ? 1 : 0 }
@@ -74,7 +123,7 @@ router.post('/conversations', [
         await conversation.save();
         // If initial message provided, create it
         if (initialMessage) {
-            const message = new Message({
+            const message = new Message_1.default({
                 conversation: conversation._id,
                 sender: req.user?._id,
                 content: initialMessage
@@ -84,7 +133,7 @@ router.post('/conversations', [
             conversation.lastMessage = message._id;
             await conversation.save();
             // Add notification for recipient
-            await User.findByIdAndUpdate(recipient, {
+            await User_1.default.findByIdAndUpdate(recipient, {
                 $push: {
                     notifications: {
                         type: 'message',
@@ -95,11 +144,19 @@ router.post('/conversations', [
             });
         }
         // Populate and return conversation
-        const populatedConversation = await Conversation.findById(conversation._id)
+        const populatedConversation = await Conversation_1.default.findById(conversation._id)
             .populate('participants', 'name avatar')
             .populate('property', 'title images')
-            .populate('lastMessage');
-        res.json(populatedConversation);
+            .populate({
+            path: 'lastMessage',
+            populate: { path: 'sender', select: 'name avatar' }
+        });
+        if (!populatedConversation)
+            return res.status(500).send('Server error');
+        const convObj = populatedConversation.toObject();
+        // For new conversation creator, unread count is 0
+        const unread = 0;
+        res.json({ ...convObj, unreadCount: unread });
     }
     catch (err) {
         console.error(err.message);
@@ -111,10 +168,8 @@ router.post('/conversations', [
 // @access  Private
 router.get('/conversations/:id', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
     try {
-        // Import models dynamically to avoid circular dependencies
-        const Conversation = require('../models/Conversation').default;
-        const Message = require('../models/Message').default;
-        const conversation = await Conversation.findById(req.params.id);
+        // Use top-level model imports
+        const conversation = await Conversation_1.default.findById(req.params.id);
         if (!conversation) {
             return res.status(404).json({ msg: 'Conversation not found' });
         }
@@ -123,11 +178,11 @@ router.get('/conversations/:id', passport_1.default.authenticate('jwt', { sessio
             return res.status(401).json({ msg: 'Not authorized' });
         }
         // Get messages
-        const messages = await Message.find({ conversation: req.params.id })
+        const messages = await Message_1.default.find({ conversation: req.params.id })
             .sort({ createdAt: 1 })
             .populate('sender', 'name avatar');
         // Mark messages as read
-        await Message.updateMany({ conversation: req.params.id, sender: { $ne: req.user?._id }, read: false }, { $set: { read: true, readAt: Date.now() } });
+        await Message_1.default.updateMany({ conversation: req.params.id, sender: { $ne: req.user?._id }, read: false }, { $set: { read: true, readAt: Date.now() } });
         // Reset unread count for this user
         conversation.unreadCount.set(req.user?._id.toString(), 0);
         await conversation.save();
@@ -146,6 +201,7 @@ router.get('/conversations/:id', passport_1.default.authenticate('jwt', { sessio
 // @access  Private
 router.post('/conversations/:id', [
     passport_1.default.authenticate('jwt', { session: false }),
+    upload.array('attachments', 5),
     (0, express_validator_1.check)('content', 'Message content is required').not().isEmpty()
 ], async (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
@@ -172,10 +228,41 @@ router.post('/conversations/:id', [
             content: req.body.content,
             attachments: req.body.attachments || []
         });
+        // Handle file uploads if any
+        if (req.files && Array.isArray(req.files)) {
+            const files = req.files;
+            const attachments = files.map(file => ({
+                type: file.mimetype.startsWith('image/') ? 'image' : 'document',
+                url: `/uploads/messages/${file.filename}`,
+                fileType: file.mimetype
+            }));
+            newMessage.attachments = attachments;
+        }
         const message = await newMessage.save();
         // Update conversation
         conversation.lastMessage = message._id;
         conversation.updatedAt = new Date();
+        // Get sender and recipient info for email notification in a single query to avoid N+1
+        const senderId = req.user?._id;
+        const recipientId = conversation.participants.find((p) => p.toString() !== req.user?._id.toString());
+        let sender = null;
+        let recipient = null;
+        if (senderId && recipientId) {
+            const users = await User.find({ _id: { $in: [senderId, recipientId] } }).select('name email');
+            for (const u of users) {
+                if (u._id.toString() === senderId.toString())
+                    sender = u;
+                if (u._id.toString() === recipientId.toString())
+                    recipient = u;
+            }
+        }
+        // Send email notification to recipient (fire-and-forget)
+        if (recipient && sender) {
+            const propertyTitle = conversation.propertyId ? 'a property' : 'your message';
+            setImmediate(() => {
+                emailService_1.default.sendNewMessageNotification(recipient.email, sender.name, propertyTitle).catch((err) => console.error('Failed to send email notification:', err));
+            });
+        }
         // Increment unread count for other participants
         conversation.participants.forEach((participant) => {
             if (participant.toString() !== req.user?._id.toString()) {

@@ -22,12 +22,16 @@ import Avatar from "@mui/material/Avatar";
 import Badge from "@mui/material/Badge";
 import Skeleton from "@mui/material/Skeleton";
 import Paper from "@mui/material/Paper";
+import { Container } from "@mui/material";
 
 // MUI icons
 import HomeIcon from "@mui/icons-material/Home";
 import MessageIcon from "@mui/icons-material/Message";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import AddIcon from "@mui/icons-material/Add";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 
 // Types
 interface Property {
@@ -41,6 +45,8 @@ interface Property {
     amount: number;
     brokerage?: number;
   };
+  views?: number;
+  saves?: number;
 }
 
 const Dashboard = () => {
@@ -71,17 +77,86 @@ const Dashboard = () => {
     return "Good evening";
   };
 
+  // Calculate statistics
+  const totalListings = userListings?.length || 0;
+  const totalViews = userListings?.reduce((sum: number, p: Property) => sum + (p.views || 0), 0) || 0;
+  const totalSaves = userListings?.reduce((sum: number, p: Property) => sum + (p.saves || 0), 0) || 0;
+  const savedCount = savedProperties?.length || 0;
+
   return (
-    <>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           {getWelcomeMessage()}, {user?.name}!
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Welcome to your Flatmates dashboard. Here's an overview of your
-          activity.
+          Welcome to your Flatmates dashboard. Here's an overview of your activity.
         </Typography>
       </Box>
+
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Your Listings
+                  </Typography>
+                  <Typography variant="h4">{totalListings}</Typography>
+                </Box>
+                <HomeIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Total Views
+                  </Typography>
+                  <Typography variant="h4">{totalViews}</Typography>
+                </Box>
+                <VisibilityIcon sx={{ fontSize: 40, color: 'info.main', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Total Saves
+                  </Typography>
+                  <Typography variant="h4">{totalSaves}</Typography>
+                </Box>
+                <FavoriteIcon sx={{ fontSize: 40, color: 'error.main', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Saved Properties
+                  </Typography>
+                  <Typography variant="h4">{savedCount}</Typography>
+                </Box>
+                <BookmarkIcon sx={{ fontSize: 40, color: 'warning.main', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       <Grid container spacing={4}>
         {/* User's Listings Section */}
@@ -134,12 +209,26 @@ const Dashboard = () => {
                       {property.address.city}, {property.address.state}
                     </Typography>
                     <Typography variant="body2">
-                      {property.price.amount}
+                      ₹{property.price.amount}
                       {property.price.brokerage &&
                       property.price.brokerage > 0 ? (
-                        <span> (Brokerage: {property.price.brokerage})</span>
+                        <span> (Brokerage: ₹{property.price.brokerage})</span>
                       ) : null}
                     </Typography>
+                    {property.views !== undefined && (
+                      <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          <VisibilityIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
+                          {property.views} views
+                        </Typography>
+                        {property.saves !== undefined && (
+                          <Typography variant="caption" color="text.secondary">
+                            <FavoriteIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
+                            {property.saves} saves
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
                   </CardContent>
                   <CardActions>
                     <Button
@@ -373,12 +462,12 @@ const Dashboard = () => {
                           {property.address.city}, {property.address.state}
                         </Typography>
                         <Typography variant="body2">
-                          {property.price.amount}
+                          ₹{property.price.amount}
                           {property.price.brokerage &&
                           property.price.brokerage > 0 ? (
                             <span>
                               {" "}
-                              (Brokerage: {property.price.brokerage})
+                              (Brokerage: ₹{property.price.brokerage})
                             </span>
                           ) : null}
                         </Typography>
@@ -426,7 +515,7 @@ const Dashboard = () => {
           </Paper>
         </Grid>
       </Grid>
-    </>
+    </Container>
   );
 };
 

@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import { check, validationResult, ValidationError } from 'express-validator';
 import User from '../models/User';
+import emailService from '../services/emailService';
+import { decryptData } from '../utils/security';
 
 const router = express.Router();
 
@@ -62,7 +64,8 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, userType } = req.body;
+    const { name, email, password: encryptedPassword, userType } = req.body;
+    const password = decryptData(encryptedPassword);
 
     try {
       // Check if user exists
@@ -85,6 +88,17 @@ router.post(
       user.password = await bcrypt.hash(password, salt);
 
       await user.save();
+
+      // Send welcome email asynchronously (fire-and-forget)
+      try {
+        setImmediate(() => {
+          emailService.sendWelcomeEmail(user.email, user.name).catch((err: any) =>
+            console.error('Failed to send welcome email:', err)
+          );
+        });
+      } catch (e) {
+        console.error('Failed to schedule welcome email send:', e);
+      }
 
       // Return jsonwebtoken
       const payload: JWTPayload = {
@@ -123,11 +137,12 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password } = req.body;
+    const { email, password: encryptedPassword } = req.body;
+    const password = decryptData(encryptedPassword);
 
     try {
       // Check if user exists
-      let user = await User.findOne({ email, socialProvider: 'local' });
+      let user = await User.findOne({ email });
 
       if (!user) {
         return res.status(400).json({ errors: [{ msg: 'User not found', type: 'USER_NOT_FOUND' }] });

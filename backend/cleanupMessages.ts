@@ -1,8 +1,11 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables once. Guard to avoid multiple calls across scripts.
+if (!process.env.DOTENV_CONFIGURED) {
+    dotenv.config();
+    process.env.DOTENV_CONFIGURED = '1';
+}
 
 // Import models
 import Message from './models/Message';
