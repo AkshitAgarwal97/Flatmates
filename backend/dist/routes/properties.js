@@ -10,8 +10,8 @@ const express_validator_1 = require("express-validator");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const formDataHelper_1 = require("../utils/formDataHelper");
-const cloudinary_1 = require("../config/cloudinary");
-const fs_1 = __importDefault(require("fs"));
+// import { cloudinary, configured as cloudinaryConfigured } from '../config/cloudinary';
+// import fs from 'fs';
 const router = express_1.default.Router();
 // Set up multer for file uploads - using memory storage since we upload to Cloudinary immediately
 const storage = multer_1.default.memoryStorage();
@@ -76,41 +76,21 @@ router.post('/', [
         // Process uploaded images
         const images = [];
         if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-            // Upload images using module-level Cloudinary configuration
-            if (!cloudinary_1.configured) {
-                const files = req.files;
-                for (const file of files) {
-                    const ext = path_1.default.extname(file.originalname).toLowerCase();
-                    const base = path_1.default.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 100);
-                    const filename = `${Date.now()}-${base}${ext}`;
-                    const dest = path_1.default.join(__dirname, '../uploads/properties', filename);
-                    fs_1.default.writeFileSync(dest, file.buffer);
-                    images.push({ url: `/uploads/properties/${filename}`, caption: '' });
+            // Import S3 service dynamically or at top (better at top, but for now strict edit)
+            const { uploadFileToS3 } = require('../services/s3Service');
+            const uploadPromises = req.files.map(file => {
+                return uploadFileToS3(file.buffer, file.originalname, file.mimetype)
+                    .then((url) => ({ url, caption: '' }))
+                    .catch((err) => ({ error: err }));
+            });
+            const settled = await Promise.all(uploadPromises);
+            for (const result of settled) {
+                if (result.error) {
+                    console.error('S3 upload error:', result.error);
+                    console.error('S3 upload error:', result.error);
+                    throw new Error(`Image upload failed: ${result.error.message || 'Unknown S3 error'}`);
                 }
-            }
-            else {
-                // Upload images in parallel to reduce total latency
-                const uploadPromises = req.files.map((file) => {
-                    return new Promise((resolve, reject) => {
-                        const uploadStream = cloudinary_1.cloudinary.uploader.upload_stream({
-                        // folder: 'flatmates/properties'
-                        }, (error, result) => {
-                            if (error)
-                                return reject(error);
-                            resolve(result);
-                        });
-                        uploadStream.end(file.buffer);
-                    });
-                });
-                const settled = await Promise.all(uploadPromises.map(p => p.catch(e => ({ error: e }))));
-                for (const r of settled) {
-                    if (r && r.error) {
-                        console.error('Cloudinary upload error:', r.error);
-                        continue;
-                    }
-                    const result = r;
-                    images.push({ url: result.secure_url, caption: '' });
-                }
+                images.push(result);
             }
         }
         // Parse nested objects from FormData
@@ -329,38 +309,19 @@ router.put('/:id', [
         // Process uploaded images
         let images = property.images;
         if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-            if (!cloudinary_1.configured) {
-                const files = req.files;
-                for (const file of files) {
-                    const ext = path_1.default.extname(file.originalname).toLowerCase();
-                    const base = path_1.default.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 100);
-                    const filename = `${Date.now()}-${base}${ext}`;
-                    const dest = path_1.default.join(__dirname, '../uploads/properties', filename);
-                    fs_1.default.writeFileSync(dest, file.buffer);
-                    images.push({ url: `/uploads/properties/${filename}`, caption: '' });
+            const { uploadFileToS3 } = require('../services/s3Service');
+            const uploadPromises = req.files.map(file => {
+                return uploadFileToS3(file.buffer, file.originalname, file.mimetype)
+                    .then((url) => ({ url, caption: '' }))
+                    .catch((err) => ({ error: err }));
+            });
+            const settled = await Promise.all(uploadPromises);
+            for (const result of settled) {
+                if (result.error) {
+                    console.error('S3 upload error:', result.error);
+                    continue;
                 }
-            }
-            else {
-                // Upload all files in parallel and handle per-file errors
-                const uploadPromises = req.files.map((file) => {
-                    return new Promise((resolve, reject) => {
-                        const uploadStream = cloudinary_1.cloudinary.uploader.upload_stream({}, (error, result) => {
-                            if (error)
-                                return reject(error);
-                            resolve(result);
-                        });
-                        uploadStream.end(file.buffer);
-                    });
-                });
-                const settled = await Promise.all(uploadPromises.map(p => p.catch(e => ({ error: e }))));
-                for (const r of settled) {
-                    if (r && r.error) {
-                        console.error('Cloudinary upload error:', r.error);
-                        continue;
-                    }
-                    const result = r;
-                    images.push({ url: result.secure_url, caption: '' });
-                }
+                images.push(result);
             }
         }
         // Remove images if specified (removes from DB, future TODO: remove from Cloudinary)

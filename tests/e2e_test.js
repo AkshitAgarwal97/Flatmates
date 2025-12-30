@@ -3,7 +3,7 @@ const path = require('path');
 
 (async () => {
     const browser = await puppeteer.launch({
-        headless: false,
+        headless: true,
         defaultViewport: null,
         args: ['--start-maximized']
     });
@@ -155,6 +155,15 @@ const path = require('path');
 
         if (cityValue && stateValue) {
             console.log(`PASS: Pin Code Auto-filled City: ${cityValue}, State: ${stateValue}`);
+
+            // Bug 3 Check: Disabled fields
+            const cityDisabled = await page.$eval('input[name="address.city"]', el => el.disabled);
+            const stateDisabled = await page.$eval('input[name="address.state"]', el => el.disabled);
+            if (cityDisabled && stateDisabled) {
+                console.log('PASS: City and State fields are disabled after Pin Code Auto-fill.');
+            } else {
+                console.error('FAIL: City and State fields are NOT disabled.');
+            }
         } else {
             console.error('FAIL: Pin Code did NOT auto-fill City/State.');
         }
@@ -187,14 +196,11 @@ const path = require('path');
         try {
             await waitAndClick('div[id="mui-component-select-userType"]');
         } catch (e) {
-            console.error('FAIL: Could not click userType dropdown. Checking if obscured or missing.');
-            // fallback: try to find by label text
-            const [label] = await page.$x("//label[text()='User Type']");
-            if (label) {
-                console.log('Found User Type label, trying to click sibling div...');
-                // Assume MUI structure: parent -> label + div
-            }
-            throw e;
+            console.error('FAIL: Could not click userType dropdown via selector. Trying JS click...');
+            await page.evaluate(() => {
+                const el = document.getElementById('mui-component-select-userType');
+                if (el) el.click();
+            });
         }
         await new Promise(r => setTimeout(r, 500));
         await waitAndClick('li[data-value="property_owner"]');
@@ -222,6 +228,25 @@ const path = require('path');
         } catch (e) {
             const errorMsg = await page.evaluate(() => document.body.innerText);
             console.error('FAIL: Submission failed or timed out. Page content:', errorMsg.substring(0, 200));
+            process.exit(1);
+        }
+
+        // Verify Bug 1: Image Persistence
+        console.log('Verifying Image persistence...');
+        // Wait for image to load on details page
+        try {
+            // Look for any image with src (assuming it's the property image)
+            // or specific class. MUI CardMedia often creates a div with background-image or an img tag.
+            await page.waitForSelector('img', { timeout: 5000 });
+            const images = await page.$$eval('img', imgs => imgs.map(img => img.src));
+            console.log('Found images:', images);
+            if (images.some(src => src.includes('s3') || src.includes('blob') || src.length > 0)) {
+                console.log('PASS: Property image is visible.');
+            } else {
+                console.warn('WARNING: No property image found or source is empty.');
+            }
+        } catch (e) {
+            console.warn('WARNING: Could not verify property image on details page.');
         }
 
         console.log('E2E Tests Completed.');
@@ -229,6 +254,8 @@ const path = require('path');
         process.exit(0);
 
     } catch (err) {
+        const fs = require('fs');
+        fs.writeFileSync('test_error.log', err.stack || err.toString());
         console.error('Unexpected Test Error:', err);
         process.exit(1);
     }

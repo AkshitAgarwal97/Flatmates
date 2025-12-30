@@ -1,10 +1,22 @@
+# Environment files
+.env
+.env.*
+backend/.env
+frontend/.env
+*.env
+
+# Keys and Secrets
+*.pem
+secret.*
+flatmates-key.pem
+
+# Build and cache
 node_modules/
 .cache/
 *.pack
 .DS_Store
-.env
-*.pem
 deploy.tar.gz
 
+# Tool specific
 .github/instructions/kluster-code-verify.instructions.md
 .kluster

@@ -25,7 +25,7 @@ import CardContent from "@mui/material/CardContent";
 import SendIcon from "@mui/icons-material/Send";
 // import AttachFileIcon from "@mui/icons-material/AttachFile"; // Removed
 // removed unused: ImageIcon
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 // Types
@@ -50,18 +50,13 @@ interface Property {
   images?: string[];
 }
 
-interface Attachment {
-  _id: string;
-  url: string;
-  filename: string;
-  mimetype: string;
-}
+
 
 interface Message {
   _id: string;
   content?: string;
   sender: string | User | any; // Accept string (user ID), User object, or ObjectId object
-  attachments?: Attachment[];
+
   createdAt: string;
   read?: boolean;
 }
@@ -179,7 +174,7 @@ const Conversation = () => {
         sendMessage({
           conversationId: id!,
           content: messageText.trim(),
-          attachments: [], // No attachments
+          attachments: [], // No attachments allowed
         })
       );
 
@@ -263,52 +258,7 @@ const Conversation = () => {
 
   // Render attachment preview - Removed
 
-  // Render message attachment
-  const renderMessageAttachment = (attachment: Attachment) => {
-    const isImage = attachment.mimetype.startsWith("image/");
 
-    if (isImage) {
-      return (
-        <Box
-          key={String(attachment._id)}
-          component="img"
-          src={attachment.url}
-          alt="Attachment"
-          sx={{
-            maxWidth: "100%",
-            maxHeight: 200,
-            borderRadius: 1,
-            mb: 1,
-          }}
-        />
-      );
-    }
-
-    return (
-      <Box
-        key={String(attachment._id)}
-        component="a"
-        href={attachment.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          p: 1,
-          mb: 1,
-          borderRadius: 1,
-          bgcolor: "action.hover",
-          textDecoration: "none",
-          color: "text.primary",
-        }}
-      >
-        <InsertDriveFileIcon sx={{ mr: 1 }} />
-        <Typography variant="body2" noWrap>
-          {attachment.filename}
-        </Typography>
-      </Box>
-    );
-  };
 
   // Render property card if conversation has a property
   const renderPropertyCard = () => {
@@ -535,15 +485,7 @@ const Conversation = () => {
                             position: "relative",
                           }}
                         >
-                          {/* Message attachments */}
-                          {message.attachments &&
-                            message.attachments.length > 0 && (
-                              <Box sx={{ mb: message.content ? 1 : 0 }}>
-                                {message.attachments.map((attachment) =>
-                                  renderMessageAttachment(attachment)
-                                )}
-                              </Box>
-                            )}
+
 
                           {/* Message content */}
                           {message.content && (

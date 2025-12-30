@@ -198,7 +198,7 @@ const PropertyDetails: React.FC = () => {
     }
   };
 
-  const isOwner = user && property && user._id === property.owner._id;
+  const isOwner = user && property && property.owner && user._id.toString() === property.owner._id.toString();
 
   if (loading) {
     return (

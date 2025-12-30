@@ -48,7 +48,7 @@ if ($LASTEXITCODE -ge 8) { throw "Robocopy nginx failed" }
 # Copy Configs
 Copy-Item frontend/nginx.conf pkg_temp/frontend/
 Copy-Item frontend/Dockerfile pkg_temp/frontend/
-Copy-Item .env pkg_temp/
+Copy-Item .env.production pkg_temp/
 
 # IMPORTANT: Using the simplified docker-compose that works on AWS
 Write-Host "   Using production docker-compose config..."

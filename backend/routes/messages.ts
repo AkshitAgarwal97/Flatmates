@@ -116,9 +116,13 @@ router.post(
 
     try {
       // Use top-level model imports
-      
+
 
       const { recipient, property, initialMessage } = req.body;
+
+      if (recipient === (req.user as AuthenticatedUser)._id.toString()) {
+        return res.status(400).json({ msg: 'You cannot message yourself' });
+      }
 
       // Check if recipient exists
       const recipientUser = await User.findById(recipient);

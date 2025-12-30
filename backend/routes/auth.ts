@@ -129,7 +129,7 @@ router.post(
   '/login',
   [
     check('email', 'Please include a valid email').isEmail(),
-    check('password', 'Password is required').exists()
+    check('password', 'Password is required').exists().not().isEmpty()
   ],
   async (req: Request<{}, {}, LoginRequest>, res: Response) => {
     const errors = validationResult(req);
@@ -138,7 +138,12 @@ router.post(
     }
 
     const { email, password: encryptedPassword } = req.body;
-    const password = decryptData(encryptedPassword);
+    let password = decryptData(encryptedPassword);
+
+    // Strict validation: Ensure password is not empty after decryption
+    if (!password || password.trim() === '') {
+      return res.status(400).json({ errors: [{ msg: 'Password is required', type: 'INVALID_PASSWORD' }] });
+    }
 
     try {
       // Check if user exists

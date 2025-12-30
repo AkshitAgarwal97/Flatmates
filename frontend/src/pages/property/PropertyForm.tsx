@@ -8,7 +8,7 @@ import {
   getPropertyById,
 } from "../../redux/slices/propertySlice";
 import { showAlert } from "../../redux/slices/alertSlice";
-import { Formik, Form, Field, FieldArray } from "formik";
+import { Formik, Form, Field, FieldArray, useFormikContext } from "formik";
 import * as Yup from "yup";
 import { RootState, useAppDispatch } from "../../redux/store";
 import axios from "axios";
@@ -97,6 +97,33 @@ interface FormValues {
   preferences: Preferences;
 }
 
+
+// Helper component to handle Pincode side-effects
+const PincodeListener = () => {
+    const { values, setFieldValue } = useFormikContext<FormValues>();
+    
+    useEffect(() => {
+        if (values.address.zipCode && values.address.zipCode.length === 6) {
+            const fetchPin = async () => {
+                try {
+                    const response = await axios.get(`https://api.postalpincode.in/pincode/${values.address.zipCode}`);
+                    if (response.data && response.data[0].Status === "Success") {
+                        const details = response.data[0].PostOffice[0];
+                        setFieldValue("address.city", details.District);
+                        setFieldValue("address.state", details.State);
+                        setFieldValue("address.country", "India");
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            };
+            fetchPin();
+        }
+    }, [values.address.zipCode, setFieldValue]);
+
+    return null;
+};
+
 const PropertyForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -126,8 +153,7 @@ const PropertyForm = () => {
     if (isEditMode && property && (property as any).images) {
       setImagePreviewUrls((property as any).images as string[]);
     }
-      setImagePreviewUrls((property as any).images as string[]);
-    }
+
   }, [isEditMode, property]);
 
   // Handle image upload
@@ -185,28 +211,33 @@ const PropertyForm = () => {
 
   // Handle removing images
   const handleRemoveImage = (index: number) => {
-    // If in edit mode and the image is from the server
-    if (isEditMode && index < ((property as any)?.images?.length || 0)) {
-      const img = (property as any)?.images?.[index] as string | undefined;
-      if (img) {
-        setRemovedImages([...removedImages, img]);
-      }
+    const imageToRemoveUrl = imagePreviewUrls[index];
+    const serverImages = (property as any)?.images || [];
+    const isServerImage = serverImages.includes(imageToRemoveUrl);
+
+    if (isServerImage) {
+      setRemovedImages([...removedImages, imageToRemoveUrl]);
       setImagePreviewUrls(imagePreviewUrls.filter((_, i) => i !== index));
-      return;
+    } else {
+      // It's a newly added image (File)
+      // Find its corresponding index in the 'images' (File[]) array
+      // by counting how many NEW images are present before this index in the preview list
+      let fileIndex = 0;
+      for (let i = 0; i < index; i++) {
+        const url = imagePreviewUrls[i];
+        if (!serverImages.includes(url)) {
+          fileIndex++;
+        }
+      }
+
+      if (fileIndex < images.length) {
+        const newImages = [...images];
+        newImages.splice(fileIndex, 1);
+        setImages(newImages);
+      }
+
+      setImagePreviewUrls(imagePreviewUrls.filter((_, i) => i !== index));
     }
-
-    // For newly added images
-    const newImageIndex = isEditMode
-      ? index - (property?.images?.length || 0)
-      : index;
-
-    if (newImageIndex >= 0) {
-      const newImages = [...images];
-      newImages.splice(newImageIndex, 1);
-      setImages(newImages);
-    }
-
-    setImagePreviewUrls(imagePreviewUrls.filter((_, i) => i !== index));
   };
 
   // Form validation schema
@@ -224,26 +255,7 @@ const PropertyForm = () => {
       amount: Yup.number()
         .required("Price is required")
         .positive("Price must be positive"),
-      brokerage: Yup.number().when(
-        ["$userType"], // Context dependency reference correction
-        (userType: any, schema: any) => {
-             // Note: in Yup .when with context, we might need a different approach or ensure context is passed.
-             // But simplistic relative reference might strictly require siblings.
-             // Since 'userType' is a sibling of 'price', we can reference it if we go up?
-             // Actually, Yup when() with a string refers to a sibling.
-             // 'userType' is NOT a sibling of 'brokerage'.
-             // We need to use valid dependency.
-             return schema.optional(); 
-             // To fix dependent validation properly we need check how to access parent.
-             // Ideally we use a transform or just access from context if passed, but simpler:
-             // Let's make brokerage optional always for now to unblock, OR implement correctly.
-             // Correct implementation for cross-field validation in nested object:
-             // Use '$userType' from context if we pass it, or reference root?
-             // Yup doesn't easily support parent reference in .when() from nested without context.
-             // HOWEVER, we can stick to the flattened keys structure IF we change how Formik values are structured?
-             // No, Formik values are nested.
-        }
-      )
+      brokerage: Yup.number().min(0, "Brokerage cannot be negative").nullable(),
     }),
     address: Yup.object({
       street: Yup.string().required("Street address is required"),
@@ -417,7 +429,6 @@ const PropertyForm = () => {
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
           enableReinitialize
-          innerRef={formikRef}
         >
           {({
             values,
@@ -427,30 +438,10 @@ const PropertyForm = () => {
             handleBlur,
             isValid,
             dirty,
-            setFieldValue, // Get setFieldValue
-          }) => {
-             // Effect for Pincode within Formik context
-             useEffect(() => {
-                if (values.address.zipCode && values.address.zipCode.length === 6) {
-                   const fetchPin = async () => {
-                      try {
-                         const response = await axios.get(`https://api.postalpincode.in/pincode/${values.address.zipCode}`);
-                         if (response.data && response.data[0].Status === "Success") {
-                            const details = response.data[0].PostOffice[0];
-                            setFieldValue("address.city", details.District);
-                            setFieldValue("address.state", details.State);
-                            setFieldValue("address.country", "India");
-                         }
-                      } catch (e) {
-                         console.error(e);
-                      }
-                   };
-                   fetchPin();
-                }
-             }, [values.address.zipCode, setFieldValue]);
-
-             return ( 
+            setFieldValue,
+          }) => (
             <Form>
+              <PincodeListener />
               <Grid container spacing={3}>
                 {/* Basic Information */}
                 <Grid item xs={12}>
@@ -597,7 +588,7 @@ const PropertyForm = () => {
                         <InputAdornment position="start">₹</InputAdornment>
                       ),
                     }}
-                    onFocus={(e) => {
+                    onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
                       if (e.target.value === '0') {
                         setFieldValue("price.amount", "");
                       }
@@ -669,6 +660,7 @@ const PropertyForm = () => {
                       touched.address?.city && Boolean(errors.address?.city)
                     }
                     helperText={touched.address?.city && errors.address?.city}
+                    disabled={Boolean(values.address.zipCode && values.address.zipCode.length === 6)}
                   />
                 </Grid>
 
@@ -685,6 +677,7 @@ const PropertyForm = () => {
                       touched.address?.state && Boolean(errors.address?.state)
                     }
                     helperText={touched.address?.state && errors.address?.state}
+                    disabled={Boolean(values.address.zipCode && values.address.zipCode.length === 6)}
                   />
                 </Grid>
 

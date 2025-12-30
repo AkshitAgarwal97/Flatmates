@@ -8,8 +8,8 @@ import multer from 'multer';
 import path from 'path';
 import mongoose from 'mongoose';
 import { parseFormDataJSON } from '../utils/formDataHelper';
-import { cloudinary, configured as cloudinaryConfigured } from '../config/cloudinary';
-import fs from 'fs';
+// import { cloudinary, configured as cloudinaryConfigured } from '../config/cloudinary';
+// import fs from 'fs';
 const router = express.Router();
 
 // Extend Express Request to include user property
@@ -143,43 +143,24 @@ router.post(
       const images = [];
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
 
-        // Upload images using module-level Cloudinary configuration
-        if (!cloudinaryConfigured) {
-          const files = req.files as Express.Multer.File[];
-          for (const file of files) {
-            const ext = path.extname(file.originalname).toLowerCase();
-            const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 100);
-            const filename = `${Date.now()}-${base}${ext}`;
-            const dest = path.join(__dirname, '../uploads/properties', filename);
-            fs.writeFileSync(dest, file.buffer);
-            images.push({ url: `/uploads/properties/${filename}`, caption: '' });
-          }
-        } else {
-          // Upload images in parallel to reduce total latency
-          const uploadPromises: Array<Promise<any>> = (req.files as Express.Multer.File[]).map((file) => {
-            return new Promise((resolve, reject) => {
-              const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                  // folder: 'flatmates/properties'
-                },
-                (error, result) => {
-                  if (error) return reject(error);
-                  resolve(result);
-                }
-              );
-              uploadStream.end(file.buffer);
-            });
-          });
+        // Import S3 service dynamically or at top (better at top, but for now strict edit)
+        const { uploadFileToS3 } = require('../services/s3Service');
 
-          const settled = await Promise.all(uploadPromises.map(p => p.catch(e => ({ error: e }))));
-          for (const r of settled) {
-            if (r && (r as any).error) {
-              console.error('Cloudinary upload error:', (r as any).error);
-              continue;
-            }
-            const result: any = r;
-            images.push({ url: result.secure_url, caption: '' });
+        const uploadPromises = (req.files as Express.Multer.File[]).map(file => {
+          return uploadFileToS3(file.buffer, file.originalname, file.mimetype)
+            .then((url: string) => ({ url, caption: '' }))
+            .catch((err: any) => ({ error: err }));
+        });
+
+        const settled = await Promise.all(uploadPromises);
+
+        for (const result of settled) {
+          if ((result as any).error) {
+            console.error('S3 upload error:', (result as any).error);
+            console.error('S3 upload error:', (result as any).error);
+            throw new Error(`Image upload failed: ${(result as any).error.message || 'Unknown S3 error'}`);
           }
+          images.push(result);
         }
       }
 
@@ -447,37 +428,23 @@ router.put(
       // Process uploaded images
       let images = property.images;
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-        if (!cloudinaryConfigured) {
-          const files = req.files as Express.Multer.File[];
-          for (const file of files) {
-            const ext = path.extname(file.originalname).toLowerCase();
-            const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 100);
-            const filename = `${Date.now()}-${base}${ext}`;
-            const dest = path.join(__dirname, '../uploads/properties', filename);
-            fs.writeFileSync(dest, file.buffer);
-            images.push({ url: `/uploads/properties/${filename}`, caption: '' });
-          }
-        } else {
-          // Upload all files in parallel and handle per-file errors
-          const uploadPromises: Array<Promise<any>> = (req.files as Express.Multer.File[]).map((file) => {
-            return new Promise((resolve, reject) => {
-              const uploadStream = cloudinary.uploader.upload_stream({}, (error, result) => {
-                if (error) return reject(error);
-                resolve(result);
-              });
-              uploadStream.end(file.buffer);
-            });
-          });
 
-          const settled = await Promise.all(uploadPromises.map(p => p.catch(e => ({ error: e }))));
-          for (const r of settled) {
-            if (r && (r as any).error) {
-              console.error('Cloudinary upload error:', (r as any).error);
-              continue;
-            }
-            const result: any = r;
-            images.push({ url: result.secure_url, caption: '' });
+        const { uploadFileToS3 } = require('../services/s3Service');
+
+        const uploadPromises = (req.files as Express.Multer.File[]).map(file => {
+          return uploadFileToS3(file.buffer, file.originalname, file.mimetype)
+            .then((url: string) => ({ url, caption: '' }))
+            .catch((err: any) => ({ error: err }));
+        });
+
+        const settled = await Promise.all(uploadPromises);
+
+        for (const result of settled) {
+          if ((result as any).error) {
+            console.error('S3 upload error:', (result as any).error);
+            continue;
           }
+          images.push(result);
         }
       }
 
@@ -489,18 +456,22 @@ router.put(
 
       // Update property fields
       const propertyFields: any = {};
-      for (const [key, value] of Object.entries(req.body)) {
-        if (key !== 'removeImages') {
-          // Handle nested objects
-          if (key.includes('.')) {
-            const [parent, child] = key.split('.');
-            if (!propertyFields[parent]) propertyFields[parent] = {};
-            propertyFields[parent][child] = value;
-          } else {
-            propertyFields[key] = value;
-          }
+
+      // Parse nested objects
+      if (req.body.address) propertyFields.address = parseFormDataJSON(req.body.address);
+      if (req.body.price) propertyFields.price = parseFormDataJSON(req.body.price);
+      if (req.body.availability) propertyFields.availability = parseFormDataJSON(req.body.availability);
+      if (req.body.features) propertyFields.features = parseFormDataJSON(req.body.features);
+      if (req.body.currentOccupants) propertyFields.currentOccupants = parseFormDataJSON(req.body.currentOccupants);
+      if (req.body.preferences) propertyFields.preferences = parseFormDataJSON(req.body.preferences);
+
+      // Handle direct fields
+      const directFields = ['title', 'description', 'propertyType', 'listingType', 'userType'];
+      directFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          propertyFields[field] = req.body[field];
         }
-      }
+      });
 
       // Add images to update fields
       propertyFields.images = images;

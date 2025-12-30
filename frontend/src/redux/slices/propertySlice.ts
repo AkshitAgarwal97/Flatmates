@@ -98,14 +98,20 @@ export const updateProperty = createAsyncThunk(
     try {
       const formData = new FormData();
 
+      // List of keys that should be JSON stringified (nested objects)
+      const jsonKeys = ['address', 'price', 'availability', 'features', 'currentOccupants', 'preferences'];
+
       // Handle nested objects and arrays
       for (const key in propertyData) {
         if (key !== 'images' && key !== 'removeImages') {
           const value = (propertyData as any)[key];
-          if (typeof value === 'object' && value !== null) {
-            for (const nestedKey in value) {
-              formData.append(`${key}[${nestedKey}]`, value[nestedKey]);
-            }
+
+          if (value === undefined || value === null) {
+            continue;
+          }
+
+          if (jsonKeys.includes(key) && typeof value === 'object') {
+            formData.append(key, JSON.stringify(value));
           } else {
             formData.append(key, value);
           }
