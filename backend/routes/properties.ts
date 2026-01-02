@@ -176,6 +176,10 @@ router.post(
         filteredPreferences.occupation = parsedPreferences.occupation;
       }
 
+      // Log request body for debugging price issue
+      console.log('Creating property payload:', JSON.stringify(req.body, null, 2));
+      console.log('Parsed price:', parseFormDataJSON(req.body.price));
+
       // Create new property
       const newProperty = new Property({
         owner: req.user?.id,
@@ -197,7 +201,7 @@ router.post(
       res.json(property);
     } catch (err: any) {
       console.error(err.message);
-      res.status(500).send('Server error');
+      res.status(500).json({ msg: err.message || 'Server error' });
     }
   }
 );
@@ -486,7 +490,7 @@ router.put(
       res.json(property);
     } catch (err: any) {
       console.error(err.message);
-      res.status(500).send('Server error');
+      res.status(500).json({ msg: err.message || 'Server error' });
     }
   }
 );

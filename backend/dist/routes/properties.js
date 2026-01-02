@@ -103,6 +103,9 @@ router.post('/', [
         if (parsedPreferences.occupation && parsedPreferences.occupation !== '') {
             filteredPreferences.occupation = parsedPreferences.occupation;
         }
+        // Log request body for debugging price issue
+        console.log('Creating property payload:', JSON.stringify(req.body, null, 2));
+        console.log('Parsed price:', (0, formDataHelper_1.parseFormDataJSON)(req.body.price));
         // Create new property
         const newProperty = new Property_1.default({
             owner: req.user?.id,
@@ -123,7 +126,7 @@ router.post('/', [
     }
     catch (err) {
         console.error(err.message);
-        res.status(500).send('Server error');
+        res.status(500).json({ msg: err.message || 'Server error' });
     }
 });
 // @route   GET api/properties
@@ -331,20 +334,26 @@ router.put('/:id', [
         }
         // Update property fields
         const propertyFields = {};
-        for (const [key, value] of Object.entries(req.body)) {
-            if (key !== 'removeImages') {
-                // Handle nested objects
-                if (key.includes('.')) {
-                    const [parent, child] = key.split('.');
-                    if (!propertyFields[parent])
-                        propertyFields[parent] = {};
-                    propertyFields[parent][child] = value;
-                }
-                else {
-                    propertyFields[key] = value;
-                }
+        // Parse nested objects
+        if (req.body.address)
+            propertyFields.address = (0, formDataHelper_1.parseFormDataJSON)(req.body.address);
+        if (req.body.price)
+            propertyFields.price = (0, formDataHelper_1.parseFormDataJSON)(req.body.price);
+        if (req.body.availability)
+            propertyFields.availability = (0, formDataHelper_1.parseFormDataJSON)(req.body.availability);
+        if (req.body.features)
+            propertyFields.features = (0, formDataHelper_1.parseFormDataJSON)(req.body.features);
+        if (req.body.currentOccupants)
+            propertyFields.currentOccupants = (0, formDataHelper_1.parseFormDataJSON)(req.body.currentOccupants);
+        if (req.body.preferences)
+            propertyFields.preferences = (0, formDataHelper_1.parseFormDataJSON)(req.body.preferences);
+        // Handle direct fields
+        const directFields = ['title', 'description', 'propertyType', 'listingType', 'userType'];
+        directFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                propertyFields[field] = req.body[field];
             }
-        }
+        });
         // Add images to update fields
         propertyFields.images = images;
         // Update property
@@ -353,7 +362,7 @@ router.put('/:id', [
     }
     catch (err) {
         console.error(err.message);
-        res.status(500).send('Server error');
+        res.status(500).json({ msg: err.message || 'Server error' });
     }
 });
 // @route   DELETE api/properties/:id

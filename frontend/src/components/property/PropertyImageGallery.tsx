@@ -199,7 +199,10 @@ const PropertyImageGallery: React.FC<PropertyImageGalleryProps> = ({
               sx={{
                 maxWidth: '100%',
                 maxHeight: '90vh',
+                width: 'auto',
+                height: 'auto',
                 objectFit: 'contain',
+                display: 'block',
               }}
             />
           </Box>

@@ -112,14 +112,18 @@ router.post('/register', [
 // @access  Public
 router.post('/login', [
     (0, express_validator_1.check)('email', 'Please include a valid email').isEmail(),
-    (0, express_validator_1.check)('password', 'Password is required').exists()
+    (0, express_validator_1.check)('password', 'Password is required').exists().not().isEmpty()
 ], async (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
     const { email, password: encryptedPassword } = req.body;
-    const password = (0, security_1.decryptData)(encryptedPassword);
+    let password = (0, security_1.decryptData)(encryptedPassword);
+    // Strict validation: Ensure password is not empty after decryption
+    if (!password || password.trim() === '') {
+        return res.status(400).json({ errors: [{ msg: 'Password is required', type: 'INVALID_PASSWORD' }] });
+    }
     try {
         // Check if user exists
         let user = await User_1.default.findOne({ email });

@@ -506,7 +506,15 @@ const PropertyDetails: React.FC = () => {
               </Typography>
             </CardContent>
             <CardActions>
-              {!isOwner && (
+              {isOwner ? (
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  disabled
+                >
+                  You own this property
+                </Button>
+              ) : (
                 <Button
                   fullWidth
                   variant="contained"

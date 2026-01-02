@@ -106,15 +106,27 @@ const PincodeListener = () => {
         if (values.address.zipCode && values.address.zipCode.length === 6) {
             const fetchPin = async () => {
                 try {
-                    const response = await axios.get(`https://api.postalpincode.in/pincode/${values.address.zipCode}`);
+                    // Remove Authorization header for external API call
+                    const response = await axios.get(`https://api.postalpincode.in/pincode/${values.address.zipCode}`, {
+                        transformRequest: (data, headers) => {
+                            delete headers.common['Authorization'];
+                            delete headers['Authorization'];
+                            return data;
+                        }
+                    });
                     if (response.data && response.data[0].Status === "Success") {
                         const details = response.data[0].PostOffice[0];
                         setFieldValue("address.city", details.District);
                         setFieldValue("address.state", details.State);
                         setFieldValue("address.country", "India");
+                    } else {
+                        // API returned success false, maybe invalid pincode or server error
+                        // Don't clear fields, let user edit
+                        console.warn("Pincode API returned unsuccessful status");
                     }
                 } catch (e) {
-                    console.error(e);
+                    console.error("Pincode API failed:", e);
+                    // Allow manual entry if API fails
                 }
             };
             fetchPin();
@@ -362,9 +374,32 @@ const PropertyForm = () => {
     try {
       const propertyData: any = {
         ...values,
+        features: {
+          bedrooms: Number(values.bedrooms) || 0,
+          bathrooms: Number(values.bathrooms) || 0,
+          area: Number(values.size) || 0,
+          amenities: values.amenities,
+         // rules: values.rules  <- rules are not in IPropertyFeatures interface in Property.ts, maybe mapped to utilities?
+         // Assuming rules are separate or need to be handled. Based on Property.ts, there is no 'rules'. 
+         // But there is 'utilities'. Let's check if 'rules' was intended to be 'utilities' or separate.
+         // Looking at backend/models/Property.ts: amenities?: string[]; utilities?: string[];
+         // Frontend uses 'rules'. I will map 'rules' to 'utilities' for now to save them, or just omit if no matching field.
+         // Wait, 'rules' is in 'FormValues' but not in 'CreatePropertyRequest' in backend routes/properties.ts?
+         // Backend 'CreatePropertyRequest' has 'features: { ... utilities: string[] }'.
+         // Let's map rules to utilities if that's the intent, or just pass amenities. 
+         // To be safe and fix the reported "0" issue, I will definitely map beds/baths/area.
+         utilities: values.rules 
+        },
         images,
         removeImages: removedImages,
       };
+
+      // Remove top-level mapped fields to avoid clutter (optional, but good for clean payload)
+      // delete propertyData.bedrooms;
+      // delete propertyData.bathrooms;
+      // delete propertyData.size;
+      // delete propertyData.amenities;
+      // delete propertyData.rules;
 
       let result: any;
       if (isEditMode && id) {
@@ -660,7 +695,6 @@ const PropertyForm = () => {
                       touched.address?.city && Boolean(errors.address?.city)
                     }
                     helperText={touched.address?.city && errors.address?.city}
-                    disabled={Boolean(values.address.zipCode && values.address.zipCode.length === 6)}
                   />
                 </Grid>
 
@@ -677,7 +711,6 @@ const PropertyForm = () => {
                       touched.address?.state && Boolean(errors.address?.state)
                     }
                     helperText={touched.address?.state && errors.address?.state}
-                    disabled={Boolean(values.address.zipCode && values.address.zipCode.length === 6)}
                   />
                 </Grid>
 

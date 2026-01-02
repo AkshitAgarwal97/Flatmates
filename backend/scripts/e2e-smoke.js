@@ -1,11 +1,19 @@
 // Simple end-to-end smoke test for backend API
 // Requires Node 18+ (global fetch)
+const CryptoJS = require('crypto-js');
 
 (async () => {
   const base = 'http://localhost:5000';
   const headers = { 'Content-Type': 'application/json' };
   const ts = Date.now();
   const email = `testuser+${ts}@example.com`;
+
+  // Use the default key if not in env
+  const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "flatmates_secure_key_123";
+
+  const encrypt = (text) => {
+    return CryptoJS.AES.encrypt(text, ENCRYPTION_KEY).toString();
+  };
 
   const log = (...args) => console.log('[SMOKE]', ...args);
   const fail = (msg) => { console.error('[SMOKE][FAIL]', msg); process.exit(1); };
@@ -22,7 +30,12 @@
     res = await fetch(base + '/api/auth/register', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ name: 'Test User', email, password: 'secret123', userType: 'room_seeker' })
+      body: JSON.stringify({
+        name: 'Test User',
+        email,
+        password: encrypt('secret123'),
+        userType: 'room_seeker'
+      })
     });
     const regText = await res.text();
     log('POST /api/auth/register ->', res.status, regText);
@@ -32,7 +45,10 @@
     res = await fetch(base + '/api/auth/login', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, password: 'secret123' })
+      body: JSON.stringify({
+        email,
+        password: encrypt('secret123')
+      })
     });
     const loginText = await res.text();
     log('POST /api/auth/login ->', res.status, loginText);
@@ -57,7 +73,12 @@
     res = await fetch(base + '/api/auth/register', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ name: 'Owner User', email: emailOwner, password: 'secret123', userType: 'property_owner' })
+      body: JSON.stringify({
+        name: 'Owner User',
+        email: emailOwner,
+        password: encrypt('secret123'),
+        userType: 'property_owner'
+      })
     });
     log('POST /api/auth/register (owner) ->', res.status);
     if (res.status !== 200 && res.status !== 400) return fail('Unexpected register status for owner');
@@ -65,7 +86,10 @@
     res = await fetch(base + '/api/auth/login', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email: emailOwner, password: 'secret123' })
+      body: JSON.stringify({
+        email: emailOwner,
+        password: encrypt('secret123')
+      })
     });
     const ownerLoginText = await res.text();
     log('POST /api/auth/login (owner) ->', res.status, ownerLoginText);
@@ -102,6 +126,13 @@
     log('POST /api/properties ->', res.status, propertyText);
     if (!res.ok) return fail('Create property failed');
     let property; try { property = JSON.parse(propertyText); } catch (e) { return fail('Invalid property JSON'); }
+
+    if (property.price.amount !== 1200) {
+      return fail(`Price mismatch! Expected 1200, got ${property.price.amount}`);
+    } else {
+      log('Price verified: matches 1200');
+    }
+
     const propertyId = property._id;
 
     // Public fetch of property by id

@@ -24,6 +24,38 @@ const path = require('path');
         await page.type(selector, text);
     };
 
+    // Shared test data and helpers
+    const propertyTitle = `Test Property Automation ${Date.now()}`;
+
+    const loginUser = async (email, password) => {
+        await page.goto('https://flatmates.co.in/login');
+        await waitAndType('input[name="email"]', email);
+        await waitAndType('input[name="password"]', password);
+        await waitAndClick('button[type="submit"]');
+        await page.waitForSelector('button[aria-label="user profile menu"]', { timeout: 8000 }).catch(() => {});
+    };
+
+    const registerUser = async (name, email, password) => {
+        await page.goto('https://flatmates.co.in/register');
+        await waitAndType('input[name="name"]', name);
+        await waitAndType('input[name="email"]', email);
+        await waitAndType('input[name="password"]', password);
+        await waitAndType('input[name="confirmPassword"]', password);
+        try { await waitAndClick('input[name="agreeToTerms"]'); } catch (e) {}
+        await waitAndClick('button[type="submit"]');
+        await page.waitForSelector('button[aria-label="user profile menu"]', { timeout: 8000 }).catch(() => {});
+    };
+
+    const logoutUser = async () => {
+        try {
+            await waitAndClick('button[aria-label="user profile menu"]');
+            await waitAndClick('li[role="menuitem"]:last-child');
+            await page.waitForTimeout(1000);
+        } catch (e) {
+            await page.goto('https://flatmates.co.in/api/auth/logout', { waitUntil: 'networkidle2' }).catch(() => {});
+        }
+    };
+
     try {
         console.log('Starting E2E Tests...');
 
@@ -172,7 +204,7 @@ const path = require('path');
         await waitAndType('input[name="availableFrom"]', '2025-12-31');
 
         // Fill rest of form to submit
-        await waitAndType('input[name="title"]', 'Test Property Automation');
+        await waitAndType('input[name="title"]', propertyTitle);
         await waitAndType('textarea[name="description"]', 'This is a test description for automation verification. It needs to be long enough.');
         await waitAndClick('div[id="mui-component-select-propertyType"]');
         await new Promise(r => setTimeout(r, 500));
@@ -235,8 +267,6 @@ const path = require('path');
         console.log('Verifying Image persistence...');
         // Wait for image to load on details page
         try {
-            // Look for any image with src (assuming it's the property image)
-            // or specific class. MUI CardMedia often creates a div with background-image or an img tag.
             await page.waitForSelector('img', { timeout: 5000 });
             const images = await page.$$eval('img', imgs => imgs.map(img => img.src));
             console.log('Found images:', images);
@@ -247,6 +277,52 @@ const path = require('path');
             }
         } catch (e) {
             console.warn('WARNING: Could not verify property image on details page.');
+        }
+
+        // --- New: Cross-user visibility check ---
+        // Logout current user
+        console.log('Logging out owner user...');
+        try {
+            await waitAndClick('button[aria-label="user profile menu"]');
+            await waitAndClick('li[role="menuitem"]:last-child');
+            await page.waitForTimeout(1000);
+        } catch (e) {
+            console.warn('Could not logout via menu selectors, attempting to hit logout endpoint directly');
+            await page.goto('https://flatmates.co.in/api/auth/logout', { waitUntil: 'networkidle2' }).catch(() => {});
+        }
+
+        // Login (or register) as a different user to verify the created property is public
+        const verifierId = Date.now();
+        const verifierEmail = `verify${verifierId}@example.com`;
+        const verifierPassword = 'password123';
+
+        console.log('Registering/verifying as a separate user:', verifierEmail);
+        // Prefer env-provided password for CI secrecy; otherwise generate one
+        const verifierPwd = process.env.E2E_TEST_PASSWORD || verifierPassword;
+        try {
+            await registerUser(`Verifier ${verifierId}`, verifierEmail, verifierPwd);
+        } catch (e) {
+            console.warn('Registration may have failed; trying to login directly');
+            try {
+                await loginUser(verifierEmail, verifierPwd);
+            } catch (err) {
+                console.error('Could not register or login verifier user:', err);
+                throw err;
+            }
+        }
+
+        // Navigate to public property listings and search for created property
+        console.log('Navigating to property listings to verify created property visibility...');
+        await page.goto('https://flatmates.co.in/properties');
+        await page.waitForTimeout(2000);
+        const listingText = await page.evaluate(() => document.body.innerText);
+        if (listingText.includes(propertyTitle)) {
+            console.log('PASS: Created property is visible to other users on the listings page.');
+        } else {
+            console.error('FAIL: Created property NOT found on listings page for different user.');
+            // For debugging, save snapshot
+            await page.screenshot({ path: `listing_debug_${verifierId}.png`, fullPage: true }).catch(() => {});
+            process.exit(1);
         }
 
         console.log('E2E Tests Completed.');

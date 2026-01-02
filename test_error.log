@@ -3,4 +3,4 @@ TimeoutError: Waiting for selector `button[aria-label="user profile menu"]` fail
     at async CdpFrame.waitForSelector (C:\Users\Akshi\Desktop\Flatemates-git\Flatmates\node_modules\puppeteer-core\lib\cjs\puppeteer\api\Frame.js:544:21)
     at async CdpPage.waitForSelector (C:\Users\Akshi\Desktop\Flatemates-git\Flatmates\node_modules\puppeteer-core\lib\cjs\puppeteer\api\Page.js:1377:20)
     at async waitAndClick (C:\Users\Akshi\Desktop\Flatemates-git\Flatmates\tests\e2e_test.js:14:9)
-    at async C:\Users\Akshi\Desktop\Flatemates-git\Flatmates\tests\e2e_test.js:76:9
+    at async C:\Users\Akshi\Desktop\Flatemates-git\Flatmates\tests\e2e_test.js:108:9
