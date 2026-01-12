@@ -13,15 +13,34 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Stack,
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
+  Verified as VerifiedIcon,
+  GppGood as IdIcon,
 } from "@mui/icons-material";
 import { loadUser } from "../../redux/slices/authSlice";
 import { RootState, AppDispatch } from "../../redux/store";
+import LinearProgress, { LinearProgressProps } from '@mui/material/LinearProgress';
+
+function LinearProgressWithLabel(props: LinearProgressProps & { value: number }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Box sx={{ width: '100%', mr: 1 }}>
+        <LinearProgress variant="determinate" {...props} />
+      </Box>
+      <Box sx={{ minWidth: 35 }}>
+        <Typography variant="body2" color="text.secondary">{`${Math.round(
+          props.value,
+        )}%`}</Typography>
+      </Box>
+    </Box>
+  );
+}
 
 // Interfaces
 interface UserPreferences {
@@ -42,9 +61,9 @@ interface UserBudget {
 
 interface User {
   _id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
+  avatar?: string;
   profilePicture?: string;
   phone?: string;
   location?: string;
@@ -55,8 +74,11 @@ interface User {
   budget?: UserBudget;
   preferences?: UserPreferences;
   createdAt: string;
-  userType?: "room_seeker" | "property_owner";
   socialProvider?: string;
+  isEmailVerified?: boolean;
+  isPhoneVerified?: boolean;
+  isIdVerified?: boolean;
+  isBoosted?: boolean;
 }
 
 const UserProfile: React.FC = () => {
@@ -119,34 +141,96 @@ const UserProfile: React.FC = () => {
           justifyContent="space-between"
           alignItems="center"
           mb={3}
+          flexWrap="wrap"
+          gap={2}
         >
-          <Typography variant="h4" component="h1">
-            My Profile
-          </Typography>
-          <Button
-            component={RouterLink}
-            to="/profile/edit"
-            variant="contained"
-            startIcon={<EditIcon />}
-          >
-            Edit Profile
-          </Button>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Typography variant="h4" component="h1">
+              My Profile
+            </Typography>
+            {user.isBoosted && (
+              <Chip 
+                label="BOOSTED" 
+                color="secondary" 
+                size="small" 
+                sx={{ fontWeight: 'bold' }} 
+              />
+            )}
+          </Box>
+          <Stack direction="row" spacing={2}>
+            {!user.isBoosted && (
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<VerifiedIcon />}
+                onClick={() => {
+                  // Mock payment/boost flow
+                  alert("Boost your profile to appear at the top of search results and get 2x more leads!");
+                }}
+              >
+                Boost Profile
+              </Button>
+            )}
+            <Button
+              component={RouterLink}
+              to="/profile/edit"
+              variant="contained"
+              startIcon={<EditIcon />}
+            >
+              Edit Profile
+            </Button>
+          </Stack>
         </Box>
+
+        {/* Completeness & Verification */}
+        {user && (
+           <Box mb={4}>
+             <Typography variant="h6" gutterBottom>Profile Completeness</Typography>
+             <LinearProgressWithLabel value={
+               ((user.name ? 1 : 0) + 
+               (user.email ? 1 : 0) + 
+               (user.phone ? 1 : 0) + 
+               (user.bio ? 1 : 0) + 
+               (user.avatar || user.profilePicture ? 1 : 0) + 
+               (user.preferences?.lifestyle?.length ? 1 : 0)) / 6 * 100
+             } />
+             
+             <Box mt={2} display="flex" gap={1}>
+               <Chip 
+                 icon={<EmailIcon />} 
+                 label="Email Verified" 
+                 color={user.isEmailVerified ? "success" : "default"} 
+                 variant={user.isEmailVerified ? "filled" : "outlined"} 
+               />
+               <Chip 
+                 icon={<PhoneIcon />} 
+                 label="Phone Verified" 
+                 color={user.isPhoneVerified ? "success" : "default"} 
+                 variant={user.isPhoneVerified ? "filled" : "outlined"} 
+               />
+                <Chip 
+                 icon={<IdIcon />} 
+                 label="ID Verified" 
+                 color={user.isIdVerified ? "success" : "default"} 
+                 variant={user.isIdVerified ? "filled" : "outlined"} 
+               />
+             </Box>
+           </Box>
+        )}
 
         <Grid container spacing={4}>
           {/* Avatar Section */}
           <Grid item xs={12} md={4}>
             <Box display="flex" flexDirection="column" alignItems="center">
               <Avatar
-                alt={`${user.firstName} ${user.lastName}'s profile picture`}
-                src={user.profilePicture}
+                alt={`${user.name}'s profile picture`}
+                src={user.profilePicture || user.avatar}
                 sx={{ width: 150, height: 150, mb: 2 }}
               >
-                {user.firstName?.[0]}
-                {user.lastName?.[0]}
+                {user.name?.[0]}
               </Avatar>
               <Typography variant="h5" gutterBottom>
-                {user.firstName} {user.lastName}
+                {user.name}
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Member since {new Date(user.createdAt).toLocaleDateString()}

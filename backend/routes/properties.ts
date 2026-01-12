@@ -7,6 +7,7 @@ import { check, validationResult } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
 import mongoose from 'mongoose';
+import notificationService from '../services/notificationService';
 import { parseFormDataJSON } from '../utils/formDataHelper';
 // import { cloudinary, configured as cloudinaryConfigured } from '../config/cloudinary';
 // import fs from 'fs';
@@ -198,6 +199,32 @@ router.post(
 
       const property = await newProperty.save();
 
+      // Notify potential matches in the background
+      (async () => {
+        try {
+          const matchingUsers = await User.find({
+            _id: { $ne: req.user?.id },
+            'preferences.location': property.address.city,
+            'preferences.budget.max': { $gte: property.price.amount },
+            'preferences.budget.min': { $lte: property.price.amount }
+          }).limit(50);
+
+          if (matchingUsers.length > 0) {
+            await notificationService.notifyUsers(
+              matchingUsers.map(u => u._id),
+              {
+                type: 'match',
+                content: `New match in ${property.address.city}: ${property.title}`,
+                relatedTo: property._id,
+                relatedModel: 'Property'
+              }
+            );
+          }
+        } catch (err) {
+          console.error('Match notify error:', err);
+        }
+      })();
+
       res.json(property);
     } catch (err: any) {
       console.error(err.message);
@@ -235,6 +262,15 @@ router.get('/', async (req: Request, res: Response) => {
     // Build filter object
     const filter: any = { status: 'active' };
 
+    // Filter out properties from blocked users
+    if (req.user) {
+      const User = require('../models/User').default;
+      const currentUser = await User.findById((req.user as any).id || (req.user as any)._id);
+      if (currentUser && currentUser.blockedUsers?.length > 0) {
+        filter.owner = { $nin: currentUser.blockedUsers };
+      }
+    }
+
     if (listingType) filter.listingType = listingType;
     if (propertyType) filter.propertyType = propertyType;
 
@@ -269,6 +305,22 @@ router.get('/', async (req: Request, res: Response) => {
 
     if (gender) filter['preferences.gender'] = gender;
 
+    // Occupation filtering (checks if the requested occupation is in the preferences.occupation array)
+    if (req.query.occupation) {
+      filter['preferences.occupation'] = req.query.occupation;
+    }
+
+    // Lifestyle filtering
+    if (req.query.lifestyle) {
+      const lifestyle = (req.query.lifestyle as string).split(',');
+      filter['preferences.lifestyle'] = { $all: lifestyle };
+    }
+
+    // Advanced Location filtering
+    if (req.query.street) filter['address.street'] = new RegExp(req.query.street as string, 'i');
+    if (req.query.state) filter['address.state'] = new RegExp(req.query.state as string, 'i');
+    if (req.query.zipCode) filter['address.zipCode'] = req.query.zipCode;
+
     // Support pet-friendly filtering
     if (req.query.petFriendly === 'true') {
       filter['preferences.pets'] = true;
@@ -295,15 +347,32 @@ router.get('/', async (req: Request, res: Response) => {
     const skip = (Number(page) - 1) * Number(limit);
 
     const properties = await Property.find(filter)
-      .populate('owner', 'name avatar')
-      .sort({ createdAt: -1 })
+      .populate('owner', 'name avatar preferences isBoosted')
+      // .populate('createdBy', 'name avatar preferences lastActive averageResponseTime isBoosted')
+      .sort({ isFeatured: -1, createdAt: -1 })
       .skip(skip)
       .limit(Number(limit));
 
     const total = await Property.countDocuments(filter);
 
+    // Calculate match scores if authenticated
+    let propertiesWithScores = (properties as any[]).map((p: any) => p.toObject());
+
+    if (req.user) {
+      const { calculateMatchScore } = require('../utils/matchScore');
+      const User = require('../models/User').default;
+      const currentUser = await User.findById((req.user as any).id || (req.user as any)._id);
+
+      if (currentUser && currentUser.preferences) {
+        propertiesWithScores = propertiesWithScores.map((p: any) => ({
+          ...p,
+          matchScore: calculateMatchScore(currentUser.preferences, p)
+        }));
+      }
+    }
+
     res.json({
-      properties,
+      properties: propertiesWithScores,
       pagination: {
         total,
         page: Number(page),
@@ -313,7 +382,7 @@ router.get('/', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error', error: err.message, stack: err.stack });
   }
 });
 
@@ -470,7 +539,7 @@ router.put(
       if (req.body.preferences) propertyFields.preferences = parseFormDataJSON(req.body.preferences);
 
       // Handle direct fields
-      const directFields = ['title', 'description', 'propertyType', 'listingType', 'userType'];
+      const directFields = ['title', 'description', 'propertyType', 'listingType'];
       directFields.forEach(field => {
         if (req.body[field] !== undefined) {
           propertyFields[field] = req.body[field];

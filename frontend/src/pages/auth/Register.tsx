@@ -103,8 +103,7 @@ const Register = () => {
         ...registerData,
         password: encryptData(registerData.password)
       };
-      // Default userType to 'room_seeker' as it's required by backend but removed from frontend
-      dispatch(register({ ...encryptedData, userType: "room_seeker" }));
+      dispatch(register({ ...encryptedData }));
     },
   });
 

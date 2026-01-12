@@ -52,6 +52,13 @@ const initSocket = (token: string, dispatch: AppDispatch) => {
     dispatch(updateTotalUnreadCount(data.count));
   });
 
+  // Handle general notifications (matches, system, etc)
+  socket.on('notification', (data: any) => {
+    // Import addNotification dynamically to avoid circular dependencies if any
+    const { addNotification } = require('../redux/slices/authSlice');
+    dispatch(addNotification(data));
+  });
+
   return socket;
 };
 

@@ -63,7 +63,6 @@ interface User {
   budget?: UserBudget;
   preferences?: UserPreferences;
   createdAt: string;
-  userType?: "room_seeker" | "property_owner";
   socialProvider?: string;
 }
 

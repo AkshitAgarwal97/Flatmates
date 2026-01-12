@@ -34,7 +34,6 @@ interface User {
   _id: string;
   name: string;
   avatar?: string;
-  userType?: string;
 }
 
 interface AuthState {
@@ -264,7 +263,7 @@ const NewConversation = ({
                       </ListItemAvatar>
                       <ListItemText
                         primary={user.name}
-                        secondary={user.userType}
+                        secondary="User"
                       />
                     </ListItem>
                   ))}
@@ -307,7 +306,7 @@ const NewConversation = ({
               <Box>
                 <Typography variant="subtitle1">{selectedUser.name}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {selectedUser.userType}
+                  User
                 </Typography>
               </Box>
               <Button

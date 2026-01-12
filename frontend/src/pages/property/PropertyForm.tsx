@@ -60,30 +60,11 @@ interface Preferences {
   ageRange?: string;
 }
 
-interface Property {
-  _id?: string;
-  title: string;
-  description: string;
-  propertyType: string;
-  userType: string;
-  price: Price;
-  address: Address;
-  bedrooms?: number;
-  bathrooms?: number;
-  size?: number;
-  availableFrom?: string;
-  amenities: string[];
-  rules: string[];
-  preferences: Preferences;
-  images?: string[];
-}
-
 interface FormValues {
   title: string;
   description: string;
   propertyType: string;
   listingType: string;
-  userType: string;
   price: Price;
   address: Address;
   bedrooms: string;
@@ -144,7 +125,6 @@ const PropertyForm = () => {
   const { property, loading } = useSelector(
     (state: RootState) => state.property
   );
-  const { user } = useSelector((state: RootState) => state.auth);
 
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
@@ -199,7 +179,6 @@ const PropertyForm = () => {
 
     // Limit to 5 images total
     const totalImages = [...images, ...validImages];
-    const totalPreviews = [...imagePreviewUrls];
 
     if (totalImages.length > 5) {
       dispatch(showAlert("warning", "Maximum 5 images allowed"));
@@ -262,7 +241,6 @@ const PropertyForm = () => {
       .min(20, "Description must be at least 20 characters"),
     propertyType: Yup.string().required("Property type is required"),
     listingType: Yup.string().required("Listing type is required"),
-    userType: Yup.string().required("User type is required"),
     price: Yup.object({
       amount: Yup.number()
         .required("Price is required")
@@ -293,7 +271,6 @@ const PropertyForm = () => {
         description: p.description || "",
         propertyType: p.propertyType || "",
         listingType: p.listingType || "",
-        userType: p.userType || "",
         price: {
           amount: (p.price && (p.price.amount ?? p.price.min ?? 0)) || 0,
           brokerage: p.price?.brokerage ?? 0,
@@ -334,7 +311,6 @@ const PropertyForm = () => {
       description: "",
       propertyType: "",
       listingType: "",
-      userType: user?.userType || "",
       price: {
         amount: 0,
         brokerage: 0,
@@ -566,35 +542,6 @@ const PropertyForm = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
-                  <FormControl
-                    fullWidth
-                    error={touched.userType && Boolean(errors.userType)}
-                  >
-                    <InputLabel>User Type</InputLabel>
-                    <Field
-                      as={Select}
-                      name="userType"
-                      label="User Type"
-                      value={values.userType}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    >
-                      <MenuItem value="">
-                        <em>Select User Type</em>
-                      </MenuItem>
-                      <MenuItem value="room_seeker">Room Seeker</MenuItem>
-                      <MenuItem value="roommate_seeker">
-                        Roommate Seeker
-                      </MenuItem>
-                      <MenuItem value="broker_dealer">Broker/Dealer</MenuItem>
-                      <MenuItem value="property_owner">Property Owner</MenuItem>
-                    </Field>
-                    {touched.userType && errors.userType && (
-                      <FormHelperText>{errors.userType}</FormHelperText>
-                    )}
-                  </FormControl>
-                </Grid>
 
                 {/* Price Information */}
                 <Grid item xs={12}>
@@ -995,7 +942,6 @@ const PropertyForm = () => {
                       <MenuItem value="">No Preference</MenuItem>
                       <MenuItem value="male">Male</MenuItem>
                       <MenuItem value="female">Female</MenuItem>
-                      <MenuItem value="other">Other</MenuItem>
                     </Field>
                   </FormControl>
                 </Grid>

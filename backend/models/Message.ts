@@ -10,6 +10,7 @@ export interface IMessage extends Document {
   conversation: mongoose.Types.ObjectId;
   sender: mongoose.Types.ObjectId;
   content: string;
+  type: 'text' | 'image' | 'system';
   attachments: IAttachment[];
   read: boolean;
   readAt?: Date;
@@ -30,6 +31,11 @@ const MessageSchema: Schema = new Schema({
   content: {
     type: String,
     required: true
+  },
+  type: {
+    type: String,
+    enum: ['text', 'image', 'system'],
+    default: 'text'
   },
   attachments: [{
     type: String,

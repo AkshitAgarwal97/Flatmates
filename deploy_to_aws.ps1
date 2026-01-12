@@ -20,7 +20,27 @@ if (-not (Test-Path $KeyPath)) {
 Write-Host "Building Frontend..."
 Push-Location frontend
 try {
+    $env:REACT_APP_API_URL = "https://flatmates.co.in"
     npm run build
+}
+finally {
+    Pop-Location
+}
+
+# 1.5. Build Backend
+Write-Host "Building Backend..."
+Push-Location backend
+try {
+    # Ensure dependencies are installed (including dev dependencies for tsc)
+    if (-not (Test-Path "node_modules")) {
+        Write-Host "   Installing backend dependencies..."
+        npm install
+    }
+    Write-Host "   Compiling TypeScript..."
+    npm run build
+}
+catch {
+    Write-Error "Backend build failed: $_"
 }
 finally {
     Pop-Location

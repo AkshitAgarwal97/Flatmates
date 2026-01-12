@@ -1,21 +1,19 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
-RUN npm ci
 
-COPY . .
+# Install production dependencies only
+# Using --omit=dev instead of ci to be more resilient
+RUN npm install --omit=dev --no-audit --no-fund
 
-RUN npm run build
+# Copy the pre-built dist folder from the host
+COPY dist ./dist
+COPY scripts ./scripts
 
 EXPOSE 5000
 
-# Use ts-node for development or node dist/server.js for production
-# But since we built it, we should probably run the built version
-# The package.json says "start": "ts-node server.ts" which is not ideal for prod.
-# Let's see if we can use the build.
-# Backend package.json has "build": "tsc". 
-# So we can run "node dist/server.js" if main points there.
-# package.json "main": "dist/server.js"
+# Run the pre-built server
 CMD ["node", "dist/server.js"]

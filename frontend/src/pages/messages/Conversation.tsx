@@ -33,7 +33,6 @@ interface User {
   _id: string;
   name: string;
   avatar?: string;
-  userType?: string;
 }
 
 interface Property {
@@ -342,14 +341,7 @@ const Conversation = () => {
               <Box>
                 <Typography variant="h6">{otherParticipant.name}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {otherParticipant?.userType
-                    ? otherParticipant.userType
-                        .split("_")
-                        .map(
-                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
-                        )
-                        .join(" ")
-                    : "User"}
+                  User
                 </Typography>
               </Box>
             </>
@@ -361,15 +353,14 @@ const Conversation = () => {
       {renderPropertyCard()}
 
       {/* Messages Container */}
-      <Paper
-        elevation={2}
+      <Box
         sx={{
-          p: 2,
-          mb: 2,
           flexGrow: 1,
           overflow: "auto",
+          bgcolor: 'grey.100', // Light grey background for chat area
           display: "flex",
           flexDirection: "column",
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), url("https://www.transparenttextures.com/patterns/subtle-white-feathers.png")', // Optional: subtle pattern
         }}
       >
         {loading ? (
@@ -379,138 +370,167 @@ const Conversation = () => {
               justifyContent: "center",
               alignItems: "center",
               height: "100%",
+              p: 3
             }}
           >
-            <CircularProgress />
+            <CircularProgress size={30} />
           </Box>
         ) : messages.length === 0 ? (
           <Box
             sx={{
               display: "flex",
+              flexDirection: 'column',
               justifyContent: "center",
               alignItems: "center",
               height: "100%",
+              p: 4,
+              opacity: 0.6
             }}
           >
-            <Typography variant="body1" color="text.secondary">
-              No messages yet. Start the conversation!
+             <Box sx={{ bgcolor: 'grey.200', p: 3, borderRadius: '50%', mb: 2 }}>
+                 <SendIcon sx={{ fontSize: 40, color: 'grey.500' }} />
+             </Box>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No messages here yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Send a message to start the conversation!
             </Typography>
           </Box>
         ) : (
-          <>
+          <Box sx={{ p: 2 }}>
             {Object.entries(groupMessagesByDate()).map(
               ([date, dateMessages]) => (
-                <Box key={date}>
-                  <Divider sx={{ my: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatDateHeader(date)}
-                    </Typography>
-                  </Divider>
+                <Box key={date} sx={{ mb: 3 }}>
+                   <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2, position: 'sticky', top: 0, zIndex: 1 }}>
+                    <Box sx={{ 
+                        bgcolor: 'rgba(224, 224, 224, 0.8)', 
+                        borderRadius: 4, 
+                        px: 2, 
+                        py: 0.5, 
+                        backdropFilter: 'blur(4px)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight="500">
+                        {formatDateHeader(date)}
+                      </Typography>
+                    </Box>
+                   </Box>
 
-                  {dateMessages.map((message) => {
-                    // Handle sender which can be: string ID, ObjectId object, or User object
-                    let senderId: string;
+                  {dateMessages.map((message, index) => {
+                    // Logic to handle sender extraction (simplified for robustness)
+                    let senderId = '';
+                    let senderName = 'Unknown';
+                    let senderAvatar = '';
+
+                    const sender = message.sender;
                     
-                    if (typeof message.sender === 'string') {
-                      senderId = message.sender;
-                    } else if (message.sender && typeof message.sender === 'object') {
-                      // Check if it's a User object with _id
-                      if ('_id' in message.sender && message.sender._id) {
-                        // User object with _id
-                        if (typeof message.sender._id === 'string') {
-                          senderId = message.sender._id;
-                        } else {
-                          // Handle ObjectId object
-                          const json = JSON.parse(JSON.stringify(message.sender._id));
-                          senderId = typeof json === 'string' ? json : (json.$oid || json.toString());
-                        }
-                      } else {
-                        // It's an ObjectId - convert via JSON to get the actual ID string
-                        const jsonStr = JSON.stringify(message.sender);
-                        try {
-                          const parsed = JSON.parse(jsonStr);
-                          senderId = parsed.$oid || parsed.toString() || jsonStr.replace(/[{}"]/g, '');
-                        } catch {
-                          senderId = jsonStr.replace(/[{}"]/g, '');
-                        }
-                      }
-                    } else {
-                      senderId = '';
+                    if (sender && typeof sender === 'object' && sender.name) {
+                        // Populated user object
+                        senderId = sender._id;
+                        senderName = sender.name;
+                        senderAvatar = sender.avatar;
+                    } else if (typeof sender === 'string') {
+                         senderId = sender;
+                         // Try to find in participants
+                         const p = currentConversation?.participants.find(p => p._id === sender);
+                         if (p) {
+                             senderName = p.name;
+                             senderAvatar = p.avatar || '';
+                         }
+                    } else if (sender && typeof sender === 'object') {
+                         // Fallback for ObjectId-like structures
+                         senderId = sender.toString();
+                         const p = currentConversation?.participants.find(p => p._id === senderId);
+                          if (p) {
+                             senderName = p.name;
+                             senderAvatar = p.avatar || '';
+                         }
                     }
-                    
-                    const senderUser =
-                      typeof message.sender === "object" && message.sender?.name
-                        ? message.sender  // Already populated User object
-                        : currentConversation?.participants.find(
-                            (p) => p._id === senderId
-                          );
-                    
-                    const isCurrentUser = senderId === user?._id;
 
-                    const getStringId = (id: any): string => {
-                      if (typeof id === 'string') return id;
-                      if (!id) return Math.random().toString();
-                      const json = JSON.parse(JSON.stringify(id));
-                      return typeof json === 'string' ? json : (json.$oid || json.toString());
-                    };
+                    const isCurrentUser = senderId === user?._id;
+                    
+                     // Check if previous message was from same sender
+                    const isSequence = index > 0 && dateMessages[index - 1].sender === message.sender; // Basic check, better to check IDs
 
                     return (
                       <Box
-                        key={getStringId(message._id)}
+                        key={message._id || index}
                         sx={{
                           display: "flex",
                           flexDirection: isCurrentUser ? "row-reverse" : "row",
-                          mb: 2,
+                          mb: isSequence ? 0.5 : 2,
+                          alignItems: 'flex-end'
                         }}
                       >
-                        {!isCurrentUser && senderUser && (
+                       {/* Avatar only for other user, and specific layout conditions */}
+                        {!isCurrentUser && (
                           <Avatar
-                            src={senderUser.avatar}
-                            alt={senderUser.name}
-                            sx={{ mr: 1, mt: 1 }}
+                            src={senderAvatar}
+                            alt={senderName}
+                            sx={{ 
+                                width: 28, 
+                                height: 28, 
+                                mr: 1, 
+                                mb: 0.5,
+                                visibility: isSequence ? 'hidden' : 'visible'
+                            }}
                           />
                         )}
 
                         <Box
                           sx={{
-                            maxWidth: "70%",
-                            bgcolor: isCurrentUser
-                              ? "primary.light"
-                              : "background.default",
-                            color: isCurrentUser
-                              ? "primary.contrastText"
-                              : "text.primary",
+                            maxWidth: "75%",
+                            minWidth: "60px", 
+                            bgcolor: isCurrentUser ? "primary.main" : "white",
+                            color: isCurrentUser ? "primary.contrastText" : "text.primary",
                             borderRadius: 2,
-                            p: 2,
+                            borderTopRightRadius: isCurrentUser && !isSequence ? 0 : 2,
+                            borderTopLeftRadius: !isCurrentUser && !isSequence ? 0 : 2,
+                            p: 1.5,
+                            pl: isCurrentUser ? 1.5 : 2,
+                            pr: isCurrentUser ? 2 : 1.5,
                             position: "relative",
+                            boxShadow: isCurrentUser ? 2 : 1,
+                            wordBreak: 'break-word',
+                            '&:before': (!isSequence) ? {
+                                content: '""',
+                                position: 'absolute',
+                                top: 0,
+                                [isCurrentUser ? 'right' : 'left']: -6,
+                                width: 0,
+                                height: 0,
+                                borderStyle: 'solid',
+                                borderWidth: '0 6px 6px 0',
+                                borderColor: `transparent ${isCurrentUser ? '#1565c0' : 'white'} transparent transparent`,
+                                transform: isCurrentUser ? 'rotate(0deg)' : 'rotate(0deg) scaleX(-1)',
+                                zIndex: 0
+                            } : {}
                           }}
                         >
-
-
-                          {/* Message content */}
                           {message.content && (
-                            <Typography variant="body1">
+                            <Typography variant="body1" sx={{ lineHeight: 1.4, fontSize: '0.95rem' }}>
                               {message.content}
                             </Typography>
                           )}
 
-                          {/* Message timestamp */}
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              display: "block",
-                              textAlign: "right",
-                              mt: 0.5,
-                              color: isCurrentUser
-                                ? "rgba(255,255,255,0.7)"
-                                : "text.secondary",
-                            }}
-                          >
-                            {formatMessageTime(message.createdAt)}
-                            {message.read && isCurrentUser && (
-                              <span style={{ marginLeft: "4px" }}>✓</span>
-                            )}
-                          </Typography>
+                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mt: 0.5, opacity: 0.8 }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                    fontSize: '0.7rem',
+                                    color: isCurrentUser ? "inherit" : "text.secondary",
+                                    mr: 0.5
+                                    }}
+                                >
+                                    {formatMessageTime(message.createdAt)}
+                                </Typography>
+                                {isCurrentUser && (
+                                    <span style={{ fontSize: '0.7rem', display: 'flex' }}>
+                                        {message.read ? '✓✓' : '✓'}
+                                    </span>
+                                )}
+                           </Box>
                         </Box>
                       </Box>
                     );
@@ -519,9 +539,9 @@ const Conversation = () => {
               )
             )}
             <div ref={messagesEndRef} />
-          </>
+          </Box>
         )}
-      </Paper>
+      </Box>
 
       {/* Message Input */}
       <Paper elevation={2} sx={{ p: 2 }}>

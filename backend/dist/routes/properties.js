@@ -4,11 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Property_1 = __importDefault(require("../models/Property"));
+const User_1 = __importDefault(require("../models/User"));
 const express_1 = __importDefault(require("express"));
 const passport_1 = __importDefault(require("passport"));
 const express_validator_1 = require("express-validator");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
+const notificationService_1 = __importDefault(require("../services/notificationService"));
 const formDataHelper_1 = require("../utils/formDataHelper");
 // import { cloudinary, configured as cloudinaryConfigured } from '../config/cloudinary';
 // import fs from 'fs';
@@ -122,6 +124,28 @@ router.post('/', [
             preferences: filteredPreferences
         });
         const property = await newProperty.save();
+        // Notify potential matches in the background
+        (async () => {
+            try {
+                const matchingUsers = await User_1.default.find({
+                    _id: { $ne: req.user?.id },
+                    'preferences.location': property.address.city,
+                    'preferences.budget.max': { $gte: property.price.amount },
+                    'preferences.budget.min': { $lte: property.price.amount }
+                }).limit(50);
+                if (matchingUsers.length > 0) {
+                    await notificationService_1.default.notifyUsers(matchingUsers.map(u => u._id), {
+                        type: 'match',
+                        content: `New match in ${property.address.city}: ${property.title}`,
+                        relatedTo: property._id,
+                        relatedModel: 'Property'
+                    });
+                }
+            }
+            catch (err) {
+                console.error('Match notify error:', err);
+            }
+        })();
         res.json(property);
     }
     catch (err) {
@@ -139,6 +163,14 @@ router.get('/', async (req, res) => {
         const Property = require('../models/Property').default;
         // Build filter object
         const filter = { status: 'active' };
+        // Filter out properties from blocked users
+        if (req.user) {
+            const User = require('../models/User').default;
+            const currentUser = await User.findById(req.user.id || req.user._id);
+            if (currentUser && currentUser.blockedUsers?.length > 0) {
+                filter.owner = { $nin: currentUser.blockedUsers };
+            }
+        }
         if (listingType)
             filter.listingType = listingType;
         if (propertyType)
@@ -175,6 +207,22 @@ router.get('/', async (req, res) => {
         }
         if (gender)
             filter['preferences.gender'] = gender;
+        // Occupation filtering (checks if the requested occupation is in the preferences.occupation array)
+        if (req.query.occupation) {
+            filter['preferences.occupation'] = req.query.occupation;
+        }
+        // Lifestyle filtering
+        if (req.query.lifestyle) {
+            const lifestyle = req.query.lifestyle.split(',');
+            filter['preferences.lifestyle'] = { $all: lifestyle };
+        }
+        // Advanced Location filtering
+        if (req.query.street)
+            filter['address.street'] = new RegExp(req.query.street, 'i');
+        if (req.query.state)
+            filter['address.state'] = new RegExp(req.query.state, 'i');
+        if (req.query.zipCode)
+            filter['address.zipCode'] = req.query.zipCode;
         // Support pet-friendly filtering
         if (req.query.petFriendly === 'true') {
             filter['preferences.pets'] = true;
@@ -198,13 +246,27 @@ router.get('/', async (req, res) => {
         // Pagination
         const skip = (Number(page) - 1) * Number(limit);
         const properties = await Property.find(filter)
-            .populate('owner', 'name avatar')
-            .sort({ createdAt: -1 })
+            .populate('owner', 'name avatar preferences isBoosted')
+            // .populate('createdBy', 'name avatar preferences lastActive averageResponseTime isBoosted')
+            .sort({ isFeatured: -1, createdAt: -1 })
             .skip(skip)
             .limit(Number(limit));
         const total = await Property.countDocuments(filter);
+        // Calculate match scores if authenticated
+        let propertiesWithScores = properties.map((p) => p.toObject());
+        if (req.user) {
+            const { calculateMatchScore } = require('../utils/matchScore');
+            const User = require('../models/User').default;
+            const currentUser = await User.findById(req.user.id || req.user._id);
+            if (currentUser && currentUser.preferences) {
+                propertiesWithScores = propertiesWithScores.map((p) => ({
+                    ...p,
+                    matchScore: calculateMatchScore(currentUser.preferences, p)
+                }));
+            }
+        }
         res.json({
-            properties,
+            properties: propertiesWithScores,
             pagination: {
                 total,
                 page: Number(page),
@@ -215,7 +277,7 @@ router.get('/', async (req, res) => {
     }
     catch (err) {
         console.error(err.message);
-        res.status(500).send('Server error');
+        res.status(500).json({ message: 'Server error', error: err.message, stack: err.stack });
     }
 });
 // @route   GET api/properties/user/saved
@@ -348,7 +410,7 @@ router.put('/:id', [
         if (req.body.preferences)
             propertyFields.preferences = (0, formDataHelper_1.parseFormDataJSON)(req.body.preferences);
         // Handle direct fields
-        const directFields = ['title', 'description', 'propertyType', 'listingType', 'userType'];
+        const directFields = ['title', 'description', 'propertyType', 'listingType'];
         directFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 propertyFields[field] = req.body[field];

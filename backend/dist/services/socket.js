@@ -4,8 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-// Import models
-const User_1 = __importDefault(require("../models/User"));
 const Conversation_1 = __importDefault(require("../models/Conversation"));
 const Message_1 = __importDefault(require("../models/Message"));
 const socketHandler = (io) => {
@@ -94,20 +92,19 @@ const socketHandler = (io) => {
                 // Send notification to participants who are not in the conversation room
                 conversation.participants.forEach((participant) => {
                     if (participant.toString() !== socket.userId) {
-                        // Emit to specific user's room
+                        // Emit to specific user's room for immediate UI update if needed
                         io.to(participant.toString()).emit('message-notification', {
                             conversationId,
                             message: populatedMessage
                         });
-                        // Add notification for recipient
-                        User_1.default.findByIdAndUpdate(participant, {
-                            $push: {
-                                notifications: {
-                                    type: 'message',
-                                    content: `New message in conversation`,
-                                    relatedTo: conversation._id
-                                }
-                            }
+                        // Use notification service for persistence and standard notification event
+                        const { sendNotification } = require('./notificationService');
+                        sendNotification({
+                            userId: participant,
+                            type: 'message',
+                            content: `New message from ${populatedMessage?.sender?.name || 'someone'}`,
+                            relatedTo: conversation._id,
+                            relatedModel: 'Conversation'
                         }).catch((err) => console.error('Error creating notification:', err));
                     }
                 });

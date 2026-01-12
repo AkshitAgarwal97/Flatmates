@@ -17,12 +17,15 @@ const auth_1 = __importDefault(require("./routes/auth"));
 const users_1 = __importDefault(require("./routes/users"));
 const properties_1 = __importDefault(require("./routes/properties"));
 const messages_1 = __importDefault(require("./routes/messages"));
+const services_1 = __importDefault(require("./routes/services"));
+const roommates_1 = __importDefault(require("./routes/roommates"));
 // Import passport config
 const passport_2 = __importDefault(require("./config/passport"));
 // Import socket service
 const socket_1 = __importDefault(require("./services/socket"));
 // Import Property model for background jobs
 const Property_1 = __importDefault(require("./models/Property"));
+const notificationService_1 = __importDefault(require("./services/notificationService"));
 dotenv_1.default.config();
 // Initialize express app
 const app = (0, express_1.default)();
@@ -33,6 +36,8 @@ const io = new socket_io_1.Server(server, {
         methods: ['GET', 'POST']
     }
 });
+// Set io instance in notification service
+notificationService_1.default.setIo(io);
 // Ensure upload directories exist
 const uploadsDir = path_1.default.join(__dirname, 'uploads');
 const avatarsDir = path_1.default.join(uploadsDir, 'avatars');
@@ -58,11 +63,26 @@ app.use('/uploads', express_1.default.static(uploadsDir));
 app.use(passport_1.default.initialize());
 // Socket.io connection
 (0, socket_1.default)(io);
+// Activity tracking middleware
+app.use(async (req, res, next) => {
+    if (req.user) {
+        try {
+            const User = require('./models/User').default;
+            await User.findByIdAndUpdate(req.user.id, { lastActive: new Date() });
+        }
+        catch (err) {
+            console.error('Failed to update lastActive:', err);
+        }
+    }
+    next();
+});
 // Routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/users', users_1.default);
 app.use('/api/properties', properties_1.default);
 app.use('/api/messages', messages_1.default);
+app.use('/api/services', services_1.default);
+app.use('/api/roommates', roommates_1.default);
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
     // Set static folder

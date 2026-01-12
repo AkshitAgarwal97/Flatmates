@@ -13,6 +13,8 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import propertyRoutes from './routes/properties';
 import messageRoutes from './routes/messages';
+import serviceRoutes from './routes/services';
+import roommateRoutes from './routes/roommates';
 
 // Import passport config
 import configurePassport from './config/passport';
@@ -21,6 +23,7 @@ import configurePassport from './config/passport';
 import socketHandler from './services/socket';
 // Import Property model for background jobs
 import Property from './models/Property';
+import notificationService from './services/notificationService';
 
 dotenv.config();
 
@@ -33,6 +36,9 @@ const io = new SocketIo(server, {
     methods: ['GET', 'POST']
   }
 });
+
+// Set io instance in notification service
+notificationService.setIo(io);
 
 // Ensure upload directories exist
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -51,7 +57,7 @@ try {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use('/',express.static(__dirname+'/public'))
+app.use('/', express.static(__dirname + '/public'))
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(uploadsDir));
@@ -63,11 +69,26 @@ app.use(passport.initialize());
 // Socket.io connection
 socketHandler(io);
 
+// Activity tracking middleware
+app.use(async (req, res, next) => {
+  if (req.user) {
+    try {
+      const User = require('./models/User').default;
+      await User.findByIdAndUpdate((req.user as any).id, { lastActive: new Date() });
+    } catch (err) {
+      console.error('Failed to update lastActive:', err);
+    }
+  }
+  next();
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/roommates', roommateRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

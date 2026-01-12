@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Container, Typography, Box, CircularProgress, Alert, Paper, ToggleButton, ToggleButtonGroup, MenuItem, Slider, Divider, Stack, Select, FormControl, InputLabel, TextField, InputAdornment, Grid, Card, CardContent, CardMedia, Button, Chip } from "@mui/material";
+import { Container, Typography, Box, CircularProgress, Alert, ToggleButton, ToggleButtonGroup, TextField, InputAdornment, Grid, Button } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import MapIcon from "@mui/icons-material/Map";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import VerifiedIcon from "@mui/icons-material/Verified";
-import BeenhereIcon from "@mui/icons-material/Beenhere";
 import HomeIcon from "@mui/icons-material/Home";
 import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
 import PropertyMap from "../../components/ui/PropertyMap";
 import EnhancedFilters, { EnhancedFiltersState } from "../../components/property/EnhancedFilters";
+import PropertyCard from "../../components/property/PropertyCard";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector, RootState } from "../../redux/store";
 import { getProperties } from "../../redux/slices/propertySlice";
@@ -202,118 +200,7 @@ const PropertyListing = () => {
         <Grid container spacing={3}>
           {filteredProperties.map((property) => (
             <Grid item xs={12} sm={6} md={4} key={property._id}>
-              <Card
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  transition: "transform 0.2s",
-                  "&:hover": {
-                    transform: "translateY(-4px)",
-                    boxShadow: 4,
-                  },
-                }}
-              >
-                <Box sx={{ position: 'relative' }}>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={
-                      property.images?.[0]?.url
-                        ? (property.images[0].url.startsWith('http') 
-                            ? property.images[0].url 
-                            : `${process.env.REACT_APP_API_URL || ''}${property.images[0].url}`)
-                        : "https://picsum.photos/seed/no-image-listing/300/200"
-                    }
-                    alt={`Property: ${property.title} in ${property.address?.city || 'India'}`}
-                    loading="lazy"
-                  />
-                  {property.propertyVerified && (
-                    <Chip
-                      icon={<BeenhereIcon sx={{ fontSize: '14px !important' }} />}
-                      label="Verified Property"
-                      size="small"
-                      color="success"
-                      sx={{
-                        position: 'absolute',
-                        top: 10,
-                        left: 10,
-                        height: 24,
-                        fontSize: '10px',
-                        fontWeight: 'bold',
-                        bgcolor: 'success.main',
-                        color: 'white'
-                      }}
-                    />
-                  )}
-                  {property.isVerified && (
-                    <Chip
-                      icon={<VerifiedIcon sx={{ fontSize: '14px !important' }} />}
-                      label="Verified Owner"
-                      size="small"
-                      color="info"
-                      sx={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        height: 24,
-                        fontSize: '10px',
-                        fontWeight: 'bold',
-                        bgcolor: 'info.main',
-                        color: 'white'
-                      }}
-                    />
-                  )}
-                </Box>
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography gutterBottom variant="h6" component="h3">
-                    {property.title}
-                  </Typography>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <LocationOnIcon
-                      sx={{ fontSize: 16, mr: 0.5, color: "text.secondary" }}
-                    />
-                    <Typography variant="body2" color="text.secondary">
-                      {typeof property.address === "string"
-                        ? property.address
-                        : property.address
-                        ? `${property.address.street || ""}, ${
-                            property.address.city || ""
-                          }, ${property.address.state || ""}`
-                        : ""}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <Typography 
-                      variant="h6" 
-                      color="primary" 
-                      sx={{ fontWeight: 'bold', mr: 0.5 }}
-                    >
-                      ₹
-                    </Typography>
-                    <Typography variant="h6" color="primary">
-                      {property.price?.amount || 0}/month
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    {property.description ? `${property.description.substring(0, 100)}...` : 'No description available'}
-                  </Typography>
-                  <Box display="flex" flexWrap="wrap" gap={0.5} mb={2}>
-                    <Chip label={`${property.features?.bedrooms || property.bedrooms || 0} bed`} size="small" />
-                    <Chip label={`${property.features?.bathrooms || property.bathrooms || 0} bath`} size="small" />
-                    <Chip label={property.propertyType || 'N/A'} size="small" />
-                  </Box>
-                </CardContent>
-                <Box sx={{ p: 2, pt: 0 }}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={() => handleViewDetails(property._id)}
-                  >
-                    View Details
-                  </Button>
-                </Box>
-              </Card>
+              <PropertyCard property={property} onViewDetails={handleViewDetails} />
             </Grid>
           ))}
         </Grid>

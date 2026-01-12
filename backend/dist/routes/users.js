@@ -98,11 +98,28 @@ router.get('/:id', async (req, res) => {
     try {
         // Import User model dynamically to avoid circular dependencies
         const User = require('../models/User').default;
-        const user = await User.findById(req.params.id).select('-password -notifications');
+        let user = await User.findById(req.params.id).select('-password -notifications');
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });
         }
-        res.json(user);
+        const userObj = user.toObject();
+        // Privacy: Hide phone number unless mutual interest (contact shared by both)
+        // We check if there's ANY conversation between the two where contact is shared by both
+        const Conversation = require('../models/Conversation').default;
+        const authUser = req.user;
+        if (authUser && authUser.id !== userObj._id.toString()) {
+            const conversation = await Conversation.findOne({
+                participants: { $all: [authUser.id, userObj._id] },
+                contactSharedBy: { $all: [authUser.id, userObj._id] }
+            });
+            if (!conversation) {
+                delete userObj.phone;
+            }
+        }
+        else if (!authUser) {
+            delete userObj.phone;
+        }
+        res.json(userObj);
     }
     catch (err) {
         console.error(err.message);
@@ -117,13 +134,11 @@ router.get('/:id', async (req, res) => {
 // @access  Public
 router.get('/', async (req, res) => {
     try {
-        const { userType, city, search, page = 1, limit = 10 } = req.query;
+        const { city, search, page = 1, limit = 10 } = req.query;
         // Import User model dynamically to avoid circular dependencies
         const User = require('../models/User').default;
         // Build filter object
         const filter = {};
-        if (userType)
-            filter.userType = userType;
         if (city)
             filter['preferences.location'] = new RegExp(city, 'i');
         if (search) {
@@ -195,6 +210,118 @@ router.put('/notifications/:id', passport_1.default.authenticate('jwt', { sessio
         if (err.kind === 'ObjectId') {
             return res.status(404).json({ msg: 'Notification not found' });
         }
+        res.status(500).send('Server error');
+    }
+});
+// @route   POST api/users/verify/:type
+// @desc    Verify user attribute (placeholder)
+// @access  Private
+router.post('/verify/:type', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const { type } = req.params;
+        const allowedTypes = ['email', 'phone', 'id'];
+        if (!allowedTypes.includes(type)) {
+            return res.status(400).json({ msg: 'Invalid verification type' });
+        }
+        const User = require('../models/User').default;
+        const user = await User.findById(req.user?.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        // In a real app, you would verify an OTP or token here
+        if (type === 'email')
+            user.isEmailVerified = true;
+        if (type === 'phone')
+            user.isPhoneVerified = true;
+        if (type === 'id')
+            user.isIdVerified = true;
+        await user.save();
+        res.json(user);
+    }
+    catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+// @route   POST api/users/save/:propertyId
+// @desc    Toggle save property
+// @access  Private
+router.post('/save/:propertyId', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const User = require('../models/User').default;
+        const user = await User.findById(req.user?.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        const propertyId = req.params.propertyId; // Cast to any to avoid TS error if strict
+        const isSaved = user.savedProperties.includes(propertyId);
+        if (isSaved) {
+            user.savedProperties = user.savedProperties.filter((id) => id.toString() !== propertyId);
+        }
+        else {
+            user.savedProperties.unshift(propertyId);
+        }
+        await user.save();
+        res.json(user.savedProperties);
+    }
+    catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+// @route   POST api/users/block/:userId
+// @desc    Block/Unblock a user
+// @access  Private
+router.post('/block/:userId', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const User = require('../models/User').default;
+        const user = await User.findById(req.user?.id);
+        const targetId = req.params.userId;
+        if (!user)
+            return res.status(404).json({ msg: 'User not found' });
+        if (user._id.toString() === targetId)
+            return res.status(400).json({ msg: 'Cannot block yourself' });
+        const isBlocked = user.blockedUsers.includes(targetId);
+        if (isBlocked) {
+            user.blockedUsers = user.blockedUsers.filter((id) => id.toString() !== targetId);
+        }
+        else {
+            user.blockedUsers.push(targetId);
+        }
+        await user.save();
+        res.json({ blockedUsers: user.blockedUsers });
+    }
+    catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+// @route   POST api/users/report
+// @desc    Report a user or listing
+// @access  Private
+router.post('/report', [
+    passport_1.default.authenticate('jwt', { session: false }),
+    (0, express_validator_1.check)('reason', 'Reason is required').not().isEmpty(),
+    (0, express_validator_1.check)('reason', 'Invalid reason').isIn(['spam', 'harassment', 'fraud', 'inappropriate_content', 'other'])
+], async (req, res) => {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty())
+        return res.status(400).json({ errors: errors.array() });
+    try {
+        const Report = require('../models/Report').default;
+        const { targetUser, targetProperty, reason, description } = req.body;
+        const report = new Report({
+            reporter: req.user.id,
+            targetUser,
+            targetProperty,
+            reason,
+            description
+        });
+        await report.save();
+        res.json({ msg: 'Report submitted successfully' });
+    }
+    catch (err) {
+        console.error(err.message);
         res.status(500).send('Server error');
     }
 });

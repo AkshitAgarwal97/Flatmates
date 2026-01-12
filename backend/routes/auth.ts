@@ -17,7 +17,6 @@ interface AuthenticatedRequest extends Request {
 // JWT payload interface
 interface JWTPayload {
   id: string;
-  userType: string;
 }
 
 // Register request body interface
@@ -25,7 +24,6 @@ interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  userType: string;
 }
 
 // Login request body interface
@@ -36,7 +34,6 @@ interface LoginRequest {
 
 // Complete profile request body interface
 interface CompleteProfileRequest {
-  userType: string;
   phone?: string;
   bio?: string;
   preferences?: any;
@@ -51,12 +48,6 @@ router.post(
     check('name', 'Name is required').not().isEmpty(),
     check('email', 'Please include a valid email').isEmail(),
     check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
-    check('userType', 'User type is required').isIn([
-      'room_seeker',
-      'roommate_seeker',
-      'broker_dealer',
-      'property_owner'
-    ])
   ],
   async (req: Request<{}, {}, RegisterRequest>, res: Response) => {
     const errors = validationResult(req);
@@ -64,7 +55,7 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password: encryptedPassword, userType } = req.body;
+    const { name, email, password: encryptedPassword } = req.body;
     const password = decryptData(encryptedPassword);
 
     try {
@@ -79,7 +70,6 @@ router.post(
         name,
         email,
         password,
-        userType,
         socialProvider: 'local'
       });
 
@@ -102,8 +92,7 @@ router.post(
 
       // Return jsonwebtoken
       const payload: JWTPayload = {
-        id: user.id,
-        userType: user.userType
+        id: user.id
       };
 
       jwt.sign(
@@ -162,8 +151,7 @@ router.post(
 
       // Return jsonwebtoken
       const payload: JWTPayload = {
-        id: user.id,
-        userType: user.userType
+        id: user.id
       };
 
       jwt.sign(
@@ -202,12 +190,6 @@ router.put(
   '/complete-profile',
   [
     passport.authenticate('jwt', { session: false }),
-    check('userType', 'User type is required').isIn([
-      'room_seeker',
-      'roommate_seeker',
-      'broker_dealer',
-      'property_owner'
-    ])
   ],
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -216,7 +198,7 @@ router.put(
     }
 
     try {
-      const { userType, phone, bio, preferences } = req.body;
+      const { phone, bio, preferences } = req.body;
 
       // Update user profile
       const user = await User.findById(req.user?.id);
@@ -225,10 +207,11 @@ router.put(
         return res.status(404).json({ msg: 'User not found' });
       }
 
-      user.userType = userType;
       if (phone) user.phone = phone;
       if (bio) user.bio = bio;
       if (preferences) user.preferences = preferences;
+
+      user.needsProfileCompletion = false;
 
       await user.save();
 

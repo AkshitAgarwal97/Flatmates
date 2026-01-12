@@ -51,6 +51,7 @@ export interface IPropertyPreferences {
     max?: number;
   };
   occupation?: string[];
+  lifestyle?: string[];
   smoking?: boolean;
   pets?: boolean;
 }
@@ -76,6 +77,8 @@ export interface IProperty extends Document {
   status: 'active' | 'inactive' | 'rented';
   views: number;
   saves: number;
+  isFeatured: boolean;
+  featuredUntil?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -183,6 +186,7 @@ const PropertySchema: Schema = new Schema({
       max: Number
     },
     occupation: [String],
+    lifestyle: [String],
     smoking: Boolean,
     pets: Boolean
   },
@@ -198,6 +202,13 @@ const PropertySchema: Schema = new Schema({
   saves: {
     type: Number,
     default: 0
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false
+  },
+  featuredUntil: {
+    type: Date
   },
   createdAt: {
     type: Date,

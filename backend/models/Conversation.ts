@@ -6,6 +6,7 @@ export interface IConversation extends Document {
   lastMessage?: mongoose.Types.ObjectId;
   unreadCount: Map<string, number>;
   isActive: boolean;
+  contactSharedBy: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,10 @@ const ConversationSchema: Schema = new Schema({
     type: Boolean,
     default: true
   },
+  contactSharedBy: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -44,7 +49,7 @@ const ConversationSchema: Schema = new Schema({
 });
 
 // Update the updatedAt field on save
-ConversationSchema.pre('save', function(next) {
+ConversationSchema.pre('save', function (next) {
   this.updatedAt = new Date();
   next();
 });

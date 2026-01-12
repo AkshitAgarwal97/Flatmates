@@ -3,6 +3,8 @@ import { Link as RouterLink } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../../redux/slices/authSlice";
 import { RootState } from "../../redux/store";
+import NotificationCenter from "../ui/NotificationCenter";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 // MUI components
 import AppBar from "@mui/material/AppBar";
@@ -80,6 +82,7 @@ const Header: React.FC = () => {
   const pages: Page[] = [
     { title: "Properties", path: "/properties" },
     { title: "Find Roommates", path: "/roommates" },
+    { title: "Services", path: "/services" },
   ];
 
   // User menu items
@@ -203,7 +206,9 @@ const Header: React.FC = () => {
           </Box>
 
           {/* User Menu */}
-          <Box sx={{ flexGrow: 0 }}>
+          <Box sx={{ flexGrow: 0, display: "flex", alignItems: "center", gap: 1 }}>
+            <LanguageSwitcher />
+            {isAuthenticated && <NotificationCenter />}
             {isAuthenticated ? (
               <>
                 <Tooltip title="Open settings">

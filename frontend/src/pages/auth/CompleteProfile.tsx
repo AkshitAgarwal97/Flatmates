@@ -43,7 +43,6 @@ interface Preferences {
 
 interface CompleteProfileFormValues {
   phone: string;
-  userType: string;
   bio: string;
   preferences: Preferences;
 }
@@ -62,7 +61,6 @@ const validationSchema = Yup.object({
   phone: Yup.string()
     .matches(/^[0-9+\-\s]+$/, "Invalid phone number format")
     .required("Phone number is required"),
-  userType: Yup.string().required("Please select what you are looking for"),
   bio: Yup.string().max(500, "Bio should not exceed 500 characters"),
 });
 
@@ -91,7 +89,6 @@ const CompleteProfile = () => {
   const formik = useFormik({
     initialValues: {
       phone: "",
-      userType: "",
       bio: "",
       preferences: {
         location: "",
@@ -154,48 +151,6 @@ const CompleteProfile = () => {
                 />
               </Grid>
 
-              <Grid item xs={12}>
-                <FormControl
-                  component="fieldset"
-                  error={
-                    formik.touched.userType && Boolean(formik.errors.userType)
-                  }
-                >
-                  <FormLabel component="legend">I am:</FormLabel>
-                  <RadioGroup
-                    aria-label="user-type"
-                    name="userType"
-                    value={formik.values.userType}
-                    onChange={formik.handleChange}
-                  >
-                    <FormControlLabel
-                      value="room_seeker"
-                      control={<Radio />}
-                      label="Looking for a room in a shared flat"
-                    />
-                    <FormControlLabel
-                      value="roommate_seeker"
-                      control={<Radio />}
-                      label="Looking for roommates to find a flat together"
-                    />
-                    <FormControlLabel
-                      value="broker_dealer"
-                      control={<Radio />}
-                      label="Broker/Dealer - Offering rooms/properties on behalf of others"
-                    />
-                    <FormControlLabel
-                      value="property_owner"
-                      control={<Radio />}
-                      label="Offering a whole property for rent"
-                    />
-                  </RadioGroup>
-                  {formik.touched.userType && formik.errors.userType && (
-                    <Typography color="error" variant="caption">
-                      {formik.errors.userType}
-                    </Typography>
-                  )}
-                </FormControl>
-              </Grid>
 
               <Grid item xs={12}>
                 <TextField

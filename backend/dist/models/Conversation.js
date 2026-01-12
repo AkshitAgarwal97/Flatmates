@@ -57,6 +57,10 @@ const ConversationSchema = new mongoose_1.Schema({
         type: Boolean,
         default: true
     },
+    contactSharedBy: [{
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: 'User'
+        }],
     createdAt: {
         type: Date,
         default: Date.now

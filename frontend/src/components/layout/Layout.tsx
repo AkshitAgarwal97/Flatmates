@@ -9,6 +9,7 @@ import { closeSocket } from "../../services/socketService";
 // Custom components
 import MessageNotification from "../ui/MessageNotification";
 import Alert from "../ui/Alert";
+import MobileBottomNav from "./MobileBottomNav";
 
 // MUI components
 import {
@@ -65,15 +66,23 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { isAuthenticated = false, user = null } = useSelector(
+  const { isAuthenticated = false, user = null, needsProfileCompletion = false } = useSelector(
     (state: RootState) => {
       const auth = state.auth as AuthState;
       return {
         isAuthenticated: Boolean(auth.isAuthenticated),
         user: auth.user,
+        needsProfileCompletion: auth.needsProfileCompletion
       };
     }
   );
+
+  // Redirect to onboarding if profile is incomplete
+  React.useEffect(() => {
+    if (isAuthenticated && needsProfileCompletion && window.location.pathname !== '/onboarding') {
+      navigate('/onboarding');
+    }
+  }, [isAuthenticated, needsProfileCompletion, navigate]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
 
@@ -370,6 +379,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           py: 3,
           px: 2,
           mt: "auto",
+          mb: { xs: 7, md: 0 }, // Add margin bottom for mobile nav
           backgroundColor: (theme) =>
             theme.palette.mode === "light"
               ? theme.palette.grey[200]
@@ -382,6 +392,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Typography>
         </Container>
       </Box>
+      <MobileBottomNav />
     </Box>
   );
 };

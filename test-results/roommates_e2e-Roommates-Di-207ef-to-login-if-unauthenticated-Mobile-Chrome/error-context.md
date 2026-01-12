@@ -1,0 +1,106 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e5]:
+      - button "open navigation menu" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - link "FLATMATES" [ref=e10] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e11]:
+        - button "Change Language" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+        - generic [ref=e16]:
+          - link "Login" [ref=e17] [cursor=pointer]:
+            - /url: /login
+            - text: Login
+          - link "Register" [ref=e18] [cursor=pointer]:
+            - /url: /register
+            - text: Register
+  - navigation "breadcrumb" [ref=e21]:
+    - list [ref=e22]:
+      - listitem [ref=e23]:
+        - link "Home" [ref=e24] [cursor=pointer]:
+          - /url: /
+          - img [ref=e25]
+          - text: Home
+      - listitem [ref=e27]:
+        - img [ref=e28]
+      - listitem [ref=e30]:
+        - paragraph [ref=e31]: Find Roommates
+  - main [ref=e32]:
+    - generic [ref=e33]:
+      - button "Filters" [ref=e34] [cursor=pointer]:
+        - img [ref=e36]
+        - text: Filters
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - heading "Find Roommates" [level=5] [ref=e42]
+            - paragraph [ref=e43]: 0 matches found around you
+          - generic [ref=e44]:
+            - button "Show Map" [ref=e45] [cursor=pointer]:
+              - img [ref=e46]
+            - generic [ref=e48]:
+              - combobox [ref=e49] [cursor=pointer]: Recommended
+              - textbox: recommended
+              - img
+              - group
+        - generic [ref=e52]:
+          - heading "No roommates found matching your filters." [level=6] [ref=e53]
+          - paragraph [ref=e54]: Try adjusting your budget or location preference.
+  - contentinfo [ref=e55]:
+    - generic [ref=e56]:
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - heading "Company" [level=6] [ref=e59]
+          - generic [ref=e60]:
+            - link "About Us" [ref=e62] [cursor=pointer]:
+              - /url: /about
+            - link "Contact" [ref=e64] [cursor=pointer]:
+              - /url: /contact
+            - link "Careers" [ref=e66] [cursor=pointer]:
+              - /url: /careers
+        - generic [ref=e67]:
+          - heading "Resources" [level=6] [ref=e68]
+          - generic [ref=e69]:
+            - link "Blog" [ref=e71] [cursor=pointer]:
+              - /url: /blog
+            - link "FAQ" [ref=e73] [cursor=pointer]:
+              - /url: /faq
+            - link "Terms of Service" [ref=e75] [cursor=pointer]:
+              - /url: /terms
+            - link "Privacy Policy" [ref=e77] [cursor=pointer]:
+              - /url: /privacy
+        - generic [ref=e78]:
+          - heading "Connect" [level=6] [ref=e79]
+          - generic [ref=e80]:
+            - link "Follow us on Facebook" [ref=e82] [cursor=pointer]:
+              - /url: https://facebook.com/flatmates.india
+              - text: Facebook
+            - link "Follow us on Twitter" [ref=e84] [cursor=pointer]:
+              - /url: https://twitter.com/flatmates_in
+              - text: Twitter
+            - link "Follow us on Instagram" [ref=e86] [cursor=pointer]:
+              - /url: https://instagram.com/flatmates.co.in
+              - text: Instagram
+      - separator [ref=e87]
+      - paragraph [ref=e88]:
+        - text: © 2026
+        - link "Flatmates" [ref=e89] [cursor=pointer]:
+          - /url: /
+        - text: . All rights reserved.
+  - generic [ref=e90]:
+    - generic [ref=e91]:
+      - img [ref=e92]
+      - heading "We use cookies" [level=6] [ref=e94]
+    - paragraph [ref=e95]:
+      - text: Flatmates uses cookies to enhance your browsing experience and analyze our traffic. By clicking "Accept", you consent to our use of cookies. Read our
+      - link "Privacy Policy" [ref=e96] [cursor=pointer]:
+        - /url: /privacy
+      - text: .
+    - generic [ref=e97]:
+      - button "Decline" [ref=e98] [cursor=pointer]: Decline
+      - button "Accept All" [ref=e99] [cursor=pointer]: Accept All
+```

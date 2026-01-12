@@ -10,6 +10,12 @@ export interface User {
   preferences?: Preferences;
   createdAt: string;
   updatedAt: string;
+  isVerified?: boolean;
+  lastActive?: string;
+  needsProfileCompletion?: boolean;
+  lastActiveDate?: string; // Adding for display
+  averageResponseTime?: number;
+  isBoosted?: boolean;
 }
 
 export interface Preferences {
@@ -21,7 +27,7 @@ export interface Preferences {
   amenities?: string[];
   gender?: string;
   occupation?: string;
-  lifestyle?: string;
+  lifestyle?: string[];
   ageRange?: string;
 }
 
@@ -63,7 +69,6 @@ export interface Property {
   address: Address;
   propertyType: string;
   listingType?: string;
-  userType?: string;
   // Legacy flat properties (for backward compatibility)
   bedrooms?: number;
   bathrooms?: number;
@@ -80,9 +85,12 @@ export interface Property {
   availabilityDate?: string;
   createdBy?: User;
   isActive: boolean;
+  matchScore?: number;
   status?: 'active' | 'inactive';
   isVerified?: boolean;
   propertyVerified?: boolean;
+  isFeatured?: boolean;
+  featuredUntil?: string;
   createdAt: string;
   updatedAt: string;
   savedBy?: string[];
@@ -124,6 +132,9 @@ export interface ApiResponse<T = any> {
 
 export interface PropertyFilters {
   city?: string;
+  street?: string;
+  state?: string;
+  zipCode?: string;
   minPrice?: number;
   maxPrice?: number;
   propertyType?: string;
@@ -131,6 +142,12 @@ export interface PropertyFilters {
   search?: string;
   bedrooms?: number;
   bathrooms?: number;
+  amenities?: string[];
+  lifestyle?: string[];
+  petFriendly?: boolean;
+  gender?: string;
+  occupation?: string;
+  availableFrom?: string;
   page?: number;
   limit?: number;
   userOnly?: boolean;
@@ -143,7 +160,6 @@ export interface PropertyFormValues {
   price: { amount: number; currency: string; period: string };
   address: Address;
   propertyType: string;
-  userType?: string;
   bedrooms: number;
   bathrooms: number;
   area?: number;

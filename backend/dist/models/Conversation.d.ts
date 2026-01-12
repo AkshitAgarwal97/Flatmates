@@ -5,6 +5,7 @@ export interface IConversation extends Document {
     lastMessage?: mongoose.Types.ObjectId;
     unreadCount: Map<string, number>;
     isActive: boolean;
+    contactSharedBy: mongoose.Types.ObjectId[];
     createdAt: Date;
     updatedAt: Date;
 }

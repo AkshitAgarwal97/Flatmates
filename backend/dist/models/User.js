@@ -50,11 +50,6 @@ const UserSchema = new mongoose_1.Schema({
     avatar: {
         type: String
     },
-    userType: {
-        type: String,
-        enum: ['room_seeker', 'roommate_seeker', 'broker_dealer', 'property_owner'],
-        required: true
-    },
     socialProvider: {
         type: String,
         enum: ['local', 'google', 'facebook', 'instagram']
@@ -67,6 +62,10 @@ const UserSchema = new mongoose_1.Schema({
     },
     bio: {
         type: String
+    },
+    needsProfileCompletion: {
+        type: Boolean,
+        default: true
     },
     preferences: {
         location: [String],
@@ -89,10 +88,14 @@ const UserSchema = new mongoose_1.Schema({
             type: mongoose_1.Schema.Types.ObjectId,
             ref: 'Property'
         }],
+    blockedUsers: [{
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: 'User'
+        }],
     notifications: [{
             type: {
                 type: String,
-                enum: ['message', 'property_update', 'system']
+                enum: ['message', 'property_update', 'system', 'match']
             },
             content: String,
             relatedTo: mongoose_1.Schema.Types.ObjectId,
@@ -105,6 +108,33 @@ const UserSchema = new mongoose_1.Schema({
                 default: Date.now
             }
         }],
+    isEmailVerified: {
+        type: Boolean,
+        default: false
+    },
+    isPhoneVerified: {
+        type: Boolean,
+        default: false
+    },
+    isIdVerified: {
+        type: Boolean,
+        default: false
+    },
+    lastActive: {
+        type: Date,
+        default: Date.now
+    },
+    averageResponseTime: {
+        type: Number,
+        default: 0
+    },
+    isBoosted: {
+        type: Boolean,
+        default: false
+    },
+    boostedUntil: {
+        type: Date
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -112,6 +142,27 @@ const UserSchema = new mongoose_1.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
+    },
+    personalLifestyle: {
+        food: { type: String, enum: ['Veg', 'Non-Veg', 'Eggetarian', 'Vegan'] },
+        smoking: { type: Boolean, default: false },
+        drinking: { type: Boolean, default: false },
+        cleanliness: { type: String, enum: ['Low', 'Medium', 'High'] },
+    },
+    occupation: {
+        type: String,
+        enum: ['Student', 'Professional', 'WFH', 'Other']
+    },
+    gender: {
+        type: String,
+        enum: ['Male', 'Female', 'Other']
+    },
+    dob: {
+        type: Date
+    },
+    isRoommateListed: {
+        type: Boolean,
+        default: false
     }
 });
 // Update the updatedAt field on save

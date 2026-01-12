@@ -21,6 +21,7 @@ import {
   TextField,
   IconButton,
   CircularProgress,
+  Alert
 } from "@mui/material";
 import {
   Favorite,
@@ -29,7 +30,13 @@ import {
   Message as MessageIcon,
   Edit,
   Delete,
+  Report as ReportIcon,
+  Block as BlockIcon,
+  Schedule as ScheduleIcon,
+  History as LastActiveIcon
 } from "@mui/icons-material";
+import ReportDialog from "../../components/common/ReportDialog";
+import axios from "axios";
 import { RootState, AppDispatch } from "../../redux/store";
 import {
   getPropertyById,
@@ -90,8 +97,7 @@ interface AuthState {
     _id: string;
     name: string;
     email: string;
-    userType: string;
-  } | null;
+    } | null;
   isAuthenticated: boolean;
 }
 
@@ -109,6 +115,8 @@ const PropertyDetails: React.FC = () => {
 
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -184,6 +192,34 @@ const PropertyDetails: React.FC = () => {
     if (property) {
       navigate(`/properties/edit/${property._id}`);
     }
+  };
+
+  const handleBlockUser = async () => {
+    if (!isAuthenticated) {
+      dispatch(showAlert("error", "Please log in to block users"));
+      return;
+    }
+
+    if (property && property.owner && window.confirm(`Are you sure you want to block ${property.owner.name}? You will no longer see their listings or receive messages from them.`)) {
+      setBlocking(true);
+      try {
+        await axios.post(`/api/users/block/${property.owner._id}`);
+        dispatch(showAlert("success", `${property.owner.name} has been blocked`));
+        navigate("/properties"); // Redirect as we can't see their listings anymore
+      } catch (error: any) {
+        dispatch(showAlert("error", error.response?.data?.msg || "Failed to block user"));
+      } finally {
+        setBlocking(false);
+      }
+    }
+  };
+
+  const handleReportOpen = () => {
+    if (!isAuthenticated) {
+      dispatch(showAlert("error", "Please log in to report listings"));
+      return;
+    }
+    setReportDialogOpen(true);
   };
 
   const handleDeleteProperty = async () => {
@@ -305,12 +341,32 @@ const PropertyDetails: React.FC = () => {
 
       {/* Property Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          {property.title}
-        </Typography>
-        <Typography variant="h5" color="primary" gutterBottom>
-          ₹{property?.price?.amount?.toLocaleString?.() ?? "N/A"}/month
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+                <Typography variant="h4" gutterBottom>
+                {property.title}
+                </Typography>
+                <Typography variant="h5" color="primary" gutterBottom>
+                ₹{property?.price?.amount?.toLocaleString?.() ?? "N/A"}/month
+                </Typography>
+            </Box>
+            {property.matchScore !== undefined && (
+                <Paper 
+                    elevation={0} 
+                    sx={{ 
+                        p: 2, 
+                        bgcolor: property.matchScore >= 80 ? 'success.light' : 'primary.light',
+                        color: property.matchScore >= 80 ? 'success.dark' : 'primary.dark',
+                        borderRadius: 3,
+                        textAlign: 'center',
+                        minWidth: 100
+                    }}
+                >
+                    <Typography variant="h4" fontWeight="bold">{property.matchScore}%</Typography>
+                    <Typography variant="caption" fontWeight="bold">MATCH SCORE</Typography>
+                </Paper>
+            )}
+        </Box>
         <Typography variant="body1" color="text.secondary" gutterBottom>
           {property.address.street}, {property.address.city},{" "}
           {property.address.state} {property.address.zipCode}
@@ -352,21 +408,6 @@ const PropertyDetails: React.FC = () => {
               property.propertyType
                 ? property.propertyType.charAt(0).toUpperCase() +
                   property.propertyType.slice(1)
-                : "N/A"
-            }
-            color="primary"
-            variant="outlined"
-          />
-          <Chip
-            label={
-              property.userType
-                ? property.userType
-                    .split("_")
-                    .map(
-                      (word: string) =>
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                    )
-                    .join(" ")
                 : "N/A"
             }
             color="primary"
@@ -488,24 +529,32 @@ const PropertyDetails: React.FC = () => {
                     {property.owner.name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {property.owner?.userType
-                      ? property.owner.userType
-                          .split("_")
-                          .map(
-                            (word: string) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                          )
-                          .join(" ")
-                      : "User"}
+                    User
                   </Typography>
                 </Box>
               </Box>
-              <Typography variant="body2" color="text.secondary" paragraph>
+              <Typography variant="body2" color="text.secondary">
                 Member since{" "}
                 {new Date(property.owner.createdAt).toLocaleDateString()}
               </Typography>
+              <Box sx={{ mt: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <LastActiveIcon fontSize="small" color="action" />
+                    <Typography variant="body2">
+                        Last Active: {property.owner?.lastActive ? new Date(property.owner.lastActive).toLocaleDateString() : 'N/A'}
+                    </Typography>
+                </Box>
+                {property.owner?.averageResponseTime > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ScheduleIcon fontSize="small" color="action" />
+                        <Typography variant="body2">
+                            Typically responds in {property.owner.averageResponseTime} mins
+                        </Typography>
+                    </Box>
+                )}
+              </Box>
             </CardContent>
-            <CardActions>
+            <CardActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
               {isOwner ? (
                 <Button
                   fullWidth
@@ -515,14 +564,45 @@ const PropertyDetails: React.FC = () => {
                   You own this property
                 </Button>
               ) : (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  startIcon={<MessageIcon />}
-                  onClick={handleMessageDialogOpen}
-                >
-                  Contact Owner
-                </Button>
+                <>
+                    {property.owner.phone ? (
+                        <Alert severity="success" icon={false} sx={{ width: '100%', mb: 1 }}>
+                            <Typography variant="subtitle2">Phone: {property.owner.phone}</Typography>
+                        </Alert>
+                    ) : (
+                        <Button
+                        fullWidth
+                        variant="contained"
+                        startIcon={<MessageIcon />}
+                        onClick={handleMessageDialogOpen}
+                        >
+                        Contact Owner
+                        </Button>
+                    )}
+                    <Box sx={{ display: 'flex', gap: 1, width: '100%', mt: 1 }}>
+                        <Button
+                            fullWidth
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<BlockIcon />}
+                            onClick={handleBlockUser}
+                            disabled={blocking}
+                        >
+                            Block
+                        </Button>
+                        <Button
+                            fullWidth
+                            size="small"
+                            variant="outlined"
+                            color="warning"
+                            startIcon={<ReportIcon />}
+                            onClick={handleReportOpen}
+                        >
+                            Report
+                        </Button>
+                    </Box>
+                </>
               )}
             </CardActions>
           </Card>
@@ -602,6 +682,15 @@ const PropertyDetails: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ReportDialog
+        open={reportDialogOpen}
+        onClose={() => setReportDialogOpen(false)}
+        targetId={property._id}
+        type="property"
+      />
+      
+      <Box sx={{ height: 100 }} /> {/* Spacer for bottom nav on mobile */}
     </Box>
   );
 };

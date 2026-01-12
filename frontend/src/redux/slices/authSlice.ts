@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios, { AxiosError } from 'axios';
-import { RootState } from '../store';
 
 // Types
 interface User {
@@ -8,7 +7,9 @@ interface User {
   name: string;
   email: string;
   socialProvider?: string;
-  userType?: string;
+  savedProperties?: string[];
+  notifications?: any[];
+  needsProfileCompletion?: boolean;
 }
 
 interface ErrorResponse {
@@ -33,12 +34,10 @@ interface LoginCredentials {
 
 interface RegisterCredentials extends LoginCredentials {
   name: string;
-  userType?: string;
 }
 
 interface CompleteProfileFormValues {
   phone: string;
-  userType: string;
   bio: string;
   preferences: {
     location: string;
@@ -164,6 +163,19 @@ export const updateProfile = createAsyncThunk(
 );
 
 // Create slice
+export const toggleSaveProperty = createAsyncThunk(
+  'auth/toggleSaveProperty',
+  async (propertyId: string, { rejectWithValue }) => {
+    try {
+      const res = await axios.post<string[]>(`/api/users/save/${propertyId}`);
+      return res.data;
+    } catch (error) {
+      const err = error as AxiosError;
+      return rejectWithValue(err.response?.data || 'Failed to toggle save');
+    }
+  }
+);
+
 const initialState: AuthState = {
   token: localStorage.getItem('token'),
   isAuthenticated: null,
@@ -194,6 +206,14 @@ const authSlice = createSlice({
       localStorage.setItem('token', action.payload);
       setAuthToken(action.payload);
       state.isAuthenticated = true;
+    },
+    addNotification: (state, action: PayloadAction<any>) => {
+      if (state.user) {
+        if (!state.user.notifications) {
+          state.user.notifications = [];
+        }
+        state.user.notifications.unshift(action.payload);
+      }
     }
   },
   extraReducers: (builder) => {
@@ -205,11 +225,10 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.loading = false;
         state.user = action.payload;
-        state.needsProfileCompletion = !!(
-          state.user?.socialProvider &&
-          state.user.socialProvider !== 'local' &&
-          (!state.user.userType || state.user.userType === 'room_seeker')
-        );
+        state.isAuthenticated = true;
+        state.loading = false;
+        state.user = action.payload;
+        state.needsProfileCompletion = !!state.user?.needsProfileCompletion;
       })
       .addCase(loadUser.rejected, (state, action) => {
         state.loading = false;
@@ -272,9 +291,14 @@ const authSlice = createSlice({
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(toggleSaveProperty.fulfilled, (state, action) => {
+        if (state.user) {
+          state.user.savedProperties = action.payload;
+        }
       });
   }
 });
 
-export const { logout, clearError, setToken } = authSlice.actions;
+export const { logout, clearError, setToken, addNotification } = authSlice.actions;
 export default authSlice.reducer;

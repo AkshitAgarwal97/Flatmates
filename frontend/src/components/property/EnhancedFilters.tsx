@@ -16,10 +16,13 @@ import {
   Button,
   Chip,
   Grid,
+  Stack,
+  Divider,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
+import TuneIcon from "@mui/icons-material/Tune";
 
 export interface EnhancedFiltersState {
   budgetRange: number[];
@@ -34,6 +37,11 @@ export interface EnhancedFiltersState {
   gender?: string;
   ageRange: number[];
   availableFrom?: string;
+  occupation?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  search?: string;
 }
 
 interface EnhancedFiltersProps {
@@ -68,6 +76,13 @@ const LIFESTYLE_OPTIONS = [
   "Quiet",
   "Pet lover",
   "Fitness enthusiast",
+];
+
+const OCCUPATION_OPTIONS = [
+  "Student",
+  "Working Professional",
+  "Remote / WFH",
+  "Any",
 ];
 
 const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
@@ -111,28 +126,57 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
     (filters.furnishing ? 1 : 0) +
     (filters.petFriendly !== undefined ? 1 : 0) +
     (filters.gender ? 1 : 0) +
+    (filters.occupation ? 1 : 0) +
+    (filters.city ? 1 : 0) +
+    (filters.availableFrom ? 1 : 0) +
     filters.amenities.length +
     filters.lifestyle.length +
     (filters.budgetRange[0] > 0 || filters.budgetRange[1] < 100000 ? 1 : 0);
 
   return (
-    <Paper elevation={2} sx={{ mb: 3, borderRadius: 2 }}>
+    <Paper
+      elevation={0}
+      sx={{
+        mb: 3,
+        borderRadius: 4,
+        border: "1px solid",
+        borderColor: "divider",
+        overflow: "hidden",
+        position: { md: "sticky" },
+        top: { md: 24 },
+        maxHeight: { md: "calc(100vh - 40px)" },
+        overflowY: "auto",
+        "&::-webkit-scrollbar": {
+          width: "6px",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: "rgba(0,0,0,0.1)",
+          borderRadius: "4px",
+        },
+      }}
+    >
       <Box
         sx={{
-          p: 2,
+          p: 2.5,
+          bgcolor: "background.paper",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          borderBottom: "1px solid",
+          borderColor: "divider",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <FilterListIcon color="primary" />
-          <Typography variant="h6">Advanced Filters</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <TuneIcon color="primary" />
+          <Typography variant="h6" fontWeight="bold">
+            Filters
+          </Typography>
           {activeFiltersCount > 0 && (
             <Chip
-              label={`${activeFiltersCount} active`}
+              label={activeFiltersCount}
               size="small"
               color="primary"
+              sx={{ height: 20, fontSize: "0.75rem", fontWeight: "bold" }}
             />
           )}
         </Box>
@@ -141,23 +185,27 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
             startIcon={<ClearIcon />}
             onClick={onReset}
             size="small"
-            variant="outlined"
+            color="error"
+            sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Clear All
+            Clear
           </Button>
         )}
       </Box>
 
-      <Accordion
-        expanded={expanded === "filters"}
-        onChange={handleChange("filters")}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Basic Filters</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+      <Box sx={{ p: 1 }}>
+        <Accordion
+          elevation={0}
+          expanded={expanded === "filters"}
+          onChange={handleChange("filters")}
+          disableGutters
+          sx={{ "&:before": { display: "none" } }}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography fontWeight={500}>Basic Information</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={2.5}>
               <FormControl fullWidth size="small">
                 <InputLabel>Property Type</InputLabel>
                 <Select
@@ -165,188 +213,243 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                   label="Property Type"
                   onChange={(e) => updateFilter("propertyType", e.target.value)}
                 >
-                  <MenuItem value="all">All Types</MenuItem>
+                  <MenuItem value="all">Any</MenuItem>
                   <MenuItem value="apartment">Apartment</MenuItem>
                   <MenuItem value="house">House</MenuItem>
                   <MenuItem value="room">Room</MenuItem>
                   <MenuItem value="studio">Studio</MenuItem>
-                  <MenuItem value="flat">Flat</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Listing Type</InputLabel>
-                <Select
-                  value={filters.listingType}
-                  label="Listing Type"
-                  onChange={(e) => updateFilter("listingType", e.target.value)}
+
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Beds</InputLabel>
+                    <Select
+                      value={filters.bedrooms ?? "any"}
+                      label="Beds"
+                      onChange={(e) =>
+                        updateFilter(
+                          "bedrooms",
+                          e.target.value === "any" ? null : Number(e.target.value)
+                        )
+                      }
+                    >
+                      <MenuItem value="any">Any</MenuItem>
+                      <MenuItem value={1}>1+</MenuItem>
+                      <MenuItem value={2}>2+</MenuItem>
+                      <MenuItem value={3}>3+</MenuItem>
+                      <MenuItem value={4}>4+</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Baths</InputLabel>
+                    <Select
+                      value={filters.bathrooms ?? "any"}
+                      label="Baths"
+                      onChange={(e) =>
+                        updateFilter(
+                          "bathrooms",
+                          e.target.value === "any" ? null : Number(e.target.value)
+                        )
+                      }
+                    >
+                      <MenuItem value="any">Any</MenuItem>
+                      <MenuItem value={1}>1+</MenuItem>
+                      <MenuItem value={2}>2+</MenuItem>
+                      <MenuItem value={3}>3+</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  gutterBottom
+                  display="block"
+                  fontWeight="bold"
                 >
-                  <MenuItem value="all">All Listings</MenuItem>
-                  <MenuItem value="room_in_flat">Room in Flat</MenuItem>
-                  <MenuItem value="roommates_for_flat">
-                    Roommates for Flat
-                  </MenuItem>
-                  <MenuItem value="occupied_flat">Occupied Flat</MenuItem>
-                  <MenuItem value="entire_property">Entire Property</MenuItem>
-                </Select>
+                  Budget (Per Month)
+                </Typography>
+                <Box px={1}>
+                  <Slider
+                    value={filters.budgetRange}
+                    onChange={(_, newValue) =>
+                      updateFilter("budgetRange", newValue)
+                    }
+                    valueLabelDisplay="auto"
+                    min={0}
+                    max={100000}
+                    step={1000}
+                    valueLabelFormat={(value) => `₹${value / 1000}k`}
+                  />
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    mt={-1}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      ₹{filters.budgetRange[0].toLocaleString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ₹{filters.budgetRange[1].toLocaleString()}+
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+
+        <Divider />
+
+        <Accordion
+          elevation={0}
+          expanded={expanded === "location"}
+          onChange={handleChange("location")}
+          disableGutters
+          sx={{ "&:before": { display: "none" } }}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography fontWeight={500}>Location</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={2}>
+              <FormControl fullWidth size="small" variant="outlined">
+                  <InputLabel shrink htmlFor="city-input">City</InputLabel>
+                  <Select
+                    label="City"
+                    value={filters.city || ""}
+                    onChange={(e) => updateFilter("city", e.target.value)}
+                    displayEmpty
+                    inputProps={{ id: 'city-input' }}
+                  >
+                    <MenuItem value="">Any</MenuItem>
+                    <MenuItem value="Delhi">Delhi</MenuItem>
+                    <MenuItem value="Mumbai">Mumbai</MenuItem>
+                    <MenuItem value="Bangalore">Bangalore</MenuItem>
+                    <MenuItem value="Gurgaon">Gurgaon</MenuItem>
+                    <MenuItem value="Noida">Noida</MenuItem>
+                    <MenuItem value="Pune">Pune</MenuItem>
+                    <MenuItem value="Hyderabad">Hyderabad</MenuItem>
+                  </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Bedrooms</InputLabel>
-                <Select
-                  value={filters.bedrooms ?? "any"}
-                  label="Bedrooms"
-                  onChange={(e) =>
-                    updateFilter(
-                      "bedrooms",
-                      e.target.value === "any" ? null : Number(e.target.value)
-                    )
+               <FormControl fullWidth size="small">
+                 {/* Using text field for area/street as it's free form */}
+                 <InputLabel sx={{ display: 'none' }}>Area / Landmark</InputLabel>
+                 {/* Replaced with standard TextField for simplicity in filter context */}
+               </FormControl>
+               <Box>
+                    <Typography variant="caption" color="text.secondary" gutterBottom>
+                        Area / Landmark
+                    </Typography>
+                   <input 
+                      type="text" 
+                      placeholder="e.g. Koramangala, Indiranagar"
+                      style={{ 
+                          width: '100%', 
+                          padding: '8px', 
+                          borderRadius: '4px', 
+                          border: '1px solid rgba(0, 0, 0, 0.23)',
+                          fontFamily: 'inherit',
+                          fontSize: '0.9rem'
+                      }}
+                      value={filters.street || ""}
+                      onChange={(e) => updateFilter("street", e.target.value)}
+                   />
+               </Box>
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+
+        <Divider />
+
+        <Accordion
+          elevation={0}
+          expanded={expanded === "amenities"}
+          onChange={handleChange("amenities")}
+          disableGutters
+          sx={{ "&:before": { display: "none" } }}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography fontWeight={500}>
+              Amenities {filters.amenities.length > 0 && `(${filters.amenities.length})`}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
+              {AMENITIES_OPTIONS.map((amenity) => (
+                <Chip
+                  key={amenity}
+                  label={amenity}
+                  onClick={() => toggleAmenity(amenity)}
+                  color={
+                    filters.amenities.includes(amenity) ? "primary" : "default"
                   }
-                >
-                  <MenuItem value="any">Any</MenuItem>
-                  <MenuItem value={1}>1</MenuItem>
-                  <MenuItem value={2}>2</MenuItem>
-                  <MenuItem value={3}>3</MenuItem>
-                  <MenuItem value={4}>4+</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Bathrooms</InputLabel>
-                <Select
-                  value={filters.bathrooms ?? "any"}
-                  label="Bathrooms"
-                  onChange={(e) =>
-                    updateFilter(
-                      "bathrooms",
-                      e.target.value === "any" ? null : Number(e.target.value)
-                    )
+                  variant={
+                    filters.amenities.includes(amenity) ? "filled" : "outlined"
                   }
-                >
-                  <MenuItem value="any">Any</MenuItem>
-                  <MenuItem value={1}>1</MenuItem>
-                  <MenuItem value={2}>2</MenuItem>
-                  <MenuItem value={3}>3+</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                gutterBottom
-                display="block"
-              >
-                Budget Range: ₹{filters.budgetRange[0].toLocaleString()} - ₹
-                {filters.budgetRange[1].toLocaleString()}+
+                  size="small"
+                  sx={{ borderRadius: 1.5 }}
+                />
+              ))}
+            </Box>
+          </AccordionDetails>
+        </Accordion>
+        
+        <Divider />
+
+        <Accordion
+            elevation={0}
+            expanded={expanded === "lifestyle"}
+            onChange={handleChange("lifestyle")}
+            disableGutters
+            sx={{ "&:before": { display: "none" } }}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography fontWeight={500}>
+                Lifestyle {filters.lifestyle.length > 0 && `(${filters.lifestyle.length})`}
               </Typography>
-              <Slider
-                value={filters.budgetRange}
-                onChange={(_, newValue) =>
-                  updateFilter("budgetRange", newValue)
-                }
-                valueLabelDisplay="auto"
-                min={0}
-                max={100000}
-                step={1000}
-                valueLabelFormat={(value) => `₹${value.toLocaleString()}`}
-              />
-            </Grid>
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
+                {LIFESTYLE_OPTIONS.map((item) => (
+                  <Chip
+                    key={item}
+                    label={item}
+                    onClick={() => toggleLifestyle(item)}
+                    color={
+                      filters.lifestyle.includes(item) ? "secondary" : "default"
+                    }
+                    variant={
+                      filters.lifestyle.includes(item) ? "filled" : "outlined"
+                    }
+                    size="small"
+                    sx={{ borderRadius: 1.5 }}
+                  />
+                ))}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-      <Accordion
-        expanded={expanded === "amenities"}
-        onChange={handleChange("amenities")}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>
-            Amenities{" "}
-            {filters.amenities.length > 0 && `(${filters.amenities.length})`}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-            {AMENITIES_OPTIONS.map((amenity) => (
-              <Chip
-                key={amenity}
-                label={amenity}
-                onClick={() => toggleAmenity(amenity)}
-                color={
-                  filters.amenities.includes(amenity) ? "primary" : "default"
-                }
-                variant={
-                  filters.amenities.includes(amenity) ? "filled" : "outlined"
-                }
-              />
-            ))}
-          </Box>
-        </AccordionDetails>
-      </Accordion>
+        <Divider />
 
-      <Accordion
-        expanded={expanded === "lifestyle"}
-        onChange={handleChange("lifestyle")}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>
-            Lifestyle{" "}
-            {filters.lifestyle.length > 0 && `(${filters.lifestyle.length})`}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-            {LIFESTYLE_OPTIONS.map((lifestyle) => (
-              <Chip
-                key={lifestyle}
-                label={lifestyle}
-                onClick={() => toggleLifestyle(lifestyle)}
-                color={
-                  filters.lifestyle.includes(lifestyle) ? "primary" : "default"
-                }
-                variant={
-                  filters.lifestyle.includes(lifestyle) ? "filled" : "outlined"
-                }
-              />
-            ))}
-          </Box>
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion
-        expanded={expanded === "preferences"}
-        onChange={handleChange("preferences")}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Preferences</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Furnishing</InputLabel>
-                <Select
-                  value={filters.furnishing ?? "any"}
-                  label="Furnishing"
-                  onChange={(e) =>
-                    updateFilter(
-                      "furnishing",
-                      e.target.value === "any" ? null : e.target.value
-                    )
-                  }
-                >
-                  <MenuItem value="any">Any</MenuItem>
-                  <MenuItem value="furnished">Furnished</MenuItem>
-                  <MenuItem value="semi-furnished">Semi-Furnished</MenuItem>
-                  <MenuItem value="unfurnished">Unfurnished</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
+        <Accordion
+          elevation={0}
+          expanded={expanded === "preferences"}
+          onChange={handleChange("preferences")}
+          disableGutters
+          sx={{ "&:before": { display: "none" } }}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography fontWeight={500}>More Preferences</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Gender Preference</InputLabel>
                 <Select
@@ -365,44 +468,60 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                   <MenuItem value="other">Other</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12}>
+
+              <FormControl fullWidth size="small">
+                <InputLabel>Occupation</InputLabel>
+                <Select
+                  value={filters.occupation ?? "Any"}
+                  label="Occupation"
+                  onChange={(e) =>
+                    updateFilter(
+                      "occupation",
+                      e.target.value === "Any" ? null : e.target.value
+                    )
+                  }
+                >
+                  {OCCUPATION_OPTIONS.map((occ) => (
+                    <MenuItem key={occ} value={occ}>
+                      {occ}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+               <Box>
+                <Typography variant="caption" color="text.secondary" gutterBottom>
+                    Move-in Date
+                </Typography>
+                <input
+                    type="date"
+                    style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(0, 0, 0, 0.23)',
+                        fontFamily: 'inherit'
+                    }}
+                    value={filters.availableFrom || ""}
+                    onChange={(e) => updateFilter("availableFrom", e.target.value)}
+                />
+              </Box>
+
               <FormControlLabel
                 control={
                   <Checkbox
                     checked={!!filters.petFriendly}
                     onChange={(e) =>
-                      updateFilter(
-                        "petFriendly",
-                        e.target.checked ? true : null
-                      )
+                      updateFilter("petFriendly", e.target.checked ? true : null)
                     }
                   />
                 }
                 label="Pet Friendly"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                gutterBottom
-                display="block"
-              >
-                Age Range: {filters.ageRange[0]} - {filters.ageRange[1]} years
-              </Typography>
-              <Slider
-                value={filters.ageRange}
-                onChange={(_, newValue) => updateFilter("ageRange", newValue)}
-                valueLabelDisplay="auto"
-                min={18}
-                max={65}
-                step={1}
-              />
-            </Grid>
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+      </Box>
     </Paper>
   );
 };

@@ -120,14 +120,18 @@ router.post(
 
       const { recipient, property, initialMessage } = req.body;
 
-      if (recipient === (req.user as AuthenticatedUser)._id.toString()) {
-        return res.status(400).json({ msg: 'You cannot message yourself' });
+      // Check if recipient is blocked or blocking the sender
+      const User = require('../models/User').default;
+      const sender = await User.findById((req.user as AuthenticatedUser).id);
+      const recipientUser = await User.findById(recipient);
+
+      if (!recipientUser) return res.status(404).json({ msg: 'Recipient not found' });
+      if (sender.blockedUsers?.includes(recipient) || recipientUser.blockedUsers?.includes(sender._id)) {
+        return res.status(403).json({ msg: 'Communication blocked' });
       }
 
-      // Check if recipient exists
-      const recipientUser = await User.findById(recipient);
-      if (!recipientUser) {
-        return res.status(404).json({ msg: 'Recipient not found' });
+      if (recipient === (req.user as AuthenticatedUser).id.toString()) {
+        return res.status(400).json({ msg: 'You cannot message yourself' });
       }
 
       // Check if conversation already exists
@@ -287,21 +291,32 @@ router.post(
       const Message = require('../models/Message').default;
       const User = require('../models/User').default;
 
-      const conversation = await Conversation.findById(req.params.id);
+      const senderId = (req.user as AuthenticatedUser)?._id;
+      const conversation = await Conversation.findById(req.params.id).populate('participants');
 
       if (!conversation) {
         return res.status(404).json({ msg: 'Conversation not found' });
       }
 
+      // Check for blocked users in the conversation
+      const participants = conversation.participants as any[];
+      const authUserId = (req.user as AuthenticatedUser).id;
+      const otherParticipant = participants.find(p => p._id.toString() !== authUserId);
+      const authUserObj = participants.find(p => p._id.toString() === authUserId);
+
+      if (authUserObj?.blockedUsers?.includes(otherParticipant?._id) || otherParticipant?.blockedUsers?.includes(authUserObj?._id)) {
+        return res.status(403).json({ msg: 'Communication blocked' });
+      }
+
       // Check if user is part of the conversation
-      if (!conversation.participants.includes((req.user as AuthenticatedUser)?._id)) {
+      if (!conversation.participants.some((p: any) => (p._id || p).toString() === (req.user as AuthenticatedUser)?._id.toString())) {
         return res.status(401).json({ msg: 'Not authorized' });
       }
 
       // Create message
       const newMessage = new Message({
         conversation: req.params.id,
-        sender: (req.user as AuthenticatedUser)?._id,
+        sender: senderId,
         content: req.body.content,
         attachments: req.body.attachments || []
       });
@@ -322,9 +337,28 @@ router.post(
       // Update conversation
       conversation.lastMessage = message._id;
       conversation.updatedAt = new Date();
+      await conversation.save();
+
+      // Track response time
+      const lastOtherMessage = await Message.findOne({
+        conversation: conversation._id,
+        sender: { $ne: senderId }
+      }).sort({ createdAt: -1 });
+
+      if (lastOtherMessage) {
+        const responseTime = (new Date().getTime() - lastOtherMessage.createdAt.getTime()) / (1000 * 60); // In minutes
+        const User = require('../models/User').default;
+        const senderUser = await User.findById(senderId);
+        if (senderUser) {
+          // Weighted average (recent responses matter more)
+          const newAvg = senderUser.averageResponseTime === 0
+            ? responseTime
+            : (senderUser.averageResponseTime * 4 + responseTime) / 5;
+          await User.findByIdAndUpdate(senderId, { averageResponseTime: Math.round(newAvg) });
+        }
+      }
 
       // Get sender and recipient info for email notification in a single query to avoid N+1
-      const senderId = (req.user as AuthenticatedUser)?._id;
       const recipientId = conversation.participants.find(
         (p: any) => p.toString() !== (req.user as AuthenticatedUser)?._id.toString()
       );
@@ -417,6 +451,57 @@ router.delete(
       if (err.kind === 'ObjectId') {
         return res.status(404).json({ msg: 'Conversation not found' });
       }
+      res.status(500).send('Server error');
+    }
+  }
+);
+
+// @route   POST api/messages/conversations/:id/share-contact
+// @desc    Express interest in sharing contact details
+// @access  Private
+router.post(
+  '/conversations/:id/share-contact',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+    try {
+      const conversation = await Conversation.findById(req.params.id);
+
+      if (!conversation) {
+        return res.status(404).json({ msg: 'Conversation not found' });
+      }
+
+      const authUser = req.user as AuthenticatedUser;
+      if (!conversation.participants.some(p => p.toString() === authUser.id.toString())) {
+        return res.status(401).json({ msg: 'Not authorized' });
+      }
+
+      // Add user to contactSharedBy if not already there
+      if (!conversation.contactSharedBy.includes(authUser._id)) {
+        conversation.contactSharedBy.push(authUser._id);
+
+        // Add a system message to the conversation
+        const Message = require('../models/Message').default;
+        const systemMessage = new Message({
+          conversation: conversation._id,
+          sender: authUser._id,
+          content: `${authUser.name} has shared their contact details.`,
+          type: 'system' // Assuming Message model supports type
+        });
+        await systemMessage.save();
+
+        conversation.lastMessage = systemMessage._id;
+        await conversation.save();
+
+        // Check if both have shared
+        if (conversation.contactSharedBy.length === conversation.participants.length) {
+          // Send notification about mutual interest
+          // (Implementation for notification omitted for brevity, but would go here)
+        }
+      }
+
+      res.json(conversation);
+    } catch (err: any) {
+      console.error(err.message);
       res.status(500).send('Server error');
     }
   }

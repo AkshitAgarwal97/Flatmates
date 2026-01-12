@@ -137,6 +137,7 @@ const PropertySchema = new mongoose_1.Schema({
             max: Number
         },
         occupation: [String],
+        lifestyle: [String],
         smoking: Boolean,
         pets: Boolean
     },
@@ -152,6 +153,13 @@ const PropertySchema = new mongoose_1.Schema({
     saves: {
         type: Number,
         default: 0
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false
+    },
+    featuredUntil: {
+        type: Date
     },
     createdAt: {
         type: Date,

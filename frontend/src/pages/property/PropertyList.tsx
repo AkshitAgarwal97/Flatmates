@@ -1,70 +1,93 @@
-import React, { useEffect, useState, ChangeEvent } from "react";
+
+import React, { useEffect, useState, ChangeEvent, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { getProperties, clearError } from "../../redux/slices/propertySlice";
 import { RootState, AppDispatch } from "../../redux/store";
-import { PropertyState, Property } from "../../types";
+import { Property, PropertyState } from "../../types";
 import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
+import EnhancedFilters, { EnhancedFiltersState } from "../../components/property/EnhancedFilters";
+import FilterListIcon from "@mui/icons-material/FilterList";
 
 // MUI components
 import {
   Container,
   Grid,
-  Card,
-  CardContent,
   Typography,
   Button,
   Box,
   TextField,
   CircularProgress,
   Pagination,
-  CardMedia,
+  Drawer,
+  useTheme,
+  useMediaQuery,
+  Fab,
+  Chip,
+  Stack,
 } from "@mui/material";
+import PropertyCard from "../../components/property/PropertyCard";
+
+const initialFilters: EnhancedFiltersState = {
+  budgetRange: [0, 100000],
+  propertyType: "all",
+  listingType: "all",
+  amenities: [],
+  lifestyle: [],
+  ageRange: [18, 60],
+  occupation: "Any",
+  search: "",
+};
 
 const PropertyList: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { properties, loading, error } = useSelector(
+  const { properties, loading, error, pagination } = useSelector(
     (state: RootState) => state.property as PropertyState
   );
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [filters, setFilters] = useState<EnhancedFiltersState>(initialFilters);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [propertiesPerPage] = useState<number>(9);
-  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
+  
+  // Debounce search term to update filters
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: searchTerm }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const fetchProperties = () => {
+    // Convert EnhancedFiltersState to API query params format if needed
+    // propertySlice handles most, but we need to ensure types match
+    dispatch(getProperties({
+      ...filters,
+      page: pagination.page, 
+      limit: pagination.limit
+    } as any)); 
+  };
 
   useEffect(() => {
     dispatch(clearError());
-    dispatch(getProperties({}));
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (properties) {
-      const filtered = properties.filter((property) => {
-        // Create a searchable address string from address object
-        const addressString = property.address
-          ? `${property.address.street || ""} ${property.address.city || ""} ${
-              property.address.state || ""
-            }`
-          : "";
-
-        return (
-          property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          addressString.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (property.description?.toLowerCase() || "").includes(
-            searchTerm.toLowerCase()
-          )
-        );
-      });
-      setFilteredProperties(filtered);
-    }
-  }, [properties, searchTerm]);
+    fetchProperties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, filters, pagination.page]); 
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
-    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleFiltersChange = (newFilters: EnhancedFiltersState) => {
+    setFilters(newFilters);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ ...initialFilters, search: searchTerm });
   };
 
   const handleViewDetails = (propertyId: string) => {
@@ -79,137 +102,142 @@ const PropertyList: React.FC = () => {
     _event: React.ChangeEvent<unknown>,
     value: number
   ) => {
-    setCurrentPage(value);
+    // Dispatch action to set page in redux, which triggers fetch due to dependency
+    // Actually propertySlice.setPage only updates state, we need to trigger fetch potentially
+    // Or just fetch with new page
+    dispatch(getProperties({
+        ...filters,
+        page: value,
+        limit: pagination.limit
+    } as any));
   };
 
-  // Get current properties
-  const indexOfLastProperty = currentPage * propertiesPerPage;
-  const indexOfFirstProperty = indexOfLastProperty - propertiesPerPage;
-  const currentProperties = filteredProperties.slice(
-    indexOfFirstProperty,
-    indexOfLastProperty
-  );
-
-  if (loading) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="60vh"
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box p={3}>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Search Bar */}
-      <Box sx={{ mb: 4 }}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search by title, location, or description..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          sx={{ mb: 2 }}
-        />
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Mobile Filter Button (Floating) */}
+      <Box sx={{ display: { xs: 'block', md: 'none' }, position: 'fixed', bottom: 80, right: 16, zIndex: 1000 }}>
+         <Fab variant="extended" color="primary" onClick={handleDrawerToggle}>
+            <FilterListIcon sx={{ mr: 1 }} />
+            Filters
+         </Fab>
       </Box>
 
-      {currentProperties.length === 0 ? (
-        <Box textAlign="center" py={4}>
-          <Typography variant="h6">
-            No properties found matching your search criteria.
-          </Typography>
-          <Button
-            component={RouterLink}
-            to="/properties/create"
-            variant="contained"
-            sx={{ mt: 2 }}
-          >
-            Add Property
-          </Button>
+      {/* Mobile Filter Drawer */}
+      <Drawer
+        variant="temporary"
+        anchor="left" // or bottom
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": { boxSizing: "border-box", width: 300 },
+        }}
+      >
+        <Box p={2}>
+           <EnhancedFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onReset={handleResetFilters}
+            />
         </Box>
-      ) : (
-        <>
-          <Grid container spacing={3}>
-            {currentProperties.map((property) => (
-              <Grid item xs={12} sm={6} md={4} key={property._id}>
-                <Card>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={
-                      property.images?.[0]?.url
-                        ? (property.images[0].url.startsWith('http') 
-                            ? property.images[0].url 
-                            : `${process.env.REACT_APP_API_URL || ''}${property.images[0].url}`)
-                        : "/default-property.jpg"
-                    }
-                    alt={`Property: ${property.title}`}
-                    loading="lazy"
-                  />
-                  <CardContent>
-                    <Typography gutterBottom variant="h6" component="h2">
-                      {property.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {property.address.city}, {property.address.state}
-                    </Typography>
-                    <Box display="flex" alignItems="center" mt={1}>
-                      <Typography 
-                        variant="h6" 
-                        color="primary" 
-                        sx={{ fontWeight: 'bold', mr: 0.5 }}
-                      >
-                        ₹
-                      </Typography>
-                      <Typography variant="h6" color="primary">
-                        {property.price?.amount || 0}/month
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2">
-                        {property.bedrooms || 0} beds • {property.bathrooms || 0} baths
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {property.propertyType || "Property"}
-                      </Typography>
-                    </Box>
-                    <Button
-                      onClick={() => handleViewDetails(property._id)}
-                      variant="contained"
-                      fullWidth
-                      sx={{ mt: 2 }}
-                    >
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+      </Drawer>
 
-          {/* Pagination */}
-          <Box display="flex" justifyContent="center" mt={4}>
-            <Pagination
-              count={Math.ceil(filteredProperties.length / propertiesPerPage)}
-              page={currentPage}
-              onChange={handlePageChange}
-              color="primary"
+      <Grid container spacing={3}>
+        {/* Desktop Sidebar Filters */}
+        <Grid item md={3} sx={{ display: { xs: "none", md: "block" } }}>
+           <EnhancedFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onReset={handleResetFilters}
+            />
+        </Grid>
+
+        {/* Property List */}
+        <Grid item xs={12} md={9}>
+           {/* Search Bar */}
+          <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Search by title, location, or description..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              size="small"
+              sx={{ bgcolor: 'background.paper', borderRadius: 1 }}
             />
           </Box>
-        </>
-      )}
+          
+          {/* Active Filters Display (Optional, can be added here) */}
+          
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Box p={3}>
+              <Typography color="error">{error}</Typography>
+            </Box>
+          ) : properties.length === 0 ? (
+            <Box textAlign="center" py={8}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No properties found matching your criteria.
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Try adjusting your filters or search term.
+              </Typography>
+               <Button onClick={handleResetFilters} variant="outlined" sx={{ mt: 1 }}>
+                  Reset Filters
+               </Button>
+               <Box mt={4}>
+                  <Button
+                    component={RouterLink}
+                    to="/properties/create"
+                    variant="contained"
+                  >
+                    Post a Listing
+                  </Button>
+               </Box>
+            </Box>
+          ) : (
+            <>
+              <Box mb={2}>
+                <Typography variant="subtitle2" color="text.secondary">
+                    Showing {properties.length} results
+                </Typography>
+              </Box>
+
+              <Grid container spacing={3}>
+                {properties.map((property) => (
+                  <Grid item xs={12} sm={6} lg={4} key={property._id}>
+                    <PropertyCard property={property} onViewDetails={handleViewDetails} />
+                  </Grid>
+                ))}
+              </Grid>
+
+              {/* Pagination */}
+              {pagination && pagination.pages > 1 && (
+                <Box display="flex" justifyContent="center" mt={6}>
+                  <Pagination
+                    count={pagination.pages}
+                    page={pagination.page}
+                    onChange={handlePageChange}
+                    color="primary"
+                    shape="rounded"
+                    size="large"
+                  />
+                </Box>
+              )}
+            </>
+          )}
+        </Grid>
+      </Grid>
 
       <AuthPromptDialog
         open={isAuthDialogOpen}

@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { socketService } from "../../services/socketService";
 import { AppDispatch } from "../../redux/store";
+import { createConversation } from "../../redux/slices/messageSlice";
 
 // Components
 import ConversationList from "./ConversationList";
@@ -29,6 +30,27 @@ const Messages = () => {
 
   // Check if we're on the main messages page or a specific conversation
   const isConversationSelected = location.pathname !== "/messages";
+
+  // Handle ?userId= param to start a new conversation
+  const query = new URLSearchParams(location.search);
+  const targetUserId = query.get('userId');
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (targetUserId) {
+        // Here we should check if a conversation already exists with this user
+        // But since we don't have the list fully loaded or indexed by user, we can try to create
+        // The backend 'createConversation' should return existing one if found
+        dispatch(createConversation({ recipient: targetUserId }))
+            .unwrap()
+            .then((newConv) => {
+                navigate(`/messages/${newConv._id}`, { replace: true });
+            })
+            .catch((err) => {
+                console.error("Failed to start conversation", err);
+            });
+    }
+  }, [targetUserId, dispatch, navigate]);
 
   return (
     <Box sx={{ py: 3 }}>

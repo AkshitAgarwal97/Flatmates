@@ -44,6 +44,7 @@ export interface IPropertyPreferences {
         max?: number;
     };
     occupation?: string[];
+    lifestyle?: string[];
     smoking?: boolean;
     pets?: boolean;
 }
@@ -67,6 +68,8 @@ export interface IProperty extends Document {
     status: 'active' | 'inactive' | 'rented';
     views: number;
     saves: number;
+    isFeatured: boolean;
+    featuredUntil?: Date;
     createdAt: Date;
     updatedAt: Date;
 }

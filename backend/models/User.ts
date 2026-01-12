@@ -31,14 +31,35 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   avatar?: string;
-  userType: 'room_seeker' | 'roommate_seeker' | 'broker_dealer' | 'property_owner';
   socialProvider?: 'local' | 'google' | 'facebook' | 'instagram';
   socialId?: string;
   phone?: string;
   bio?: string;
   preferences?: IUserPreferences;
   savedProperties: mongoose.Types.ObjectId[];
+  blockedUsers: mongoose.Types.ObjectId[];
   notifications: INotification[];
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  isIdVerified: boolean;
+  needsProfileCompletion: boolean;
+  lastActive: Date;
+  averageResponseTime: number; // In minutes
+  isBoosted: boolean;
+  boostedUntil?: Date;
+
+  // Roommate specifics
+  gender?: 'Male' | 'Female' | 'Other';
+  dob?: Date;
+  occupation?: 'Student' | 'Professional' | 'WFH' | 'Other';
+  personalLifestyle?: {
+    food?: 'Veg' | 'Non-Veg' | 'Eggetarian' | 'Vegan';
+    smoking?: boolean;
+    drinking?: boolean;
+    cleanliness?: 'Low' | 'Medium' | 'High';
+  };
+  isRoommateListed: boolean;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,11 +80,6 @@ const UserSchema: Schema = new Schema({
   avatar: {
     type: String
   },
-  userType: {
-    type: String,
-    enum: ['room_seeker', 'roommate_seeker', 'broker_dealer', 'property_owner'],
-    required: true
-  },
   socialProvider: {
     type: String,
     enum: ['local', 'google', 'facebook', 'instagram']
@@ -76,6 +92,10 @@ const UserSchema: Schema = new Schema({
   },
   bio: {
     type: String
+  },
+  needsProfileCompletion: {
+    type: Boolean,
+    default: true
   },
   preferences: {
     location: [String],
@@ -98,10 +118,14 @@ const UserSchema: Schema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Property'
   }],
+  blockedUsers: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   notifications: [{
     type: {
       type: String,
-      enum: ['message', 'property_update', 'system']
+      enum: ['message', 'property_update', 'system', 'match']
     },
     content: String,
     relatedTo: Schema.Types.ObjectId,
@@ -114,6 +138,33 @@ const UserSchema: Schema = new Schema({
       default: Date.now
     }
   }],
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  isPhoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  isIdVerified: {
+    type: Boolean,
+    default: false
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
+  },
+  averageResponseTime: {
+    type: Number,
+    default: 0
+  },
+  isBoosted: {
+    type: Boolean,
+    default: false
+  },
+  boostedUntil: {
+    type: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -121,11 +172,32 @@ const UserSchema: Schema = new Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  personalLifestyle: {
+    food: { type: String, enum: ['Veg', 'Non-Veg', 'Eggetarian', 'Vegan'] },
+    smoking: { type: Boolean, default: false },
+    drinking: { type: Boolean, default: false },
+    cleanliness: { type: String, enum: ['Low', 'Medium', 'High'] },
+  },
+  occupation: {
+    type: String,
+    enum: ['Student', 'Professional', 'WFH', 'Other']
+  },
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other']
+  },
+  dob: {
+    type: Date
+  },
+  isRoommateListed: {
+    type: Boolean,
+    default: false
   }
 });
 
 // Update the updatedAt field on save
-UserSchema.pre('save', function(next) {
+UserSchema.pre('save', function (next) {
   this.updatedAt = new Date();
   next();
 });

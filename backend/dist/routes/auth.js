@@ -52,18 +52,12 @@ router.post('/register', [
     (0, express_validator_1.check)('name', 'Name is required').not().isEmpty(),
     (0, express_validator_1.check)('email', 'Please include a valid email').isEmail(),
     (0, express_validator_1.check)('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
-    (0, express_validator_1.check)('userType', 'User type is required').isIn([
-        'room_seeker',
-        'roommate_seeker',
-        'broker_dealer',
-        'property_owner'
-    ])
 ], async (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-    const { name, email, password: encryptedPassword, userType } = req.body;
+    const { name, email, password: encryptedPassword } = req.body;
     const password = (0, security_1.decryptData)(encryptedPassword);
     try {
         // Check if user exists
@@ -75,7 +69,6 @@ router.post('/register', [
             name,
             email,
             password,
-            userType,
             socialProvider: 'local'
         });
         // Encrypt password
@@ -93,8 +86,7 @@ router.post('/register', [
         }
         // Return jsonwebtoken
         const payload = {
-            id: user.id,
-            userType: user.userType
+            id: user.id
         };
         jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' }, (err, token) => {
             if (err)
@@ -137,8 +129,7 @@ router.post('/login', [
         }
         // Return jsonwebtoken
         const payload = {
-            id: user.id,
-            userType: user.userType
+            id: user.id
         };
         jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' }, (err, token) => {
             if (err)
@@ -169,31 +160,25 @@ router.get('/user', passport_1.default.authenticate('jwt', { session: false }), 
 // @access  Private
 router.put('/complete-profile', [
     passport_1.default.authenticate('jwt', { session: false }),
-    (0, express_validator_1.check)('userType', 'User type is required').isIn([
-        'room_seeker',
-        'roommate_seeker',
-        'broker_dealer',
-        'property_owner'
-    ])
 ], async (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        const { userType, phone, bio, preferences } = req.body;
+        const { phone, bio, preferences } = req.body;
         // Update user profile
         const user = await User_1.default.findById(req.user?.id);
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });
         }
-        user.userType = userType;
         if (phone)
             user.phone = phone;
         if (bio)
             user.bio = bio;
         if (preferences)
             user.preferences = preferences;
+        user.needsProfileCompletion = false;
         await user.save();
         res.json(user);
     }

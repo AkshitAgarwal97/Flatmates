@@ -27,14 +27,21 @@ const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const PropertyListing = lazy(() => import("./pages/property").then(m => ({ default: m.PropertyListing })));
 const PropertyDetails = lazy(() => import("./pages/property").then(m => ({ default: m.PropertyDetails })));
+const SavedProperties = lazy(() => import("./pages/property/SavedProperties")); // Imported directly or via index if exported
 const CreateProperty = lazy(() => import("./pages/property").then(m => ({ default: m.CreateProperty })));
 const EditProperty = lazy(() => import("./pages/property").then(m => ({ default: m.EditProperty })));
 const MyListings = lazy(() => import("./pages/property").then(m => ({ default: m.MyListings })));
 const UserProfile = lazy(() => import("./pages/user").then(m => ({ default: m.UserProfile })));
 const EditProfile = lazy(() => import("./pages/user").then(m => ({ default: m.EditProfile })));
 const Messages = lazy(() => import("./pages/messages").then(m => ({ default: m.Messages })));
+const Onboarding = lazy(() => import("./pages/auth/Onboarding"));
+const CityLandingPage = lazy(() => import("./pages/property/CityLandingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const ServiceMarketplace = lazy(() => import("./pages/marketplace/ServiceMarketplace"));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Roommates = lazy(() => import('./pages/Roommates'));
+const PublicProfile = lazy(() => import('./pages/user/PublicProfile'));
 
 // Create theme
 const theme = createTheme({
@@ -92,10 +99,15 @@ const App: React.FC = () => {
 
                 <Route element={<PrivateRoute />}>
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/saved" element={<SavedProperties />} />
                 </Route>
 
                 <Route path="/properties" element={<PropertyListing />} />
+                <Route path="/flats-in-:citySlug" element={<CityLandingPage />} />
                 <Route path="/properties/:id" element={<PropertyDetails />} />
+                <Route path="/services" element={<ServiceMarketplace />} />
+                <Route path="/roommates" element={<Roommates />} />
+                <Route path="/profile/:id" element={<PublicProfile />} />
 
                 <Route element={<PrivateRoute />}>
                   <Route path="/properties/create" element={<CreateProperty />} />
@@ -107,6 +119,12 @@ const App: React.FC = () => {
 
                 <Route element={<PrivateRoute />}>
                   <Route path="/properties/edit/:id" element={<EditProperty />} />
+                </Route>
+
+                <Route element={<PrivateRoute />}>
+                  <Route path="/saved" element={<SavedProperties />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/notifications" element={<Notifications />} />
                 </Route>
 
                 <Route element={<PrivateRoute />}>
