@@ -98,8 +98,11 @@ const CryptoJS = require('crypto-js');
 
     // Get both users' profiles to fetch their IDs
     res = await fetch(base + '/api/auth/user', { headers: { Authorization: `Bearer ${token}` } });
-    const userAJson = await res.json();
-    if (!res.ok) return fail('GET /api/auth/user (A) failed');
+    log('GET /api/auth/user (A) status:', res.status);
+    const userAText = await res.text();
+    log('GET /api/auth/user (A) text:', userAText);
+    let userAJson;
+    try { userAJson = JSON.parse(userAText); } catch (e) { return fail('User A JSON parse failed'); }
     const userAId = userAJson._id;
 
     res = await fetch(base + '/api/auth/user', { headers: { Authorization: `Bearer ${ownerToken}` } });

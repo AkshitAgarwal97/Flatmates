@@ -115,18 +115,19 @@ router.post(
     }
 
     try {
-      // Use top-level model imports
-
-
       const { recipient, property, initialMessage } = req.body;
 
       // Check if recipient is blocked or blocking the sender
-      const User = require('../models/User').default;
       const sender = await User.findById((req.user as AuthenticatedUser).id);
       const recipientUser = await User.findById(recipient);
 
+      if (!sender) return res.status(404).json({ msg: 'Sender not found' });
       if (!recipientUser) return res.status(404).json({ msg: 'Recipient not found' });
-      if (sender.blockedUsers?.includes(recipient) || recipientUser.blockedUsers?.includes(sender._id)) {
+
+      const isBlocked = (sender.blockedUsers as any[])?.includes(recipient) ||
+        (recipientUser.blockedUsers as any[])?.includes(sender._id);
+
+      if (isBlocked) {
         return res.status(403).json({ msg: 'Communication blocked' });
       }
 
@@ -286,10 +287,7 @@ router.post(
     }
 
     try {
-      // Import models dynamically to avoid circular dependencies
-      const Conversation = require('../models/Conversation').default;
-      const Message = require('../models/Message').default;
-      const User = require('../models/User').default;
+      console.log(`[POST /conversations/:id] Sending message for convo: ${req.params.id}`);
 
       const senderId = (req.user as AuthenticatedUser)?._id;
       const conversation = await Conversation.findById(req.params.id).populate('participants');
@@ -304,7 +302,7 @@ router.post(
       const otherParticipant = participants.find(p => p._id.toString() !== authUserId);
       const authUserObj = participants.find(p => p._id.toString() === authUserId);
 
-      if (authUserObj?.blockedUsers?.includes(otherParticipant?._id) || otherParticipant?.blockedUsers?.includes(authUserObj?._id)) {
+      if (authUserObj?.blockedUsers?.includes(otherParticipant?._id as any) || otherParticipant?.blockedUsers?.includes(authUserObj?._id as any)) {
         return res.status(403).json({ msg: 'Communication blocked' });
       }
 
@@ -345,9 +343,9 @@ router.post(
         sender: { $ne: senderId }
       }).sort({ createdAt: -1 });
 
-      if (lastOtherMessage) {
+      if (lastOtherMessage && lastOtherMessage.createdAt) {
+        console.log(`[POST /conversations/:id] Found last other message from ${lastOtherMessage.sender}. Calculating response time.`);
         const responseTime = (new Date().getTime() - lastOtherMessage.createdAt.getTime()) / (1000 * 60); // In minutes
-        const User = require('../models/User').default;
         const senderUser = await User.findById(senderId);
         if (senderUser) {
           // Weighted average (recent responses matter more)
@@ -356,6 +354,8 @@ router.post(
             : (senderUser.averageResponseTime * 4 + responseTime) / 5;
           await User.findByIdAndUpdate(senderId, { averageResponseTime: Math.round(newAvg) });
         }
+      } else {
+        console.log(`[POST /conversations/:id] No previous message found from other participant.`);
       }
 
       // Get sender and recipient info for email notification in a single query to avoid N+1
@@ -413,8 +413,8 @@ router.post(
 
       res.json(populatedMessage);
     } catch (err: any) {
-      console.error(err.message);
-      res.status(500).send('Server error');
+      console.error('[POST /conversations/:id] ERROR:', err);
+      res.status(500).send('Server error: ' + err.message);
     }
   }
 );
@@ -427,9 +427,6 @@ router.delete(
   passport.authenticate('jwt', { session: false }),
   async (req: Request, res: Response) => {
     try {
-      // Import models dynamically to avoid circular dependencies
-      const Conversation = require('../models/Conversation').default;
-
       const conversation = await Conversation.findById(req.params.id);
 
       if (!conversation) {
@@ -480,7 +477,6 @@ router.post(
         conversation.contactSharedBy.push(authUser._id);
 
         // Add a system message to the conversation
-        const Message = require('../models/Message').default;
         const systemMessage = new Message({
           conversation: conversation._id,
           sender: authUser._id,

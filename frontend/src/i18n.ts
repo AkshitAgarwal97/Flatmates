@@ -7,7 +7,7 @@ import enTranslation from './locales/en.json';
 import hiEnTranslation from './locales/hi-en.json';
 
 i18n
-    .use(LanguageDetector)
+    // .use(LanguageDetector)
     .use(initReactI18next)
     .init({
         resources: {
@@ -18,7 +18,9 @@ i18n
                 translation: hiEnTranslation
             }
         },
+        lng: 'en', // Force English to prevent detection issues
         fallbackLng: 'en',
+        debug: true, // Enable debug to see language resolution in console
         interpolation: {
             escapeValue: false // react already safes from xss
         }

@@ -15,7 +15,7 @@ export interface Roommate {
     };
     moveInDate?: string;
     preferences: {
-        food: 'Veg' | 'Non-Veg' | 'Eggetarian' | 'Vegan';
+        food: 'Veg' | 'Non-Veg' | 'Vegan';
         smoking: boolean;
         drinking: boolean;
         occupation: 'Student' | 'Professional' | 'WFH';

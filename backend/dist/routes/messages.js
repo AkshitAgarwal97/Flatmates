@@ -11,6 +11,7 @@ const path_1 = __importDefault(require("path"));
 const crypto_1 = __importDefault(require("crypto"));
 const Conversation_1 = __importDefault(require("../models/Conversation"));
 const Message_1 = __importDefault(require("../models/Message"));
+const User_1 = __importDefault(require("../models/User"));
 const emailService_1 = __importDefault(require("../services/emailService"));
 const router = express_1.default.Router();
 // Set up multer for file uploads
@@ -81,15 +82,17 @@ router.post('/conversations', [
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        // Use top-level model imports
         const { recipient, property, initialMessage } = req.body;
         // Check if recipient is blocked or blocking the sender
-        const User = require('../models/User').default;
-        const sender = await User.findById(req.user.id);
-        const recipientUser = await User.findById(recipient);
+        const sender = await User_1.default.findById(req.user.id);
+        const recipientUser = await User_1.default.findById(recipient);
+        if (!sender)
+            return res.status(404).json({ msg: 'Sender not found' });
         if (!recipientUser)
             return res.status(404).json({ msg: 'Recipient not found' });
-        if (sender.blockedUsers?.includes(recipient) || recipientUser.blockedUsers?.includes(sender._id)) {
+        const isBlocked = sender.blockedUsers?.includes(recipient) ||
+            recipientUser.blockedUsers?.includes(sender._id);
+        if (isBlocked) {
             return res.status(403).json({ msg: 'Communication blocked' });
         }
         if (recipient === req.user.id.toString()) {
@@ -139,7 +142,7 @@ router.post('/conversations', [
             conversation.lastMessage = message._id;
             await conversation.save();
             // Add notification for recipient
-            await User.findByIdAndUpdate(recipient, {
+            await User_1.default.findByIdAndUpdate(recipient, {
                 $push: {
                     notifications: {
                         type: 'message',
@@ -215,12 +218,9 @@ router.post('/conversations/:id', [
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        // Import models dynamically to avoid circular dependencies
-        const Conversation = require('../models/Conversation').default;
-        const Message = require('../models/Message').default;
-        const User = require('../models/User').default;
+        console.log(`[POST /conversations/:id] Sending message for convo: ${req.params.id}`);
         const senderId = req.user?._id;
-        const conversation = await Conversation.findById(req.params.id).populate('participants');
+        const conversation = await Conversation_1.default.findById(req.params.id).populate('participants');
         if (!conversation) {
             return res.status(404).json({ msg: 'Conversation not found' });
         }
@@ -237,7 +237,7 @@ router.post('/conversations/:id', [
             return res.status(401).json({ msg: 'Not authorized' });
         }
         // Create message
-        const newMessage = new Message({
+        const newMessage = new Message_1.default({
             conversation: req.params.id,
             sender: senderId,
             content: req.body.content,
@@ -259,28 +259,31 @@ router.post('/conversations/:id', [
         conversation.updatedAt = new Date();
         await conversation.save();
         // Track response time
-        const lastOtherMessage = await Message.findOne({
+        const lastOtherMessage = await Message_1.default.findOne({
             conversation: conversation._id,
             sender: { $ne: senderId }
         }).sort({ createdAt: -1 });
-        if (lastOtherMessage) {
+        if (lastOtherMessage && lastOtherMessage.createdAt) {
+            console.log(`[POST /conversations/:id] Found last other message from ${lastOtherMessage.sender}. Calculating response time.`);
             const responseTime = (new Date().getTime() - lastOtherMessage.createdAt.getTime()) / (1000 * 60); // In minutes
-            const User = require('../models/User').default;
-            const senderUser = await User.findById(senderId);
+            const senderUser = await User_1.default.findById(senderId);
             if (senderUser) {
                 // Weighted average (recent responses matter more)
                 const newAvg = senderUser.averageResponseTime === 0
                     ? responseTime
                     : (senderUser.averageResponseTime * 4 + responseTime) / 5;
-                await User.findByIdAndUpdate(senderId, { averageResponseTime: Math.round(newAvg) });
+                await User_1.default.findByIdAndUpdate(senderId, { averageResponseTime: Math.round(newAvg) });
             }
+        }
+        else {
+            console.log(`[POST /conversations/:id] No previous message found from other participant.`);
         }
         // Get sender and recipient info for email notification in a single query to avoid N+1
         const recipientId = conversation.participants.find((p) => p.toString() !== req.user?._id.toString());
         let sender = null;
         let recipient = null;
         if (senderId && recipientId) {
-            const users = await User.find({ _id: { $in: [senderId, recipientId] } }).select('name email');
+            const users = await User_1.default.find({ _id: { $in: [senderId, recipientId] } }).select('name email');
             for (const u of users) {
                 if (u._id.toString() === senderId.toString())
                     sender = u;
@@ -301,7 +304,7 @@ router.post('/conversations/:id', [
                 const currentCount = conversation.unreadCount.get(participant.toString()) || 0;
                 conversation.unreadCount.set(participant.toString(), currentCount + 1);
                 // Add notification for recipient
-                User.findByIdAndUpdate(participant, {
+                User_1.default.findByIdAndUpdate(participant, {
                     $push: {
                         notifications: {
                             type: 'message',
@@ -314,12 +317,12 @@ router.post('/conversations/:id', [
         });
         await conversation.save();
         // Populate and return message
-        const populatedMessage = await Message.findById(message._id).populate('sender', 'name avatar');
+        const populatedMessage = await Message_1.default.findById(message._id).populate('sender', 'name avatar');
         res.json(populatedMessage);
     }
     catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('[POST /conversations/:id] ERROR:', err);
+        res.status(500).send('Server error: ' + err.message);
     }
 });
 // @route   DELETE api/messages/conversations/:id
@@ -327,9 +330,7 @@ router.post('/conversations/:id', [
 // @access  Private
 router.delete('/conversations/:id', passport_1.default.authenticate('jwt', { session: false }), async (req, res) => {
     try {
-        // Import models dynamically to avoid circular dependencies
-        const Conversation = require('../models/Conversation').default;
-        const conversation = await Conversation.findById(req.params.id);
+        const conversation = await Conversation_1.default.findById(req.params.id);
         if (!conversation) {
             return res.status(404).json({ msg: 'Conversation not found' });
         }
@@ -367,8 +368,7 @@ router.post('/conversations/:id/share-contact', passport_1.default.authenticate(
         if (!conversation.contactSharedBy.includes(authUser._id)) {
             conversation.contactSharedBy.push(authUser._id);
             // Add a system message to the conversation
-            const Message = require('../models/Message').default;
-            const systemMessage = new Message({
+            const systemMessage = new Message_1.default({
                 conversation: conversation._id,
                 sender: authUser._id,
                 content: `${authUser.name} has shared their contact details.`,

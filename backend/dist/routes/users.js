@@ -122,8 +122,8 @@ router.get('/:id', async (req, res) => {
         res.json(userObj);
     }
     catch (err) {
-        console.error(err.message);
-        if (err.kind === 'ObjectId') {
+        console.error(`[GET api/users/:id] Error fetching user ${req.params.id}:`, err.message);
+        if (err.name === 'CastError' || err.kind === 'ObjectId') {
             return res.status(404).json({ msg: 'User not found' });
         }
         res.status(500).send('Server error');

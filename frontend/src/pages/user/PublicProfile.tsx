@@ -32,11 +32,15 @@ const PublicProfile: React.FC = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
+      console.log(`[PublicProfile] Attempting to fetch user with ID: ${id}`);
       try {
+        setLoading(true);
         const res = await axios.get(`/api/users/${id}`);
+        console.log('[PublicProfile] Fetch successful:', res.data);
         setUser(res.data);
+        setError(null);
       } catch (err: any) {
-        console.error(err);
+        console.error(`[PublicProfile] Fetch FAILED for ID ${id}:`, err.response?.status, err.response?.data || err.message);
         setError("User not found or error loading profile.");
       } finally {
         setLoading(false);

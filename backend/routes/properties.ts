@@ -275,9 +275,14 @@ router.get('/', async (req: Request, res: Response) => {
     if (propertyType) filter.propertyType = propertyType;
 
     if (search) {
+      const searchRegex = new RegExp(search as string, 'i');
       filter.$or = [
-        { title: new RegExp(search as string, 'i') },
-        { description: new RegExp(search as string, 'i') }
+        { title: searchRegex },
+        { description: searchRegex },
+        { 'address.city': searchRegex },
+        { 'address.street': searchRegex },
+        { 'address.state': searchRegex },
+        { 'address.zipCode': searchRegex }
       ];
     }
 
@@ -303,7 +308,11 @@ router.get('/', async (req: Request, res: Response) => {
       filter['features.amenities'] = { $all: amenitiesArray };
     }
 
-    if (gender) filter['preferences.gender'] = gender;
+    if (gender && gender !== 'any' && gender !== 'all') {
+      filter['preferences.gender'] = { $in: [gender, 'any', 'Any'] };
+    } else if (gender === 'any') {
+      filter['preferences.gender'] = { $in: ['any', 'Any'] };
+    }
 
     // Occupation filtering (checks if the requested occupation is in the preferences.occupation array)
     if (req.query.occupation) {

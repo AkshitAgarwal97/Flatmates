@@ -44,8 +44,7 @@ const RoommatesList: React.FC = () => {
         
         queryParams.append('page', page.toString());
         
-        // Note: Sort is not yet implemented fully on backend for all fields, defaulting to 'active'
-        // queryParams.append('sort', filters.sortBy);
+        queryParams.append('sort', filters.sortBy);
 
         const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/roommates?${queryParams.toString()}`);
         setRoommates(res.data.roommates);

@@ -47,9 +47,21 @@ const searchRoommates = async (req, res, next) => {
         if (search) {
             filter['preferences.location'] = { $elemMatch: { $regex: search, $options: 'i' } };
         }
+        // Sorting
+        let sortOption = { lastActive: -1 };
+        const sortParam = req.query.sort || 'recommended';
+        if (sortParam === 'newest') {
+            sortOption = { createdAt: -1 };
+        }
+        else if (sortParam === 'budget_low') {
+            sortOption = { 'preferences.budget.min': 1 };
+        }
+        else if (sortParam === 'budget_high') {
+            sortOption = { 'preferences.budget.max': -1 };
+        }
         const roommates = await User_1.default.find(filter)
             .select('name avatar gender dob occupation personalLifestyle preferences lastActive isPhoneVerified isIdVerified createdAt')
-            .sort({ lastActive: -1 })
+            .sort(sortOption)
             .skip((Number(page) - 1) * Number(limit))
             .limit(Number(limit));
         const total = await User_1.default.countDocuments(filter);
@@ -57,7 +69,7 @@ const searchRoommates = async (req, res, next) => {
         const transformedRoommates = roommates.map(user => {
             const age = user.dob ? new Date().getFullYear() - new Date(user.dob).getFullYear() : 0;
             return {
-                id: user._id,
+                id: user._id.toString(),
                 name: user.name,
                 age,
                 gender: user.gender,

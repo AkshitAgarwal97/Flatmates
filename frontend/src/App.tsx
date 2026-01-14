@@ -7,6 +7,7 @@ import { Provider } from "react-redux";
 // Redux store
 import store from "./redux/store";
 import { loadUser } from "./redux/slices/authSlice";
+import i18n from "./i18n";
 
 // Components
 import Header from "./components/layout/Header";
@@ -77,77 +78,76 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Router>
-          <Header />
-          <Breadcrumbs />
-          <main>
-            <Suspense fallback={
-              <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-                <CircularProgress />
-              </Box>
-            }>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/auth/success" element={<AuthSuccess />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Header />
+        <Breadcrumbs />
+        <main>
+          <Suspense fallback={
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+              <CircularProgress />
+            </Box>
+          }>
+            <Routes>
+              {/* ... routes ... */}
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/auth/success" element={<AuthSuccess />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
 
-                <Route element={<PrivateRoute />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/saved" element={<SavedProperties />} />
-                </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/saved" element={<SavedProperties />} />
+              </Route>
 
-                <Route path="/properties" element={<PropertyListing />} />
-                <Route path="/flats-in-:citySlug" element={<CityLandingPage />} />
-                <Route path="/properties/:id" element={<PropertyDetails />} />
-                <Route path="/services" element={<ServiceMarketplace />} />
-                <Route path="/roommates" element={<Roommates />} />
-                <Route path="/profile/:id" element={<PublicProfile />} />
+              <Route path="/properties" element={<PropertyListing />} />
+              <Route path="/flats-in-:citySlug" element={<CityLandingPage />} />
+              <Route path="/properties/:id" element={<PropertyDetails />} />
+              <Route path="/services" element={<ServiceMarketplace />} />
+              <Route path="/roommates" element={<Roommates />} />
+              <Route path="/profile/:id" element={<PublicProfile />} />
 
-                <Route element={<PrivateRoute />}>
-                  <Route path="/properties/create" element={<CreateProperty />} />
-                </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/properties/create" element={<CreateProperty />} />
+              </Route>
 
-                <Route element={<PrivateRoute />}>
-                  <Route path="/properties/my-listings" element={<MyListings />} />
-                </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/properties/my-listings" element={<MyListings />} />
+              </Route>
 
-                <Route element={<PrivateRoute />}>
-                  <Route path="/properties/edit/:id" element={<EditProperty />} />
-                </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/properties/edit/:id" element={<EditProperty />} />
+              </Route>
 
-                <Route element={<PrivateRoute />}>
-                  <Route path="/saved" element={<SavedProperties />} />
-                  <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/saved" element={<SavedProperties />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/notifications" element={<Notifications />} />
+              </Route>
 
-                <Route element={<PrivateRoute />}>
-                  <Route path="/profile" element={<UserProfile />} />
-                </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/profile" element={<UserProfile />} />
+              </Route>
 
-                <Route element={<PrivateRoute />}>
-                  <Route path="/profile/edit" element={<EditProfile />} />
-                </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/profile/edit" element={<EditProfile />} />
+              </Route>
 
-                <Route element={<PrivateRoute />}>
-                  <Route path="/messages/*" element={<Messages />} />
-                </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/messages/*" element={<Messages />} />
+              </Route>
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </main>
-          <Footer />
-          <CookieConsent />
-        </Router>
-      </ThemeProvider>
-    </Provider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </main>
+        <Footer />
+        <CookieConsent />
+      </Router>
+    </ThemeProvider>
   );
 };
 

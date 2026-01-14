@@ -139,7 +139,7 @@ const mockRoommates = [
         avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
         occupation: 'Professional',
         personalLifestyle: {
-            food: 'Eggetarian',
+            food: 'Veg',
             smoking: false,
             drinking: true,
             cleanliness: 'Medium'

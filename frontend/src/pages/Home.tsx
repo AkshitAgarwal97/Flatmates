@@ -48,9 +48,17 @@ const Home = () => {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (location) params.append("search", location);
-    if (budget) params.append("maxPrice", budget);
-    if (searchType) params.append("type", searchType);
-    navigate(`/properties?${params.toString()}`);
+    
+    if (searchType === "roommate") {
+      // Roommate Search Routing
+      if (budget) params.append("maxBudget", budget); // Roommates use maxBudget
+      navigate(`/roommates?${params.toString()}`);
+    } else {
+      // Property Search Routing
+      if (budget) params.append("maxPrice", budget); // Properties use maxPrice
+      if (searchType) params.append("type", searchType);
+      navigate(`/properties?${params.toString()}`);
+    }
   };
 
   const handleTypeChange = (
@@ -135,7 +143,7 @@ const Home = () => {
                 maxWidth: 900,
               }}
             >
-              {t('home.hero_title')}
+              {t('Flatmates')}
             </Typography>
             <Typography
               variant="h5"
@@ -146,7 +154,7 @@ const Home = () => {
                 mb: 4,
               }}
             >
-              {t('home.hero_subtitle')}
+              {t('Find Your Perfect Roommate in India')}
             </Typography>
 
             {/* Enhanced Search Box */}

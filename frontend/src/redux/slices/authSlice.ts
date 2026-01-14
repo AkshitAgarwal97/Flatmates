@@ -5,6 +5,8 @@ import axios, { AxiosError } from 'axios';
 interface User {
   _id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   socialProvider?: string;
   savedProperties?: string[];
@@ -46,6 +48,8 @@ interface CompleteProfileFormValues {
     duration: string;
     gender: string;
   };
+  name?: string;
+  email?: string;
 }
 
 interface AuthResponse {
@@ -130,7 +134,7 @@ export const completeProfile = createAsyncThunk(
 
 export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
-  async (profileData: Partial<CompleteProfileFormValues> & { avatar?: File }, { rejectWithValue }) => {
+  async (profileData: Partial<CompleteProfileFormValues> & { avatar?: File, name?: string }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
 

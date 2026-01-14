@@ -3,17 +3,25 @@
 export interface User {
   _id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   avatar?: string;
   phone?: string;
   bio?: string;
+  location?: string;
+  age?: number;
+  gender?: string;
+  occupation?: string;
+  university?: string;
+  budget?: Price;
   preferences?: Preferences;
   createdAt: string;
   updatedAt: string;
   isVerified?: boolean;
   lastActive?: string;
   needsProfileCompletion?: boolean;
-  lastActiveDate?: string; // Adding for display
+  lastActiveDate?: string;
   averageResponseTime?: number;
   isBoosted?: boolean;
 }
@@ -28,6 +36,7 @@ export interface Preferences {
   gender?: string;
   occupation?: string;
   lifestyle?: string[];
+  interests?: string[];
   ageRange?: string;
 }
 

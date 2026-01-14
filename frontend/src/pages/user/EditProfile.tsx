@@ -31,40 +31,7 @@ import {
 import { updateProfile, loadUser } from "../../redux/slices/authSlice";
 import { RootState, AppDispatch } from "../../redux/store";
 
-// Updated interfaces with proper types
-interface UserPreferences {
-  lifestyle?: string[];
-  interests?: string[];
-  gender?: string;
-  occupation?: string;
-  ageRange?: {
-    min: number;
-    max: number;
-  };
-}
-
-interface UserBudget {
-  min: number;
-  max: number;
-}
-
-interface User {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  profilePicture?: string;
-  phone?: string;
-  location?: string;
-  bio?: string;
-  age?: number;
-  occupation?: string;
-  university?: string;
-  budget?: UserBudget;
-  preferences?: UserPreferences;
-  createdAt: string;
-  socialProvider?: string;
-}
+import { User, Preferences, Price as UserBudget } from "../../types";
 
 interface FormValues {
   firstName: string;
@@ -80,6 +47,20 @@ interface FormValues {
   budgetMax: string;
 }
 
+interface CompleteProfileFormValues {
+  phone: string;
+  bio: string;
+  location: string;
+  age: number;
+  gender: string;
+  occupation: string;
+  university: string;
+  preferences: Preferences;
+  budget: {
+    min: number;
+    max: number;
+  };
+}
 // Updated validation schema with proper type handling
 const validationSchema = Yup.object().shape({
   firstName: Yup.string().required("First name is required"),
@@ -161,6 +142,7 @@ const EditProfile: React.FC = () => {
   const [selectedLifestyle, setSelectedLifestyle] = useState<string[]>([]);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -210,9 +192,8 @@ const EditProfile: React.FC = () => {
     { setSubmitting }: FormikHelpers<FormValues>
   ) => {
     try {
-      const formData: Partial<CompleteProfileFormValues> = {
-        firstName: values.firstName,
-        lastName: values.lastName,
+      const formData: Partial<CompleteProfileFormValues> & { name?: string } = {
+        name: `${values.firstName} ${values.lastName}`.trim(),
         email: values.email,
         phone: values.phone,
         location: values.location,
@@ -245,7 +226,10 @@ const EditProfile: React.FC = () => {
       } as const;
 
       await dispatch(updateProfile(updateData)).unwrap();
-      navigate("/profile");
+      setSaveSuccess(true);
+      setTimeout(() => {
+        navigate("/profile");
+      }, 2000);
     } catch (error) {
       console.error(
         "Profile update failed:",
@@ -277,8 +261,8 @@ const EditProfile: React.FC = () => {
   const profileData: Partial<User> = user || {};
 
   const initialValues: FormValues = {
-    firstName: profileData.firstName || "",
-    lastName: profileData.lastName || "",
+    firstName: profileData.firstName || profileData.name?.split(' ')[0] || "",
+    lastName: profileData.lastName || profileData.name?.split(' ').slice(1).join(' ') || "",
     email: profileData.email || "",
     phone: profileData.phone || "",
     location: profileData.location || "",
@@ -314,6 +298,12 @@ const EditProfile: React.FC = () => {
           </Alert>
         )}
 
+        {saveSuccess && (
+          <Alert severity="success" sx={{ mb: 3 }}>
+            Profile updated successfully! Redirecting...
+          </Alert>
+        )}
+
         <Formik
           initialValues={initialValues}
           validationSchema={validationSchema}
@@ -342,7 +332,7 @@ const EditProfile: React.FC = () => {
                       src={
                         profileImage
                           ? URL.createObjectURL(profileImage)
-                          : profileData.profilePicture
+                          : profileData.avatar
                       }
                       sx={{ width: 120, height: 120 }}
                     >

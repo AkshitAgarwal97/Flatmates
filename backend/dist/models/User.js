@@ -144,7 +144,7 @@ const UserSchema = new mongoose_1.Schema({
         default: Date.now
     },
     personalLifestyle: {
-        food: { type: String, enum: ['Veg', 'Non-Veg', 'Eggetarian', 'Vegan'] },
+        food: { type: String, enum: ['Veg', 'Non-Veg', 'Vegan'] },
         smoking: { type: Boolean, default: false },
         drinking: { type: Boolean, default: false },
         cleanliness: { type: String, enum: ['Low', 'Medium', 'High'] },

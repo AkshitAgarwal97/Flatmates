@@ -76,11 +76,13 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({
   };
 
   const displayAddress = useMemo(() => {
-    return typeof property.address === "string"
-      ? property.address
-      : property.address
-      ? `${property.address.street || ""}, ${property.address.city || ""}` // Prioritize street (Area) + City
-      : "Unknown Location";
+    if (typeof property.address === "string") return property.address;
+    if (!property.address) return "Unknown Location";
+    const parts = [];
+    if (property.address.street?.trim()) parts.push(property.address.street.trim());
+    if (property.address.city?.trim()) parts.push(property.address.city.trim());
+    if (property.address.state?.trim()) parts.push(property.address.state.trim());
+    return parts.join(", ") || "Unknown Location";
   }, [property.address]);
 
   // Simplify occupancy/listing type for display
@@ -271,11 +273,22 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({
           </Box>
            <Divider orientation="vertical" flexItem sx={{ height: 12, my: 'auto' }} />
            <Box display="flex" alignItems="center" gap={0.5}>
-               <WcIcon fontSize="small" />
-               <Typography variant="body2" fontWeight={500} sx={{ textTransform: 'capitalize' }}>
-                   {property.preferences?.gender || 'Any'}
-               </Typography>
+                <WcIcon fontSize="small" />
+                <Typography variant="body2" fontWeight={500} sx={{ textTransform: 'capitalize' }}>
+                    {property.preferences?.gender || 'Any'}
+                </Typography>
            </Box>
+           {(property.availableFrom || property.availabilityDate) && (
+             <>
+               <Divider orientation="vertical" flexItem sx={{ height: 12, my: 'auto' }} />
+               <Box display="flex" alignItems="center" gap={0.5}>
+                  <AccessTimeIcon fontSize="small" sx={{ fontSize: '0.9rem' }} />
+                  <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.75rem' }}>
+                      {new Date(property.availableFrom || property.availabilityDate || '').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  </Typography>
+               </Box>
+             </>
+           )}
         </Stack>
 
         <Divider sx={{ mb: 1.5 }} />
