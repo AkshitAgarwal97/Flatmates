@@ -29,7 +29,7 @@ import {
 import PropertyCard from "../../components/property/PropertyCard";
 
 const initialFilters: EnhancedFiltersState = {
-  budgetRange: [0, 100000],
+  budgetRange: [0, 100000000],
   propertyType: "all",
   listingType: "all",
   amenities: [],

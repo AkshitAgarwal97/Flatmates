@@ -7,7 +7,7 @@ const calculateMatchScore = (userPrefs, listingPrefs) => {
     // 1. Budget (Weight: 25)
     if (userPrefs.budget && listingPrefs.price) {
         totalWeight += 25;
-        const userMax = userPrefs.budget.max || 100000;
+        const userMax = userPrefs.budget.max || 100000000;
         const listingPrice = listingPrefs.price.amount || 0;
         if (listingPrice <= userMax) {
             matchPoints += 25;

@@ -151,7 +151,7 @@ const RoommateCard: React.FC<RoommateCardProps> = ({ roommate, onSave, isSaved }
         {preferences.food && (
           <Chip
             icon={<RestaurantIcon sx={{ fontSize: "14px !important" }} />}
-            label={preferences.food}
+            label={(preferences.food as string) === 'Eggetarian' ? 'Veg' : preferences.food}
             size="small"
             variant="outlined"
             sx={{ height: 24 }}

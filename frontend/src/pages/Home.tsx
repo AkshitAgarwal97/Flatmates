@@ -30,6 +30,9 @@ import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import ForumIcon from "@mui/icons-material/Forum";
 import PeopleIcon from "@mui/icons-material/People";
 import ApartmentIcon from "@mui/icons-material/Apartment";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
+import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -45,18 +48,60 @@ const Home = () => {
   const [budget, setBudget] = useState("");
   const [searchType, setSearchType] = useState("room"); // 'room' | 'roommate'
 
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  const handleLocationClick = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    console.log(budget)
+
+    setLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          // Use OpenStreetMap Nominatim for Reverse Geocoding
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          // Extract city/area
+          const city = data.address.city || data.address.town || data.address.village || data.address.state_district;
+          const area = data.address.suburb || data.address.neighbourhood;
+          
+          if (city) {
+            setLocation(area ? `${area}, ${city}` : city);
+          }
+        } catch (error) {
+          console.error("Error fetching location:", error);
+        } finally {
+          setLoadingLocation(false);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setLoadingLocation(false);
+        alert("Unable to retrieve your location");
+      }
+    );
+  };
+
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (location) params.append("search", location);
     
+    // Respect the user's explicit search type selection
     if (searchType === "roommate") {
       // Roommate Search Routing
-      if (budget) params.append("maxBudget", budget); // Roommates use maxBudget
+      if (budget && budget.toString().trim() !== "") params.append("maxBudget", String(Number(budget))); // Roommates use maxBudget
       navigate(`/roommates?${params.toString()}`);
     } else {
       // Property Search Routing
-      if (budget) params.append("maxPrice", budget); // Properties use maxPrice
-      if (searchType) params.append("type", searchType);
+      if (budget && budget.toString().trim() !== "") params.append("maxPrice", String(Number(budget))); // Properties use maxPrice
+      // Map 'room' search type to property type 'room'
+      params.append("type", "room");
       navigate(`/properties?${params.toString()}`);
     }
   };
@@ -202,6 +247,13 @@ const Home = () => {
                       startAdornment: (
                         <InputAdornment position="start">
                           <LocationOnIcon color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={handleLocationClick} disabled={loadingLocation} size="small">
+                             {loadingLocation ? <CircularProgress size={20} /> : <MyLocationIcon color="primary" />}
+                          </IconButton>
                         </InputAdornment>
                       ),
                     }}

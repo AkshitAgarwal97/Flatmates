@@ -9,7 +9,7 @@ import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
 import PropertyMap from "../../components/ui/PropertyMap";
 import EnhancedFilters, { EnhancedFiltersState } from "../../components/property/EnhancedFilters";
 import PropertyCard from "../../components/property/PropertyCard";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector, RootState } from "../../redux/store";
 import { getProperties } from "../../redux/slices/propertySlice";
 import { Property, PropertyState } from "../../types";
@@ -19,11 +19,20 @@ const PropertyListing = () => {
   const { properties, loading, error } = useAppSelector(
     (state: RootState) => state.property
   ) as PropertyState;
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Parse URL params immediately
+  const urlParams = new URLSearchParams(location.search);
+  const initialMaxPrice = urlParams.get('maxPrice');
+  const initialSearch = urlParams.get('search');
+  const initialType = urlParams.get('type');
+  
+  const [searchTerm, setSearchTerm] = useState<string>(initialSearch || "");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>(initialSearch || "");
   const [filters, setFilters] = useState<EnhancedFiltersState>({
-    budgetRange: [0, 100000],
-    propertyType: "all",
+    budgetRange: [0, initialMaxPrice ? Number(initialMaxPrice) : 10000000],
+    propertyType: initialType || "all",
     listingType: "all",
     amenities: [],
     lifestyle: [],
@@ -33,7 +42,25 @@ const PropertyListing = () => {
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const { isAuthenticated } = useAppSelector((state: RootState) => state.auth);
-  const navigate = useNavigate();
+
+  // Update filters when URL changes (for navigation within the app)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search');
+    const maxPriceParam = params.get('maxPrice');
+    const typeParam = params.get('type');
+    
+    if (searchParam !== null) {
+      setSearchTerm(searchParam);
+      setDebouncedSearchTerm(searchParam);
+    }
+
+    setFilters(prev => ({
+      ...prev,
+      budgetRange: maxPriceParam ? [0, Number(maxPriceParam)] : prev.budgetRange,
+      propertyType: typeParam || prev.propertyType,
+    }));
+  }, [location.search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -74,7 +101,7 @@ const PropertyListing = () => {
 
   const handleResetFilters = () => {
     setFilters({
-      budgetRange: [0, 100000],
+      budgetRange: [0, 10000000],
       propertyType: "all",
       listingType: "all",
       amenities: [],

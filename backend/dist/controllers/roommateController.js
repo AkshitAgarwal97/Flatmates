@@ -17,11 +17,11 @@ const searchRoommates = async (req, res, next) => {
             if (minBudget)
                 filter['preferences.budget.min'].$gte = Number(minBudget);
         }
-        // We could also check maxBudget against their max, but usually roommate search 
-        // means "I want someone whose budget overlaps with mine" or "I want someone who can pay X".
-        // For simplicity, let's assume filtering by the roommate's stated budget range.
+        // maxBudget: Show roommates whose minimum budget requirement is affordable
+        // (i.e., the roommate's budget.min <= user's maxBudget)
         if (maxBudget) {
-            filter['preferences.budget.max'] = { $lte: Number(maxBudget) };
+            filter['preferences.budget.min'] = filter['preferences.budget.min'] || {};
+            filter['preferences.budget.min'].$lte = Number(maxBudget);
         }
         // Gender Filter
         if (gender && gender !== 'all') {

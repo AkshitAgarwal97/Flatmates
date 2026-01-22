@@ -131,7 +131,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
     (filters.availableFrom ? 1 : 0) +
     filters.amenities.length +
     filters.lifestyle.length +
-    (filters.budgetRange[0] > 0 || filters.budgetRange[1] < 100000 ? 1 : 0);
+    (filters.budgetRange[0] > 0 || filters.budgetRange[1] < 10000000 ? 1 : 0);
 
   return (
     <Paper
@@ -283,9 +283,13 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                     }
                     valueLabelDisplay="auto"
                     min={0}
-                    max={100000}
-                    step={1000}
-                    valueLabelFormat={(value) => `₹${value / 1000}k`}
+                    max={10000000}
+                    step={5000}
+                    valueLabelFormat={(value) => {
+                      if (value >= 10000000) return '₹1Cr';
+                      if (value >= 10000000) return `₹${(value / 1000000).toFixed(1)}Cr`;
+                      return `₹${value / 1000}k`;
+                    }}
                   />
                   <Box
                     display="flex"

@@ -191,6 +191,7 @@ router.get('/', async (req, res) => {
         if (country)
             filter['address.country'] = new RegExp(country, 'i');
         if (minPrice || maxPrice) {
+            console.log(maxPrice, minPrice);
             filter['price.amount'] = {};
             if (minPrice)
                 filter['price.amount'].$gte = Number(minPrice);

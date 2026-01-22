@@ -7,17 +7,24 @@ import RoommatesFilter from './RoommatesFilter';
 import RoommatesMap from './RoommatesMap';
 import axios from 'axios';
 import { Roommate } from '../../types/roommate';
+import { useLocation } from 'react-router-dom';
 
 const RoommatesList: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const routeLocation = useLocation();
+  
+  // Parse URL parameters
+  const urlParams = new URLSearchParams(routeLocation.search);
+  const maxBudgetParam = urlParams.get('maxBudget');
+  const searchParam = urlParams.get('search');
   
   const [filters, setFilters] = useState({
-    budget: [5000, 50000],
+    budget: [5000, maxBudgetParam ? Number(maxBudgetParam) : 50000],
     gender: 'all',
     food: 'all',
     occupation: [] as string[],
-    search: '',
+    search: searchParam || '',
     sortBy: 'recommended'
   });
 
