@@ -240,7 +240,8 @@ router.get(
       }
 
       // Check if user is part of the conversation
-      if (!conversation.participants.includes((req.user as AuthenticatedUser)?._id)) {
+      const authUserId = (req.user as AuthenticatedUser)?._id.toString();
+      if (!conversation.participants.some((p: any) => (p._id || p).toString() === authUserId)) {
         return res.status(401).json({ msg: 'Not authorized' });
       }
 
@@ -359,8 +360,9 @@ router.post(
       }
 
       // Get sender and recipient info for email notification in a single query to avoid N+1
+      const authUserId = (req.user as AuthenticatedUser)?._id.toString();
       const recipientId = conversation.participants.find(
-        (p: any) => p.toString() !== (req.user as AuthenticatedUser)?._id.toString()
+        (p: any) => (p._id || p).toString() !== authUserId
       );
       let sender = null;
       let recipient = null;
@@ -434,7 +436,8 @@ router.delete(
       }
 
       // Check if user is part of the conversation
-      if (!conversation.participants.includes((req.user as AuthenticatedUser)?._id)) {
+      const authUserId = (req.user as AuthenticatedUser)?._id.toString();
+      if (!conversation.participants.some((p: any) => (p._id || p).toString() === authUserId)) {
         return res.status(401).json({ msg: 'Not authorized' });
       }
 

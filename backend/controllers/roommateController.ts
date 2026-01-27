@@ -25,7 +25,7 @@ export const searchRoommates = async (req: Request, res: Response, next: NextFun
         }
         // maxBudget: Show roommates whose minimum budget requirement is affordable
         // (i.e., the roommate's budget.min <= user's maxBudget)
-        if (maxBudget) {
+        if (maxBudget && !isNaN(Number(maxBudget))) {
             filter['preferences.budget.min'] = filter['preferences.budget.min'] || {};
             filter['preferences.budget.min'].$lte = Number(maxBudget);
         }

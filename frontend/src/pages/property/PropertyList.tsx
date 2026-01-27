@@ -65,11 +65,20 @@ const PropertyList: React.FC = () => {
   const fetchProperties = () => {
     // Convert EnhancedFiltersState to API query params format if needed
     // propertySlice handles most, but we need to ensure types match
-    dispatch(getProperties({
+    // Convert EnhancedFiltersState to API query params format
+    const queryParams: any = {
       ...filters,
-      page: pagination.page, 
+      page: pagination.page,
       limit: pagination.limit
-    } as any)); 
+    };
+
+    // Map budgetRange to minPrice and maxPrice
+    if (filters.budgetRange && filters.budgetRange.length === 2) {
+      queryParams.minPrice = filters.budgetRange[0];
+      queryParams.maxPrice = filters.budgetRange[1];
+    }
+
+    dispatch(getProperties(queryParams)); 
   };
 
   useEffect(() => {
@@ -105,11 +114,18 @@ const PropertyList: React.FC = () => {
     // Dispatch action to set page in redux, which triggers fetch due to dependency
     // Actually propertySlice.setPage only updates state, we need to trigger fetch potentially
     // Or just fetch with new page
-    dispatch(getProperties({
-        ...filters,
-        page: value,
-        limit: pagination.limit
-    } as any));
+        const queryParams: any = {
+          ...filters,
+          page: value,
+          limit: pagination.limit
+        };
+
+        if (filters.budgetRange && filters.budgetRange.length === 2) {
+          queryParams.minPrice = filters.budgetRange[0];
+          queryParams.maxPrice = filters.budgetRange[1];
+        }
+
+        dispatch(getProperties(queryParams));
   };
 
   const handleDrawerToggle = () => {
