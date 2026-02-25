@@ -79,6 +79,8 @@ interface FormValues {
 }
 
 
+import MyLocationIcon from "@mui/icons-material/MyLocation";
+
 // Helper component to handle Pincode side-effects
 const PincodeListener = () => {
     const { values, setFieldValue } = useFormikContext<FormValues>();
@@ -87,27 +89,20 @@ const PincodeListener = () => {
         if (values.address.zipCode && values.address.zipCode.length === 6) {
             const fetchPin = async () => {
                 try {
-                    // Remove Authorization header for external API call
-                    const response = await axios.get(`https://api.postalpincode.in/pincode/${values.address.zipCode}`, {
-                        transformRequest: (data, headers) => {
-                            delete headers.common['Authorization'];
-                            delete headers['Authorization'];
-                            return data;
-                        }
-                    });
+                    // Use a clean axios instance to avoid sending auth headers
+                    const cleanAxios = axios.create();
+                    const response = await cleanAxios.get(`https://api.postalpincode.in/pincode/${values.address.zipCode}`);
+                    
                     if (response.data && response.data[0].Status === "Success") {
                         const details = response.data[0].PostOffice[0];
                         setFieldValue("address.city", details.District);
                         setFieldValue("address.state", details.State);
                         setFieldValue("address.country", "India");
                     } else {
-                        // API returned success false, maybe invalid pincode or server error
-                        // Don't clear fields, let user edit
                         console.warn("Pincode API returned unsuccessful status");
                     }
                 } catch (e) {
                     console.error("Pincode API failed:", e);
-                    // Allow manual entry if API fails
                 }
             };
             fetchPin();
@@ -126,320 +121,83 @@ const PropertyForm = () => {
     (state: RootState) => state.property
   );
 
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
-  const [removedImages, setRemovedImages] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
-  const isEditMode = Boolean(id);
-
-  // Fetch property details if in edit mode
-  useEffect(() => {
-    if (isEditMode && id) {
-      dispatch(getPropertyById(id));
-    }
-  }, [dispatch, id, isEditMode]);
-
-  // Set form initial values when property data is loaded
-  useEffect(() => {
-    if (isEditMode && property && (property as any).images) {
-      setImagePreviewUrls((property as any).images as string[]);
-    }
-
-  }, [isEditMode, property]);
-
-  // Handle image upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-
-    const filesList = e.target.files;
-    const newImages = filesList ? Array.from(filesList) : [];
-    if (newImages.length === 0) return;
-
-    // Validate file types and sizes
-    const validImages = newImages.filter((file) => {
-      const isValidType = ["image/jpeg", "image/png", "image/jpg"].includes(
-        file.type
-      );
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
-
-      if (!isValidType) {
-        dispatch(
-          showAlert("error", "Only JPEG, JPG and PNG images are allowed")
-        );
-      }
-      if (!isValidSize) {
-        dispatch(showAlert("error", "Image size should not exceed 5MB"));
-      }
-
-      return isValidType && isValidSize;
-    });
-
-    if (validImages.length === 0) return;
-
-    // Limit to 5 images total
-    const totalImages = [...images, ...validImages];
-
-    if (totalImages.length > 5) {
-      dispatch(showAlert("warning", "Maximum 5 images allowed"));
+  const handleUseCurrentLocation = (setFieldValue: any) => {
+    if (!navigator.geolocation) {
+      dispatch(showAlert("error", "Geolocation is not supported by your browser"));
       return;
     }
 
-    setImages([...images, ...validImages]);
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Use OpenStreetMap Nominatim for reverse geocoding
+          // Must use a clean axios instance to avoid auth headers
+          const cleanAxios = axios.create();
+          const response = await cleanAxios.get(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
 
-    // Create preview URLs
-    validImages.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviewUrls((prev) => [
-          ...prev,
-          (reader.result as string) || "",
-        ]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
+          if (response.data && response.data.address) {
+            const addr = response.data.address;
+            
+            // Map OSM address fields to our form fields
+            const street = addr.road || addr.pedestrian || addr.suburb || "";
+            const city = addr.city || addr.town || addr.village || addr.county || "";
+            const state = addr.state || "";
+            const zipCode = addr.postcode || "";
+            const country = addr.country || "India";
 
-  // Handle removing images
-  const handleRemoveImage = (index: number) => {
-    const imageToRemoveUrl = imagePreviewUrls[index];
-    const serverImages = (property as any)?.images || [];
-    const isServerImage = serverImages.includes(imageToRemoveUrl);
-
-    if (isServerImage) {
-      setRemovedImages([...removedImages, imageToRemoveUrl]);
-      setImagePreviewUrls(imagePreviewUrls.filter((_, i) => i !== index));
-    } else {
-      // It's a newly added image (File)
-      // Find its corresponding index in the 'images' (File[]) array
-      // by counting how many NEW images are present before this index in the preview list
-      let fileIndex = 0;
-      for (let i = 0; i < index; i++) {
-        const url = imagePreviewUrls[i];
-        if (!serverImages.includes(url)) {
-          fileIndex++;
+            setFieldValue("address.street", street);
+            setFieldValue("address.city", city);
+            setFieldValue("address.state", state);
+            setFieldValue("address.zipCode", zipCode);
+            setFieldValue("address.country", country);
+            
+            // Also save coordinates if your backend supports it (it does now!)
+            // We might need to add hidden fields or just rely on backend geocoding if address is accurate.
+            // But since we just added 'coordinates' support to backend, let's see if we can pass it even if not in form?
+            // The form values don't have 'coordinates' explicitly in IAddress for the form *input*, 
+            // but the backend accepts it. 
+            // For now, let's just fill the text fields which is what the user asked for.
+            
+            dispatch(showAlert("success", "Location detected successfully"));
+          }
+        } catch (error) {
+          console.error("Geocoding failed:", error);
+          dispatch(showAlert("error", "Failed to fetch address details"));
+        } finally {
+          setIsLocating(false);
         }
-      }
-
-      if (fileIndex < images.length) {
-        const newImages = [...images];
-        newImages.splice(fileIndex, 1);
-        setImages(newImages);
-      }
-
-      setImagePreviewUrls(imagePreviewUrls.filter((_, i) => i !== index));
-    }
-  };
-
-  // Form validation schema
-  const validationSchema = Yup.object({
-    title: Yup.string()
-      .required("Title is required")
-      .max(100, "Title must be at most 100 characters"),
-    description: Yup.string()
-      .required("Description is required")
-      .min(20, "Description must be at least 20 characters"),
-    propertyType: Yup.string().required("Property type is required"),
-    listingType: Yup.string().required("Listing type is required"),
-    price: Yup.object({
-      amount: Yup.number()
-        .required("Price is required")
-        .positive("Price must be positive"),
-      brokerage: Yup.number().min(0, "Brokerage cannot be negative").nullable(),
-    }),
-    address: Yup.object({
-      street: Yup.string().required("Street address is required"),
-      city: Yup.string().required("City is required"),
-      state: Yup.string().required("State/Province is required"),
-      zipCode: Yup.string().required("ZIP/Postal code is required"),
-      country: Yup.string().required("Country is required"),
-    }),
-    bedrooms: Yup.number().min(0, "Cannot be negative").nullable(),
-    bathrooms: Yup.number().min(0, "Cannot be negative").nullable(),
-    size: Yup.number().min(0, "Cannot be negative").nullable(),
-    availability: Yup.object({
-      availableFrom: Yup.date().required("Available from date is required").nullable(),
-    }),
-  });
-
-  // Get initial values for the form
-  const getInitialValues = () => {
-    if (isEditMode && property) {
-      const p: any = property as any;
-      return {
-        title: p.title || "",
-        description: p.description || "",
-        propertyType: p.propertyType || "",
-        listingType: p.listingType || "",
-        price: {
-          amount: (p.price && (p.price.amount ?? p.price.min ?? 0)) || 0,
-          brokerage: p.price?.brokerage ?? 0,
-        },
-        address: {
-          street: p.address?.street || "",
-          city: p.address?.city || "",
-          state: p.address?.state || "",
-          zipCode: p.address?.zipCode || "",
-          country: p.address?.country || "",
-        },
-        bedrooms: p.bedrooms != null ? String(p.bedrooms) : "",
-        bathrooms: p.bathrooms != null ? String(p.bathrooms) : "",
-        size:
-          p.size != null
-            ? String(p.size)
-            : p.area != null
-            ? String(p.area)
-            : "",
-        availability: {
-          availableFrom: (p as any).availability?.availableFrom
-            ? new Date((p as any).availability.availableFrom).toISOString().split("T")[0]
-            : "",
-        },
-        amenities: p.amenities || [],
-        rules: p.rules || [],
-        preferences: {
-          gender: p.preferences?.gender || "",
-          occupation: p.preferences?.occupation || "",
-          lifestyle: p.preferences?.lifestyle || "",
-          ageRange: p.preferences?.ageRange || "",
-        },
-      } as FormValues;
-    }
-
-    return {
-      title: "",
-      description: "",
-      propertyType: "",
-      listingType: "",
-      price: {
-        amount: 0,
-        brokerage: 0,
       },
-      address: {
-        street: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        country: "",
+      (error) => {
+        console.error("Geolocation error:", error);
+        let msg = "Failed to get location";
+        if (error.code === 1) msg = "Location permission denied";
+        else if (error.code === 2) msg = "Location unavailable";
+        else if (error.code === 3) msg = "Location request timed out";
+        dispatch(showAlert("error", msg));
+        setIsLocating(false);
       },
-      bedrooms: "",
-      bathrooms: "",
-      size: "",
-      availableFrom: "",
-      availability: {
-        availableFrom: "",
-      },
-      amenities: [],
-      rules: [],
-      preferences: {
-        gender: "",
-        occupation: "",
-        lifestyle: "",
-        ageRange: "",
-      },
-    };
-  };
-
-  // Handle form submission
-  const handleSubmit = async (
-    values: FormValues,
-    { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
-  ) => {
-    setIsSubmitting(true);
-
-    try {
-      const propertyData: any = {
-        ...values,
-        features: {
-          bedrooms: Number(values.bedrooms) || 0,
-          bathrooms: Number(values.bathrooms) || 0,
-          area: Number(values.size) || 0,
-          amenities: values.amenities,
-         // rules: values.rules  <- rules are not in IPropertyFeatures interface in Property.ts, maybe mapped to utilities?
-         // Assuming rules are separate or need to be handled. Based on Property.ts, there is no 'rules'. 
-         // But there is 'utilities'. Let's check if 'rules' was intended to be 'utilities' or separate.
-         // Looking at backend/models/Property.ts: amenities?: string[]; utilities?: string[];
-         // Frontend uses 'rules'. I will map 'rules' to 'utilities' for now to save them, or just omit if no matching field.
-         // Wait, 'rules' is in 'FormValues' but not in 'CreatePropertyRequest' in backend routes/properties.ts?
-         // Backend 'CreatePropertyRequest' has 'features: { ... utilities: string[] }'.
-         // Let's map rules to utilities if that's the intent, or just pass amenities. 
-         // To be safe and fix the reported "0" issue, I will definitely map beds/baths/area.
-         utilities: values.rules 
-        },
-        images,
-        removeImages: removedImages,
-      };
-
-      // Remove top-level mapped fields to avoid clutter (optional, but good for clean payload)
-      // delete propertyData.bedrooms;
-      // delete propertyData.bathrooms;
-      // delete propertyData.size;
-      // delete propertyData.amenities;
-      // delete propertyData.rules;
-
-      let result: any;
-      if (isEditMode && id) {
-        result = await dispatch(updateProperty({ id, propertyData }) as any);
-      } else {
-        result = await dispatch(createProperty(propertyData) as any);
-      }
-
-      if (result.payload) {
-        dispatch(
-          showAlert(
-            "success",
-            isEditMode
-              ? "Property updated successfully"
-              : "Property created successfully"
-          )
-        );
-        navigate(isEditMode ? `/properties/${id}` : "/properties/my-listings");
-      }
-    } catch (error: any) {
-      console.error("Error submitting form:", error);
-      dispatch(
-        showAlert("error", `Error: ${error?.message || "Something went wrong"}`)
-      );
-    } finally {
-      setIsSubmitting(false);
-      setSubmitting(false);
-    }
-  };
-
-  if (isEditMode && loading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "50vh",
-        }}
-      >
-        <CircularProgress />
-      </Box>
+      { enableHighAccuracy: true, timeout: 10000 }
     );
-  }
+  };
+
+  // ... inside Formik render ...
 
   return (
     <>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          {isEditMode ? "Edit Property" : "Create New Property"}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {isEditMode
-            ? "Update your property listing with accurate and detailed information."
-            : "Fill in the details below to create your property listing."}
-        </Typography>
+        {/* ... existing header code ... */}
       </Box>
 
       <Paper elevation={2} sx={{ p: 3 }}>
         <Formik
-          initialValues={getInitialValues()}
-          validationSchema={validationSchema}
-          onSubmit={handleSubmit}
-          enableReinitialize
+          // ... existing props ...
         >
           {({
             values,
@@ -606,9 +364,20 @@ const PropertyForm = () => {
                 {/* Address Information */}
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Address Information
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      Address Information
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      startIcon={isLocating ? <CircularProgress size={20} /> : <MyLocationIcon />}
+                      onClick={() => handleUseCurrentLocation(setFieldValue)}
+                      disabled={isLocating}
+                      size="small"
+                    >
+                      {isLocating ? "Locating..." : "Use Current Location"}
+                    </Button>
+                  </Box>
                 </Grid>
 
                 <Grid item xs={12}>

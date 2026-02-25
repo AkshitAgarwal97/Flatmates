@@ -183,7 +183,8 @@ router.get('/conversations/:id', passport_1.default.authenticate('jwt', { sessio
             return res.status(404).json({ msg: 'Conversation not found' });
         }
         // Check if user is part of the conversation
-        if (!conversation.participants.includes(req.user?._id)) {
+        const authUserId = req.user?._id.toString();
+        if (!conversation.participants.some((p) => (p._id || p).toString() === authUserId)) {
             return res.status(401).json({ msg: 'Not authorized' });
         }
         // Get messages
@@ -279,7 +280,8 @@ router.post('/conversations/:id', [
             console.log(`[POST /conversations/:id] No previous message found from other participant.`);
         }
         // Get sender and recipient info for email notification in a single query to avoid N+1
-        const recipientId = conversation.participants.find((p) => p.toString() !== req.user?._id.toString());
+        const currentUserId = req.user?._id.toString();
+        const recipientId = conversation.participants.find((p) => (p._id || p).toString() !== currentUserId);
         let sender = null;
         let recipient = null;
         if (senderId && recipientId) {
@@ -335,7 +337,8 @@ router.delete('/conversations/:id', passport_1.default.authenticate('jwt', { ses
             return res.status(404).json({ msg: 'Conversation not found' });
         }
         // Check if user is part of the conversation
-        if (!conversation.participants.includes(req.user?._id)) {
+        const authUserId = req.user?._id.toString();
+        if (!conversation.participants.some((p) => (p._id || p).toString() === authUserId)) {
             return res.status(401).json({ msg: 'Not authorized' });
         }
         // Soft delete by marking as inactive

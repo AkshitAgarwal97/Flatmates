@@ -253,6 +253,25 @@ router.get('/', async (req, res) => {
                 filter.$or = orConditions;
             }
         }
+        // Location Radius Search (Bounding Box Approximation)
+        // Extract lat, lng, radius from query
+        const lat = req.query.lat ? Number(req.query.lat) : undefined;
+        const lng = req.query.lng ? Number(req.query.lng) : undefined;
+        const radius = req.query.radius ? Number(req.query.radius) : undefined; // in km
+        if (lat !== undefined && lng !== undefined && radius !== undefined) {
+            // 1 degree of latitude is approximately 111km
+            // 1 degree of longitude is approximately 111km * cos(latitude)
+            const latDelta = radius / 111;
+            const lngDelta = radius / (111 * Math.cos(lat * (Math.PI / 180)));
+            filter['address.coordinates.lat'] = {
+                $gte: lat - latDelta,
+                $lte: lat + latDelta
+            };
+            filter['address.coordinates.lng'] = {
+                $gte: lng - lngDelta,
+                $lte: lng + lngDelta
+            };
+        }
         // Pagination
         const skip = (Number(page) - 1) * Number(limit);
         const properties = await Property.find(filter)

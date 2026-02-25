@@ -360,9 +360,9 @@ router.post(
       }
 
       // Get sender and recipient info for email notification in a single query to avoid N+1
-      const authUserId = (req.user as AuthenticatedUser)?._id.toString();
+      const currentUserId = (req.user as AuthenticatedUser)?._id.toString();
       const recipientId = conversation.participants.find(
-        (p: any) => (p._id || p).toString() !== authUserId
+        (p: any) => (p._id || p).toString() !== currentUserId
       );
       let sender = null;
       let recipient = null;

@@ -1,5 +1,5 @@
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
@@ -46,9 +46,45 @@ const Home = () => {
   const navigate = useNavigate();
   const [location, setLocation] = useState("");
   const [budget, setBudget] = useState("");
-  const [searchType, setSearchType] = useState("room"); // 'room' | 'roommate'
+  const [searchType, setSearchType] = useState("room"); // 'room' | 'property' | 'roommate'
+  const [userCoordinates, setUserCoordinates] = useState<{lat: number; lng: number} | null>(null);
 
   const [loadingLocation, setLoadingLocation] = useState(false);
+
+  // Auto-detect location on component mount
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    
+    setLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          // Store coordinates for radius-based search
+          setUserCoordinates({ lat: latitude, lng: longitude });
+          
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          const city = data.address.city || data.address.town || data.address.village || data.address.state_district;
+          const area = data.address.suburb || data.address.neighbourhood;
+          
+          if (city) {
+            setLocation(area ? `${area}, ${city}` : city);
+          }
+        } catch (error) {
+          console.error("Error fetching location:", error);
+        } finally {
+          setLoadingLocation(false);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setLoadingLocation(false);
+      }
+    );
+  }, []);
 
   const handleLocationClick = () => {
     if (!navigator.geolocation) {
@@ -92,6 +128,12 @@ const Home = () => {
     const params = new URLSearchParams();
     if (location) params.append("search", location);
     
+    // Add coordinates if auto-location was used
+    if (userCoordinates) {
+      params.append("lat", userCoordinates.lat.toString());
+      params.append("lng", userCoordinates.lng.toString());
+    }
+    
     // Respect the user's explicit search type selection
     if (searchType === "roommate") {
       // Roommate Search Routing
@@ -100,8 +142,15 @@ const Home = () => {
     } else {
       // Property Search Routing
       if (budget && budget.toString().trim() !== "") params.append("maxPrice", String(Number(budget))); // Properties use maxPrice
-      // Map 'room' search type to property type 'room'
-      params.append("type", "room");
+      
+      // Map search type to property type filter
+      if (searchType === "room") {
+        params.append("type", "room");
+      } else if (searchType === "property") {
+        // For entire property, show apartments, houses, and studios (exclude rooms)
+        params.append("type", "apartment,house,studio");
+      }
+      
       navigate(`/properties?${params.toString()}`);
     }
   };
@@ -226,6 +275,9 @@ const Home = () => {
                   >
                     <ToggleButton value="room" sx={{ px: 3, py: 1 }}>
                       <HouseIcon sx={{ mr: 1 }} /> Find a Room
+                    </ToggleButton>
+                    <ToggleButton value="property" sx={{ px: 3, py: 1 }}>
+                      <ApartmentIcon sx={{ mr: 1 }} /> Find Entire Property
                     </ToggleButton>
                     <ToggleButton value="roommate" sx={{ px: 3, py: 1 }}>
                       <PersonSearchIcon sx={{ mr: 1 }} /> Find Roommates
