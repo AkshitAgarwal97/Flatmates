@@ -143,25 +143,29 @@ router.post(
       // Process uploaded images
       const images = [];
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-
-        // Import S3 service dynamically or at top (better at top, but for now strict edit)
-        const { uploadFileToS3 } = require('../services/s3Service');
+        const { cloudinary } = require('../config/cloudinary');
 
         const uploadPromises = (req.files as Express.Multer.File[]).map(file => {
-          return uploadFileToS3(file.buffer, file.originalname, file.mimetype)
-            .then((url: string) => ({ url, caption: '' }))
-            .catch((err: any) => ({ error: err }));
+          return new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              { folder: 'properties' },
+              (error: any, result: any) => {
+                if (error) return reject(error);
+                resolve({ url: result.secure_url, caption: '' });
+              }
+            );
+            uploadStream.end(file.buffer);
+          });
         });
 
         const settled = await Promise.all(uploadPromises);
 
         for (const result of settled) {
           if ((result as any).error) {
-            console.error('S3 upload error:', (result as any).error);
-            console.error('S3 upload error:', (result as any).error);
-            throw new Error(`Image upload failed: ${(result as any).error.message || 'Unknown S3 error'}`);
+            console.error('Cloudinary upload error:', (result as any).error);
+            throw new Error(`Image upload failed: ${(result as any).error.message || 'Unknown Cloudinary error'}`);
           }
-          images.push(result);
+          images.push(result as any);
         }
       }
 
@@ -531,26 +535,31 @@ router.put(
         return res.status(401).json({ msg: 'Not authorized' });
       }
 
-      // Process uploaded images
       let images = property.images;
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-
-        const { uploadFileToS3 } = require('../services/s3Service');
+        const { cloudinary } = require('../config/cloudinary');
 
         const uploadPromises = (req.files as Express.Multer.File[]).map(file => {
-          return uploadFileToS3(file.buffer, file.originalname, file.mimetype)
-            .then((url: string) => ({ url, caption: '' }))
-            .catch((err: any) => ({ error: err }));
+          return new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              { folder: 'properties' },
+              (error: any, result: any) => {
+                if (error) return reject(error);
+                resolve({ url: result.secure_url, caption: '' });
+              }
+            );
+            uploadStream.end(file.buffer);
+          });
         });
 
         const settled = await Promise.all(uploadPromises);
 
         for (const result of settled) {
           if ((result as any).error) {
-            console.error('S3 upload error:', (result as any).error);
+            console.error('Cloudinary upload error:', (result as any).error);
             continue;
           }
-          images.push(result);
+          images.push(result as any);
         }
       }
 

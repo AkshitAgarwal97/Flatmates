@@ -12,7 +12,8 @@ const initSocket = (token: string, dispatch: AppDispatch) => {
   }
 
   // Create new socket connection with auth token
-  const SOCKET_URL = process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:5000';
+  // Use REACT_APP_API_URL if defined (production), otherwise fallback to localhost (dev)
+  const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   socket = io(SOCKET_URL, {
     auth: {
       token
