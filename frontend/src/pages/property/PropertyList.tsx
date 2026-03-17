@@ -8,6 +8,8 @@ import { Property, PropertyState } from "../../types";
 import AuthPromptDialog from "../../components/ui/AuthPromptDialog";
 import EnhancedFilters, { EnhancedFiltersState } from "../../components/property/EnhancedFilters";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
+import Tooltip from "@mui/material/Tooltip";
 
 // MUI components
 import {
@@ -56,6 +58,9 @@ const PropertyList: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [searchRadius, setSearchRadius] = useState<number | null>(null);
   const [isRadiusSearching, setIsRadiusSearching] = useState(false);
+  const [isLocatingNearMe, setIsLocatingNearMe] = useState(false);
+  const [nearMeActive, setNearMeActive] = useState(false);
+  const [nearMeCoords, setNearMeCoords] = useState<{ lat: number; lng: number } | null>(null);
   
   // Initialize filters from URL params on mount
   useEffect(() => {
@@ -119,6 +124,47 @@ const PropertyList: React.FC = () => {
       console.error('Error fetching properties with radius:', error);
       setIsRadiusSearching(false);
     }
+  };
+
+  const handleNearMeSearch = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    setIsLocatingNearMe(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setNearMeCoords({ lat: latitude, lng: longitude });
+        setNearMeActive(true);
+        setIsLocatingNearMe(false);
+        setIsRadiusSearching(true);
+        setSearchRadius(5);
+        fetchPropertiesWithRadius(latitude, longitude, 5, []);
+      },
+      (err) => {
+        console.error('Geolocation error:', err);
+        let msg = 'Could not get your location.';
+        if (err.code === 1) msg = 'Location permission denied. Please allow location access.';
+        alert(msg);
+        setIsLocatingNearMe(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleClearNearMe = () => {
+    setNearMeActive(false);
+    setNearMeCoords(null);
+    setSearchRadius(null);
+    setIsRadiusSearching(false);
+    // Re-fetch normally
+    const queryParams: any = { ...filters, page: 1, limit: pagination.limit };
+    if (filters.budgetRange && filters.budgetRange.length === 2) {
+      queryParams.minPrice = filters.budgetRange[0];
+      queryParams.maxPrice = filters.budgetRange[1];
+    }
+    dispatch(getProperties(queryParams));
   };
 
   const fetchProperties = () => {
@@ -254,7 +300,7 @@ const PropertyList: React.FC = () => {
         {/* Property List */}
         <Grid item xs={12} md={9}>
            {/* Search Bar */}
-          <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
             <TextField
               fullWidth
               variant="outlined"
@@ -264,6 +310,21 @@ const PropertyList: React.FC = () => {
               size="small"
               sx={{ bgcolor: 'background.paper', borderRadius: 1 }}
             />
+            <Tooltip title={nearMeActive ? 'Near Me search active' : 'Find properties near your current location'}>
+              <span>
+                <Button
+                  variant={nearMeActive ? 'contained' : 'outlined'}
+                  color="primary"
+                  size="small"
+                  onClick={nearMeActive ? handleClearNearMe : handleNearMeSearch}
+                  disabled={isLocatingNearMe || isRadiusSearching}
+                  startIcon={isLocatingNearMe ? <CircularProgress size={16} color="inherit" /> : <MyLocationIcon />}
+                  sx={{ whiteSpace: 'nowrap', minWidth: 120 }}
+                >
+                  {isLocatingNearMe ? 'Locating...' : nearMeActive ? 'Clear' : 'Near Me'}
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
           
           {/* Search Status Message */}

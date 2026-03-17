@@ -51,6 +51,10 @@ interface Address {
   state: string;
   zipCode: string;
   country: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 interface Preferences {
@@ -157,13 +161,8 @@ const PropertyForm = () => {
             setFieldValue("address.state", state);
             setFieldValue("address.zipCode", zipCode);
             setFieldValue("address.country", country);
-            
-            // Also save coordinates if your backend supports it (it does now!)
-            // We might need to add hidden fields or just rely on backend geocoding if address is accurate.
-            // But since we just added 'coordinates' support to backend, let's see if we can pass it even if not in form?
-            // The form values don't have 'coordinates' explicitly in IAddress for the form *input*, 
-            // but the backend accepts it. 
-            // For now, let's just fill the text fields which is what the user asked for.
+            // Save GPS coordinates so the backend can store them for radius search
+            setFieldValue("address.coordinates", { lat: latitude, lng: longitude });
             
             dispatch(showAlert("success", "Location detected successfully"));
           }
