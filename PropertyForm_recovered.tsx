@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -9,10 +9,9 @@ import {
   getProperties,
 } from "../../redux/slices/propertySlice";
 import { showAlert } from "../../redux/slices/alertSlice";
-import { Formik, Form, Field, FieldArray, useFormikContext } from "formik";
+import { Formik, Form, Field, FieldArray } from "formik";
 import * as Yup from "yup";
 import { RootState, useAppDispatch } from "../../redux/store";
-import axios from "axios";
 
 // MUI components
 import Grid from "@mui/material/Grid";
@@ -39,7 +38,6 @@ import CardActions from "@mui/material/CardActions";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import MyLocationIcon from "@mui/icons-material/MyLocation";
 
 // Type definitions
 interface Price {
@@ -53,10 +51,6 @@ interface Address {
   state: string;
   zipCode: string;
   country: string;
-  coordinates?: {
-    lat: number;
-    lng: number;
-  };
 }
 
 interface Preferences {
@@ -82,37 +76,6 @@ interface FormValues {
   preferences: Preferences;
 }
 
-// Helper component to handle Pincode side-effects
-const PincodeListener = () => {
-    const { values, setFieldValue } = useFormikContext<FormValues>();
-    
-    useEffect(() => {
-        if (values.address.zipCode && values.address.zipCode.length === 6) {
-            const fetchPin = async () => {
-                try {
-                    // Use a clean axios instance to avoid sending auth headers
-                    const cleanAxios = axios.create();
-                    const response = await cleanAxios.get(`https://api.postalpincode.in/pincode/${values.address.zipCode}`);
-                    
-                    if (response.data && response.data[0].Status === "Success") {
-                        const details = response.data[0].PostOffice[0];
-                        setFieldValue("address.city", details.District);
-                        setFieldValue("address.state", details.State);
-                        setFieldValue("address.country", "India");
-                    } else {
-                        console.warn("Pincode API returned unsuccessful status");
-                    }
-                } catch (e) {
-                    console.error("Pincode API failed:", e);
-                }
-            };
-            fetchPin();
-        }
-    }, [values.address.zipCode, setFieldValue]);
-
-    return null;
-};
-
 const PropertyForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -126,7 +89,6 @@ const PropertyForm = () => {
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
 
   const isEditMode = Boolean(id);
 
@@ -143,64 +105,6 @@ const PropertyForm = () => {
       setImagePreviewUrls((property as any).images as string[]);
     }
   }, [isEditMode, property]);
-
-  const handleUseCurrentLocation = (setFieldValue: any) => {
-    if (!navigator.geolocation) {
-      dispatch(showAlert("error", "Geolocation is not supported by your browser"));
-      return;
-    }
-
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          
-          // Use OpenStreetMap Nominatim for reverse geocoding
-          const cleanAxios = axios.create();
-          const response = await cleanAxios.get(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-          );
-
-          if (response.data && response.data.address) {
-            const addr = response.data.address;
-            
-            // Map OSM address fields to our form fields
-            const street = addr.road || addr.pedestrian || addr.suburb || "";
-            const city = addr.city || addr.town || addr.village || addr.county || "";
-            const state = addr.state || "";
-            const zipCode = addr.postcode || "";
-            const country = addr.country || "India";
-
-            setFieldValue("address.street", street);
-            setFieldValue("address.city", city);
-            setFieldValue("address.state", state);
-            setFieldValue("address.zipCode", zipCode);
-            setFieldValue("address.country", country);
-            // Save GPS coordinates so the backend can store them for radius search
-            setFieldValue("address.coordinates", { lat: latitude, lng: longitude });
-            
-            dispatch(showAlert("success", "Location detected successfully"));
-          }
-        } catch (error) {
-          console.error("Geocoding failed:", error);
-          dispatch(showAlert("error", "Failed to fetch address details"));
-        } finally {
-          setIsLocating(false);
-        }
-      },
-      (error) => {
-        console.error("Geolocation error:", error);
-        let msg = "Failed to get location";
-        if (error.code === 1) msg = "Location permission denied";
-        else if (error.code === 2) msg = "Location unavailable";
-        else if (error.code === 3) msg = "Location request timed out";
-        dispatch(showAlert("error", msg));
-        setIsLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
 
   // Handle image upload
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -302,10 +206,6 @@ const PropertyForm = () => {
       state: Yup.string(), // Optional
       zipCode: Yup.string(), // Optional
       country: Yup.string().required("Country is required"),
-      coordinates: Yup.object({
-        lat: Yup.number(),
-        lng: Yup.number(),
-      }).optional(),
     }),
     bedrooms: Yup.number().min(0, "Cannot be negative").nullable(),
     bathrooms: Yup.number().min(0, "Cannot be negative").nullable(),
@@ -332,7 +232,6 @@ const PropertyForm = () => {
           state: p.address?.state || "",
           zipCode: p.address?.zipCode || "",
           country: p.address?.country || "",
-          coordinates: p.address?.coordinates || undefined,
         },
         bedrooms: p.bedrooms != null ? String(p.bedrooms) : "",
         bathrooms: p.bathrooms != null ? String(p.bathrooms) : "",
@@ -371,7 +270,6 @@ const PropertyForm = () => {
         state: "",
         zipCode: "",
         country: "",
-        coordinates: undefined,
       },
       bedrooms: "",
       bathrooms: "",
@@ -396,12 +294,21 @@ const PropertyForm = () => {
     setIsSubmitting(true);
 
     try {
+      // Use listingType directly
+      const listingType = values.listingType;
+
       const propertyData: any = {
         title: values.title,
         description: values.description,
         propertyType: values.propertyType,
-        listingType: values.listingType,
-        address: values.address,
+        listingType,
+        address: {
+          street: values.address.street || '',
+          city: values.address.city,
+          state: values.address.state || '',
+          zipCode: values.address.zipCode || '',
+          country: values.address.country,
+        },
         price: {
           amount: Number(values.price.amount),
           brokerage: Number(values.price.brokerage) || 0,
@@ -436,6 +343,7 @@ const PropertyForm = () => {
               : "Property created successfully"
           )
         );
+        // Refresh property list before navigating
         if (!isEditMode) {
           await dispatch(getProperties({}) as any).unwrap();
         }
@@ -493,10 +401,8 @@ const PropertyForm = () => {
             touched,
             handleChange,
             handleBlur,
-            setFieldValue,
           }) => (
             <Form>
-              <PincodeListener />
               <Grid container spacing={3}>
                 {/* Basic Information */}
                 <Grid item xs={12}>
@@ -614,7 +520,7 @@ const PropertyForm = () => {
                     helperText={touched.price?.amount && errors.price?.amount}
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">₹</InputAdornment>
+                        <InputAdornment position="start">Γé╣</InputAdornment>
                       ),
                     }}
                   />
@@ -639,7 +545,7 @@ const PropertyForm = () => {
                     }
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">₹</InputAdornment>
+                        <InputAdornment position="start">Γé╣</InputAdornment>
                       ),
                     }}
                   />
@@ -648,20 +554,9 @@ const PropertyForm = () => {
                 {/* Address Information */}
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6">
-                      Address Information
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={isLocating ? <CircularProgress size={20} /> : <MyLocationIcon />}
-                      onClick={() => handleUseCurrentLocation(setFieldValue)}
-                      disabled={isLocating}
-                      size="small"
-                    >
-                      {isLocating ? "Locating..." : "Use Current Location"}
-                    </Button>
-                  </Box>
+                  <Typography variant="h6" gutterBottom>
+                    Address Information
+                  </Typography>
                 </Grid>
 
                 <Grid item xs={12}>
@@ -833,7 +728,7 @@ const PropertyForm = () => {
 
                 <Grid item xs={12}>
                   <FieldArray name="amenities">
-                    {({ push, remove, form }) => (
+                    {({ push, remove }) => (
                       <>
                         <Box
                           sx={{
@@ -861,10 +756,6 @@ const PropertyForm = () => {
                             label="Add Amenity"
                             placeholder="e.g. WiFi, Parking, Gym"
                             fullWidth
-                            value={(form.values as any).newAmenity || ""}
-                            onChange={(e: any) =>
-                              form.setFieldValue("newAmenity", e.target.value)
-                            }
                             onKeyPress={(
                               e: React.KeyboardEvent<HTMLInputElement>
                             ) => {
@@ -873,7 +764,7 @@ const PropertyForm = () => {
                                 const target = e.target as HTMLInputElement;
                                 if (target.value.trim()) {
                                   push(target.value.trim());
-                                  form.setFieldValue("newAmenity", "");
+                                  target.value = "";
                                 }
                               }
                             }}
@@ -881,10 +772,16 @@ const PropertyForm = () => {
                           <Button
                             variant="outlined"
                             onClick={() => {
-                              const val = (form.values as any).newAmenity || "";
-                              if (val.trim()) {
-                                push(val.trim());
-                                form.setFieldValue("newAmenity", "");
+                              const input = document.querySelector(
+                                'input[name="newAmenity"]'
+                              );
+                              if (
+                                input &&
+                                input instanceof HTMLInputElement &&
+                                input.value.trim()
+                              ) {
+                                push(input.value.trim());
+                                input.value = "";
                               }
                             }}
                           >
@@ -906,7 +803,7 @@ const PropertyForm = () => {
 
                 <Grid item xs={12}>
                   <FieldArray name="rules">
-                    {({ push, remove, form }) => (
+                    {({ push, remove }) => (
                       <>
                         <Box sx={{ mb: 2 }}>
                           {values.rules.map((rule, index) => (
@@ -939,10 +836,6 @@ const PropertyForm = () => {
                             label="Add House Rule"
                             placeholder="e.g. No smoking, No pets"
                             fullWidth
-                            value={(form.values as any).newRule || ""}
-                            onChange={(e: any) =>
-                              form.setFieldValue("newRule", e.target.value)
-                            }
                             onKeyPress={(
                               e: React.KeyboardEvent<HTMLInputElement>
                             ) => {
@@ -951,7 +844,7 @@ const PropertyForm = () => {
                                 const target = e.target as HTMLInputElement;
                                 if (target.value.trim()) {
                                   push(target.value.trim());
-                                  form.setFieldValue("newRule", "");
+                                  target.value = "";
                                 }
                               }
                             }}
@@ -959,10 +852,16 @@ const PropertyForm = () => {
                           <Button
                             variant="outlined"
                             onClick={() => {
-                              const val = (form.values as any).newRule || "";
-                              if (val.trim()) {
-                                push(val.trim());
-                                form.setFieldValue("newRule", "");
+                              const input = document.querySelector(
+                                'input[name="newRule"]'
+                              );
+                              if (
+                                input &&
+                                input instanceof HTMLInputElement &&
+                                input.value.trim()
+                              ) {
+                                push(input.value.trim());
+                                input.value = "";
                               }
                             }}
                           >
@@ -995,6 +894,7 @@ const PropertyForm = () => {
                       <MenuItem value="">No Preference</MenuItem>
                       <MenuItem value="male">Male</MenuItem>
                       <MenuItem value="female">Female</MenuItem>
+                      <MenuItem value="any">Any</MenuItem>
                     </Field>
                   </FormControl>
                 </Grid>

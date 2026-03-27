@@ -1,0 +1,170 @@
+﻿
+> flatmates-frontend@0.1.0 build
+> cross-env CI=false react-scripts build
+
+node.exe : [baseline-browser-mapping] 
+The data in this module is over two 
+months old.  To ensure accurate 
+Baseline data, please update: `npm i 
+baseline-browser-mapping@latest -D`
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : 
+NotSpecif    ied: 
+([baseline-brows...ping@latest     
+-D`:String) [], RemoteException
+    + FullyQualifiedErrorId : 
+NativeCom    mandError
+ 
+Creating an optimized production build...
+[baseline-browser-mapping] The data 
+in this module is over two months 
+old.  To ensure accurate Baseline 
+data, please update: `npm i 
+baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data 
+in this module is over two months 
+old.  To ensure accurate Baseline 
+data, please update: `npm i 
+baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data 
+in this module is over two months 
+old.  To ensure accurate Baseline 
+data, please update: `npm i 
+baseline-browser-mapping@latest -D`
+Compiled with warnings.
+
+[eslint] 
+src\App.tsx
+  Line 5:10:  'Provider' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 10:8:  'i18n' is defined but never used      @typescript-eslint/no-unused-vars
+
+src\components\layout\Header.tsx
+  Line 22:8:  'HomeIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\layout\LanguageSwitcher.tsx
+  Line 3:10:  'Button' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\marketplace\ServiceCard.tsx
+  Line 18:11:  'StarIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\property\EnhancedFilters.tsx
+  Line 23:8:  'FilterListIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\property\PropertyCard.tsx
+  Line 23:11:  'WorkIcon' is defined but never used     @typescript-eslint/no-unused-vars
+  Line 25:14:  'BathtubIcon' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 27:13:  'PersonIcon' is defined but never used   @typescript-eslint/no-unused-vars
+  Line 28:12:  'GroupIcon' is defined but never used    @typescript-eslint/no-unused-vars
+
+src\components\roommates\RoommateCard.tsx
+  Line 10:8:  'CalendarMonthIcon' is defined but never used            @typescript-eslint/no-unused-vars
+  Line 15:8:  'SchoolIcon' is defined but never used                   @typescript-eslint/no-unused-vars
+  Line 16:8:  'LaptopMacIcon' is defined but never used                @typescript-eslint/no-unused-vars
+  Line 17:8:  'CleaningServicesIcon' is defined but never used         @typescript-eslint/no-unused-vars
+  Line 34:5:  'moveInDate' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  Line 36:5:  'compatibilityScore' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src\components\roommates\RoommatesList.tsx
+  Line 35:10:  'hasMore' is assigned a value but never used                                                                       @typescript-eslint/no-unused-vars
+  Line 73:6:   React Hook useEffect has a missing dependency: 'fetchRoommates'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\components\roommates\RoommatesMap.tsx
+  Line 1:17:  'useMemo' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\ui\AuthPromptDialog.tsx
+  Line 10:3:  'Box' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\ui\NotificationCenter.tsx
+  Line 6:3:  'MenuItem' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\ui\PropertyMap.tsx
+  Line 7:8:  'LocationOnIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\pages\Dashboard.tsx
+  Line 32:8:  'TrendingUpIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\pages\Notifications.tsx
+  Line 12:3:   'IconButton' is defined but never used       @typescript-eslint/no-unused-vars
+  Line 13:3:   'Tooltip' is defined but never used          @typescript-eslint/no-unused-vars
+  Line 20:18:  'CheckCircleIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\pages\auth\Onboarding.tsx
+  Line 22:3:  'Stack' is defined but never used            @typescript-eslint/no-unused-vars
+  Line 23:3:  'Avatar' is defined but never used           @typescript-eslint/no-unused-vars
+  Line 24:3:  'IconButton' is defined but never used       @typescript-eslint/no-unused-vars
+  Line 27:8:  'PhotoCameraIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\pages\marketplace\ServiceMarketplace.tsx
+  Line 49:6:  React Hook useEffect has a missing dependency: 'serviceTypes'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\messages\Conversation.tsx
+  Line 13:8:  'Divider' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\pages\user\EditProfile.tsx
+  Line 34:38:  'UserBudget' is defined but never used                 @typescript-eslint/no-unused-vars
+  Line 50:11:  'CompleteProfileFormValues' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\pages\user\PublicProfile.tsx
+  Line 11:3:   'Card' is defined but never used         @typescript-eslint/no-unused-vars
+  Line 12:3:   'CardContent' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 17:12:  'EmailIcon' is defined but never used    @typescript-eslint/no-unused-vars
+  Line 18:12:  'PhoneIcon' is defined but never used    @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+File sizes after gzip:
+
+  186.61 kB  build\static\js\main.cfd4770a.js
+  62.05 kB   build\static\js\116.4824218d.chunk.js
+  26.76 kB   build\static\js\178.72194cb5.chunk.js
+  26.19 kB   build\static\js\369.5e6deb7d.chunk.js
+  19.5 kB    build\static\js\424.3b930d64.chunk.js
+  18.97 kB   build\static\js\979.2311cb33.chunk.js
+  12.81 kB   build\static\js\784.96dfc595.chunk.js
+  10.45 kB   build\static\js\92.b1f4b08a.chunk.js
+  7.95 kB    build\static\js\858.4c9b4595.chunk.js
+  7.24 kB    build\static\js\202.6ff9da90.chunk.js
+  7.05 kB    build\static\js\443.4bc5ead1.chunk.js
+  6.48 kB    build\static\js\581.1eac019c.chunk.js
+  6.38 kB    build\static\css\202.672d40ca.chunk.css
+  6.38 kB    build\static\css\424.672d40ca.chunk.css
+  4.85 kB    build\static\js\78.9f2daf4c.chunk.js
+  4.51 kB    build\static\js\975.7ae1863b.chunk.js
+  3.66 kB    build\static\js\894.14fb600d.chunk.js
+  3.4 kB     build\static\js\609.e987bba2.chunk.js
+  3.2 kB     build\static\js\756.22b8de48.chunk.js
+  3.01 kB    build\static\js\244.0516858d.chunk.js
+  2.96 kB    build\static\js\845.857df521.chunk.js
+  2.58 kB    build\static\js\16.60e3df81.chunk.js
+  2.56 kB    build\static\js\909.39d4d4a6.chunk.js
+  2.41 kB    build\static\js\499.74406d89.chunk.js
+  2.32 kB    build\static\js\915.3add85de.chunk.js
+  1.86 kB    build\static\js\728.e0244fa2.chunk.js
+  1.83 kB    build\static\js\297.8d18c016.chunk.js
+  1.76 kB    build\static\js\680.b147c0cc.chunk.js
+  1.68 kB    build\static\js\626.29b7be84.chunk.js
+  1.67 kB    build\static\js\422.a8ec8e2f.chunk.js
+  1.15 kB    build\static\js\257.31c4cb62.chunk.js
+  943 B      build\static\js\150.5aaf560d.chunk.js
+  906 B      build\static\js\967.0bc1b232.chunk.js
+  263 B      build\static\css\main.e6c13ad2.css
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  npm install -g serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+
