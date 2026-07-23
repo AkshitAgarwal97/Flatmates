@@ -1,0 +1,523 @@
+import React, { useEffect } from "react";
+import { useSelector } from "react-redux";
+import { Link as RouterLink } from "react-router-dom";
+import { getUserListings } from "../redux/slices/propertySlice";
+import { fetchConversations } from "../redux/slices/messageSlice";
+import { useAppDispatch, RootState } from "../redux/store";
+
+// MUI components
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import CardActions from "@mui/material/CardActions";
+import Button from "@mui/material/Button";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import ListItemAvatar from "@mui/material/ListItemAvatar";
+import Avatar from "@mui/material/Avatar";
+import Badge from "@mui/material/Badge";
+import Skeleton from "@mui/material/Skeleton";
+import Paper from "@mui/material/Paper";
+import { Container } from "@mui/material";
+
+// MUI icons
+import HomeIcon from "@mui/icons-material/Home";
+import MessageIcon from "@mui/icons-material/Message";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import AddIcon from "@mui/icons-material/Add";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+
+// Types
+interface Property {
+  _id: string;
+  title: string;
+  address: {
+    city: string;
+    state: string;
+  };
+  price: {
+    amount: number;
+    brokerage?: number;
+  };
+  views?: number;
+  saves?: number;
+}
+
+const Dashboard = () => {
+  React.useEffect(() => { document.title = "User Dashboard | Flatmates"; }, []);
+  const dispatch = useAppDispatch();
+  const { user } = useSelector((state: RootState) => state.auth as any);
+  const {
+    userListings,
+    savedProperties,
+    loading: propertiesLoading,
+  } = useSelector((state: RootState) => state.property as any);
+  const {
+    conversations,
+    unreadCount,
+    loading: messagesLoading,
+  } = useSelector((state: RootState) => state.message as any);
+
+  // Fetch user's properties and conversations on component mount
+  useEffect(() => {
+    dispatch(getUserListings() as any);
+    dispatch(fetchConversations() as any);
+  }, [dispatch]);
+
+  // Welcome message based on time of day
+  const getWelcomeMessage = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
+  // Calculate statistics
+  const totalListings = userListings?.length || 0;
+  const totalViews = userListings?.reduce((sum: number, p: Property) => sum + (p.views || 0), 0) || 0;
+  const totalSaves = userListings?.reduce((sum: number, p: Property) => sum + (p.saves || 0), 0) || 0;
+  const savedCount = savedProperties?.length || 0;
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          {getWelcomeMessage()}, {user?.name}!
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Welcome to your Flatmates dashboard. Here's an overview of your activity.
+        </Typography>
+      </Box>
+
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Your Listings
+                  </Typography>
+                  <Typography variant="h4">{totalListings}</Typography>
+                </Box>
+                <HomeIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Total Views
+                  </Typography>
+                  <Typography variant="h4">{totalViews}</Typography>
+                </Box>
+                <VisibilityIcon sx={{ fontSize: 40, color: 'info.main', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Total Saves
+                  </Typography>
+                  <Typography variant="h4">{totalSaves}</Typography>
+                </Box>
+                <FavoriteIcon sx={{ fontSize: 40, color: 'error.main', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Saved Properties
+                  </Typography>
+                  <Typography variant="h4">{savedCount}</Typography>
+                </Box>
+                <BookmarkIcon sx={{ fontSize: 40, color: 'warning.main', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={4}>
+        {/* User's Listings Section */}
+        <Grid item xs={12} md={6}>
+          <Paper elevation={2} sx={{ p: 3, height: "100%" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              <Typography variant="h6" component="h2">
+                Your Listings
+              </Typography>
+              <Button
+                component={RouterLink}
+                to="/properties/create"
+                variant="outlined"
+                startIcon={<AddIcon />}
+                size="small"
+              >
+                Add New
+              </Button>
+            </Box>
+
+            {propertiesLoading ? (
+              // Loading skeleton
+              Array.from(new Array(3)).map((_, index) => (
+                <Box key={index} sx={{ mb: 2 }}>
+                  <Skeleton variant="rectangular" height={118} />
+                  <Skeleton />
+                  <Skeleton width="60%" />
+                </Box>
+              ))
+            ) : userListings && userListings.length > 0 ? (
+              // User has listings
+              userListings.slice(0, 3).map((property: Property) => (
+                <Card key={property._id} sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" component="div" noWrap>
+                      {property.title}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      {property.address.city}, {property.address.state}
+                    </Typography>
+                    <Typography variant="body2">
+                      ₹{property.price.amount}
+                      {property.price.brokerage &&
+                      property.price.brokerage > 0 ? (
+                        <span> (Brokerage: ₹{property.price.brokerage})</span>
+                      ) : null}
+                    </Typography>
+                    {property.views !== undefined && (
+                      <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          <VisibilityIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
+                          {property.views} views
+                        </Typography>
+                        {property.saves !== undefined && (
+                          <Typography variant="caption" color="text.secondary">
+                            <FavoriteIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
+                            {property.saves} saves
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </CardContent>
+                  <CardActions>
+                    <Button
+                      size="small"
+                      component={RouterLink}
+                      to={`/properties/${property._id}`}
+                    >
+                      View
+                    </Button>
+                    <Button
+                      size="small"
+                      component={RouterLink}
+                      to={`/properties/edit/${property._id}`}
+                    >
+                      Edit
+                    </Button>
+                  </CardActions>
+                </Card>
+              ))
+            ) : (
+              // No listings
+              <Box sx={{ textAlign: "center", py: 4 }}>
+                <HomeIcon
+                  sx={{ fontSize: 60, color: "text.secondary", mb: 2 }}
+                />
+                <Typography variant="body1" gutterBottom>
+                  You haven't created any listings yet.
+                </Typography>
+                <Button
+                  component={RouterLink}
+                  to="/properties/create"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{ mt: 2 }}
+                >
+                  Create Your First Listing
+                </Button>
+              </Box>
+            )}
+
+            {userListings && userListings.length > 0 && (
+              <Box sx={{ mt: 2, textAlign: "right" }}>
+                <Button component={RouterLink} to="/properties/my-listings">
+                  View All Listings
+                </Button>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Recent Messages Section */}
+        <Grid item xs={12} md={6}>
+          <Paper elevation={2} sx={{ p: 3, height: "100%" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              <Typography variant="h6" component="h2">
+                Recent Messages
+              </Typography>
+              <Badge badgeContent={unreadCount} color="error">
+                <MessageIcon />
+              </Badge>
+            </Box>
+
+            {messagesLoading ? (
+              // Loading skeleton
+              Array.from(new Array(3)).map((_, index) => (
+                <Box key={index} sx={{ display: "flex", mb: 2 }}>
+                  <Skeleton
+                    variant="circular"
+                    width={40}
+                    height={40}
+                    sx={{ mr: 2 }}
+                  />
+                  <Box sx={{ width: "100%" }}>
+                    <Skeleton width="60%" />
+                    <Skeleton />
+                  </Box>
+                </Box>
+              ))
+            ) : conversations && conversations.length > 0 ? (
+              // User has conversations
+              <List sx={{ width: "100%", bgcolor: "background.paper" }}>
+                {conversations.slice(0, 5).map((conversation: any) => {
+                  // Find the other participant (not the current user)
+                  const otherParticipant = conversation.participants.find(
+                    (participant: any) => participant._id !== user?._id
+                  );
+
+                  return (
+                    <React.Fragment key={conversation._id}>
+                      <ListItem
+                        alignItems="flex-start"
+                        component={RouterLink}
+                        to={`/messages/${conversation._id}`}
+                        sx={{
+                          textDecoration: "none",
+                          color: "inherit",
+                          bgcolor:
+                            conversation.unreadCount > 0
+                              ? "action.hover"
+                              : "inherit",
+                          "&:hover": { bgcolor: "action.hover" },
+                        }}
+                      >
+                        <ListItemAvatar>
+                          <Badge
+                            overlap="circular"
+                            anchorOrigin={{
+                              vertical: "bottom",
+                              horizontal: "right",
+                            }}
+                            variant="dot"
+                            color="success"
+                            invisible={!conversation.unreadCount}
+                          >
+                            <Avatar
+                              alt={`Profile picture of ${otherParticipant?.name}`}
+                              src={otherParticipant?.avatar}
+                            />
+                          </Badge>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={otherParticipant?.name}
+                          secondary={
+                            <React.Fragment>
+                              <Typography
+                                sx={{ display: "inline" }}
+                                component="span"
+                                variant="body2"
+                                color="text.primary"
+                              >
+                                {conversation.lastMessage?.content &&
+                                conversation.lastMessage?.content.length > 30
+                                  ? `${conversation.lastMessage?.content.substring(
+                                      0,
+                                      30
+                                    )}...`
+                                  : conversation.lastMessage?.content || ""}
+                              </Typography>
+                              {` — ${new Date(
+                                conversation.lastMessage?.createdAt || ""
+                              ).toLocaleDateString()}`}
+                            </React.Fragment>
+                          }
+                        />
+                      </ListItem>
+                      <Divider variant="inset" component="li" />
+                    </React.Fragment>
+                  );
+                })}
+              </List>
+            ) : (
+              // No conversations
+              <Box sx={{ textAlign: "center", py: 4 }}>
+                <MessageIcon
+                  sx={{ fontSize: 60, color: "text.secondary", mb: 2 }}
+                />
+                <Typography variant="body1" gutterBottom>
+                  You don't have any messages yet.
+                </Typography>
+                <Button
+                  component={RouterLink}
+                  to="/properties"
+                  variant="contained"
+                  sx={{ mt: 2 }}
+                >
+                  Browse Properties
+                </Button>
+              </Box>
+            )}
+
+            {conversations && conversations.length > 0 && (
+              <Box sx={{ mt: 2, textAlign: "right" }}>
+                <Button component={RouterLink} to="/messages">
+                  View All Messages
+                </Button>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Saved Properties Section */}
+        <Grid item xs={12}>
+          <Paper elevation={2} sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              <Typography variant="h6" component="h2">
+                Saved Properties
+              </Typography>
+              <BookmarkIcon />
+            </Box>
+
+            {propertiesLoading ? (
+              // Loading skeleton
+              <Grid container spacing={3}>
+                {Array.from(new Array(3)).map((_, index) => (
+                  <Grid item xs={12} sm={6} md={4} key={index}>
+                    <Skeleton variant="rectangular" height={118} />
+                    <Skeleton />
+                    <Skeleton width="60%" />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : savedProperties && savedProperties.length > 0 ? (
+              // User has saved properties
+              <Grid container spacing={3}>
+                {savedProperties.slice(0, 3).map((property: Property) => (
+                  <Grid item xs={12} sm={6} md={4} key={property._id}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" component="div" noWrap>
+                          {property.title}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          gutterBottom
+                        >
+                          {property.address.city}, {property.address.state}
+                        </Typography>
+                        <Typography variant="body2">
+                          ₹{property.price.amount}
+                          {property.price.brokerage &&
+                          property.price.brokerage > 0 ? (
+                            <span>
+                              {" "}
+                              (Brokerage: ₹{property.price.brokerage})
+                            </span>
+                          ) : null}
+                        </Typography>
+                      </CardContent>
+                      <CardActions>
+                        <Button
+                          size="small"
+                          component={RouterLink}
+                          to={`/properties/${property._id}`}
+                        >
+                          View Details
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              // No saved properties
+              <Box sx={{ textAlign: "center", py: 4 }}>
+                <BookmarkIcon
+                  sx={{ fontSize: 60, color: "text.secondary", mb: 2 }}
+                />
+                <Typography variant="body1" gutterBottom>
+                  You haven't saved any properties yet.
+                </Typography>
+                <Button
+                  component={RouterLink}
+                  to="/properties"
+                  variant="contained"
+                  sx={{ mt: 2 }}
+                >
+                  Browse Properties
+                </Button>
+              </Box>
+            )}
+
+            {savedProperties && savedProperties.length > 0 && (
+              <Box sx={{ mt: 2, textAlign: "right" }}>
+                <Button component={RouterLink} to="/saved">
+                  View All Saved Properties
+                </Button>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
+  );
+};
+
+export default Dashboard;

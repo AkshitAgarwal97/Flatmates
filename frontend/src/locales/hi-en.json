@@ -1,0 +1,24 @@
+{
+    "common": {
+        "login": "Login karo",
+        "register": "Register karo",
+        "logout": "Logout",
+        "search": "Search",
+        "find_room": "Apna perfect room dhundho",
+        "post_listing": "Listing post karo",
+        "my_chats": "Mere Chats",
+        "profile": "Profile",
+        "home": "Home",
+        "saved": "Saved"
+    },
+    "home": {
+        "hero_title": "India mein perfect roommate dhundho",
+        "hero_subtitle": "Safe, verified, aur community-driven matching.",
+        "popular_cities": "Mashhoor Shehar"
+    },
+    "filters": {
+        "budget": "Budget",
+        "property_type": "Property Type",
+        "amenities": "Amenities"
+    }
+}

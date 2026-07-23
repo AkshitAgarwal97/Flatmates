@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://flatmates.co.in/sitemap.xml

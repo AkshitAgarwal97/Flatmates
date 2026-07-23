@@ -1,0 +1,9 @@
+{
+  "name": "flatmates",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "npm start --prefix frontend",
+    "build": "cd frontend && npm install && npm run build"
+  },
+  "dependencies": {}
+}

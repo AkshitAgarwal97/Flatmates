@@ -1,0 +1,24 @@
+{
+    "common": {
+        "login": "Login",
+        "register": "Register",
+        "logout": "Logout",
+        "search": "Search",
+        "find_room": "Find your perfect room",
+        "post_listing": "Post a Listing",
+        "my_chats": "My Chats",
+        "profile": "Profile",
+        "home": "Home",
+        "saved": "Saved"
+    },
+    "home": {
+        "hero_title": "Find the perfect roommate in India",
+        "hero_subtitle": "Safe, verified, and community-driven roommate matching.",
+        "popular_cities": "Popular Cities"
+    },
+    "filters": {
+        "budget": "Budget",
+        "property_type": "Property Type",
+        "amenities": "Amenities"
+    }
+}

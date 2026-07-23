@@ -1,0 +1,241 @@
+// Shared type definitions for the entire application
+
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  phone?: string;
+  bio?: string;
+  location?: string;
+  age?: number;
+  gender?: string;
+  occupation?: string;
+  budget?: Price;
+  preferences?: Preferences;
+  createdAt: string;
+  updatedAt: string;
+  isVerified?: boolean;
+  lastActive?: string;
+  needsProfileCompletion?: boolean;
+  lastActiveDate?: string;
+  averageResponseTime?: number;
+  isBoosted?: boolean;
+  savedProperties?: any[];
+  notifications?: any[];
+}
+
+export interface Preferences {
+  budget?: Price;
+  location?: Address;
+  propertyType?: string;
+  moveInDate?: string;
+  leaseDuration?: string;
+  amenities?: string[];
+  gender?: string;
+  occupation?: string;
+  lifestyle?: string[];
+  interests?: string[];
+  ageRange?: string;
+}
+
+export interface Price {
+  // For listings
+  amount?: number;
+  brokerage?: number;
+  // For filters/preferences
+  min?: number;
+  max?: number;
+}
+
+export interface Address {
+  street?: string;
+  city: string;
+  state?: string;
+  country: string;
+  zipCode?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface PropertyFeatures {
+  bedrooms?: number;
+  bathrooms?: number;
+  area?: number;
+  furnishing?: 'furnished' | 'unfurnished' | 'semi-furnished';
+  amenities?: string[];
+  utilities?: string[];
+}
+
+export interface Property {
+  _id: string;
+  title: string;
+  description: string;
+  price: Price;
+  address: Address;
+  propertyType: string;
+  listingType?: string;
+  // Legacy flat properties (for backward compatibility)
+  bedrooms?: number;
+  bathrooms?: number;
+  area?: number;
+  size?: number;
+  amenities: string[];
+  // New nested structure matching backend
+  features?: PropertyFeatures;
+  rules?: string[];
+  preferences?: Preferences;
+  images: Array<{ url: string; caption?: string }>;
+  availableFrom: string;
+  availability?: { availableFrom: string; availableUntil?: string };
+  leaseDuration?: string;
+  availabilityDate?: string;
+  owner?: User;       // populated by backend
+  createdBy?: User;   // alias for backward compat
+  isActive: boolean;
+  isSaved?: boolean;
+  matchScore?: number;
+  status?: 'active' | 'inactive';
+  isVerified?: boolean;
+  propertyVerified?: boolean;
+  isFeatured?: boolean;
+  featuredUntil?: string;
+  views?: number;
+  createdAt: string;
+  updatedAt: string;
+  savedBy?: string[];
+}
+
+export interface Message {
+  _id: string;
+  conversation: string;
+  sender: User;
+  content: string;
+  read: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Conversation {
+  _id: string;
+  participants: (User | string)[];
+  lastMessage?: Message;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: string;
+}
+
+export interface PropertyFilters {
+  city?: string;
+  street?: string;
+  state?: string;
+  zipCode?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  propertyType?: string;
+  listingType?: string;
+  search?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  amenities?: string[];
+  lifestyle?: string[];
+  petFriendly?: boolean;
+  gender?: string;
+  occupation?: string;
+  availableFrom?: string;
+  page?: number;
+  limit?: number;
+  userOnly?: boolean;
+}
+
+// Form types
+export interface PropertyFormValues {
+  title: string;
+  description: string;
+  price: { amount: number };
+  address: Address;
+  propertyType: string;
+  bedrooms: number;
+  bathrooms: number;
+  area?: number;
+  size?: number;
+  amenities: string[];
+  rules?: string[];
+  preferences?: Preferences;
+  availableFrom: string;
+  leaseDuration?: string;
+  images?: File[];
+}
+
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  isAuthenticated: boolean | null;
+  error: string | null;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password?: string;
+  otp?: string;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password?: string;
+  role?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+export interface PropertyState {
+  properties: Property[];
+  property: Property | null;
+  savedProperties: Property[];
+  userListings: Property[];
+  loading: boolean;
+  error: string | null;
+  pagination: Pagination;
+}
+
+export interface MessageState {
+  conversations: Conversation[];
+  messages: Message[];
+  currentConversation: Conversation | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface AlertState {
+  type: 'success' | 'error' | 'warning' | 'info' | null;
+  message: string | null;
+  open: boolean;
+}
+
+// API error type
+export interface ApiError {
+  message: string;
+  status?: number;
+  errors?: Record<string, string>;
+}

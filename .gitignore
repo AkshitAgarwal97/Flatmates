@@ -1,0 +1,28 @@
+# Environment files
+.env
+.env.*
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+*.env
+
+# !! Master secrets file — NEVER commit this !!
+SECRETS.env
+
+# Keys and Secrets
+*.pem
+secret.*
+flatmates-key.pem
+
+# Build and cache
+node_modules/
+.cache/
+*.pack
+.DS_Store
+deploy.tar.gz
+
+# Tool specific
+.github/instructions/kluster-code-verify.instructions.md
+.kluster
+.vercel

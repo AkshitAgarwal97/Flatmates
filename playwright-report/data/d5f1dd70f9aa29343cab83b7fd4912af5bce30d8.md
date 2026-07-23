@@ -1,0 +1,181 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e5]:
+      - link "FLATMATES" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - link "Navigate to Properties" [ref=e8] [cursor=pointer]:
+          - /url: /properties
+          - text: Properties
+        - link "Navigate to Find Roommates" [ref=e9] [cursor=pointer]:
+          - /url: /roommates
+          - text: Find Roommates
+        - link "Navigate to Services" [ref=e10] [cursor=pointer]:
+          - /url: /services
+          - text: Services
+      - generic [ref=e11]:
+        - button "Change Language" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+        - generic [ref=e16]:
+          - link "Login" [ref=e17] [cursor=pointer]:
+            - /url: /login
+            - text: Login
+          - link "Register" [ref=e18] [cursor=pointer]:
+            - /url: /register
+            - text: Register
+  - navigation "breadcrumb" [ref=e21]:
+    - list [ref=e22]:
+      - listitem [ref=e23]:
+        - link "Home" [ref=e24] [cursor=pointer]:
+          - /url: /
+          - img [ref=e25]
+          - text: Home
+      - listitem [ref=e27]:
+        - img [ref=e28]
+      - listitem [ref=e30]:
+        - paragraph [ref=e31]: Find Roommates
+  - main [ref=e32]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - heading "Filters" [level=6] [ref=e37]
+        - generic [ref=e40]:
+          - img [ref=e42]
+          - textbox "Search Area..." [ref=e44]
+          - group
+        - generic [ref=e45]:
+          - button "Budget (₹)" [expanded] [ref=e46] [cursor=pointer]:
+            - paragraph [ref=e48]: Budget (₹)
+            - img [ref=e50]
+          - region [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57] [cursor=pointer]:
+                - slider [ref=e61]: "5000"
+                - slider [ref=e63]: "50000"
+              - generic [ref=e64]:
+                - generic [ref=e65]: ₹5000
+                - generic [ref=e66]: ₹50000+
+        - generic [ref=e67]:
+          - button "Gender Preference" [expanded] [ref=e68] [cursor=pointer]:
+            - paragraph [ref=e70]: Gender Preference
+            - img [ref=e72]
+          - region [ref=e77]:
+            - group [ref=e79]:
+              - radiogroup [ref=e80]:
+                - generic [ref=e81] [cursor=pointer]:
+                  - generic [ref=e82]:
+                    - radio "Any" [checked] [ref=e83]
+                    - generic [ref=e84]:
+                      - img [ref=e85]
+                      - img [ref=e87]
+                  - generic [ref=e89]: Any
+                - generic [ref=e90] [cursor=pointer]:
+                  - generic [ref=e91]:
+                    - radio "Male" [ref=e92]
+                    - img [ref=e94]
+                  - generic [ref=e96]: Male
+                - generic [ref=e97] [cursor=pointer]:
+                  - generic [ref=e98]:
+                    - radio "Female" [ref=e99]
+                    - img [ref=e101]
+                  - generic [ref=e103]: Female
+        - generic [ref=e104]:
+          - button "Food" [expanded] [ref=e105] [cursor=pointer]:
+            - paragraph [ref=e107]: Food
+            - img [ref=e109]
+          - region [ref=e114]:
+            - group [ref=e116]:
+              - radiogroup [ref=e117]:
+                - generic [ref=e118] [cursor=pointer]:
+                  - generic [ref=e119]:
+                    - radio "Any" [checked] [ref=e120]
+                    - generic [ref=e121]:
+                      - img [ref=e122]
+                      - img [ref=e124]
+                  - generic [ref=e126]: Any
+                - generic [ref=e127] [cursor=pointer]:
+                  - generic [ref=e128]:
+                    - radio "Veg Only" [ref=e129]
+                    - img [ref=e131]
+                  - generic [ref=e133]: Veg Only
+                - generic [ref=e134] [cursor=pointer]:
+                  - generic [ref=e135]:
+                    - radio "Non-Veg Allowed" [ref=e136]
+                    - img [ref=e138]
+                  - generic [ref=e140]: Non-Veg Allowed
+        - button "Occupation" [ref=e142] [cursor=pointer]:
+          - paragraph [ref=e144]: Occupation
+          - img [ref=e146]
+        - button "Reset Filters" [ref=e148] [cursor=pointer]: Reset Filters
+      - generic [ref=e150]:
+        - generic [ref=e151]:
+          - generic [ref=e152]:
+            - heading "Find Roommates" [level=5] [ref=e153]
+            - paragraph [ref=e154]: 0 matches found around you
+          - generic [ref=e155]:
+            - button "Show Map" [ref=e156] [cursor=pointer]:
+              - img [ref=e157]
+            - generic [ref=e159]:
+              - combobox [ref=e160] [cursor=pointer]: Recommended
+              - textbox: recommended
+              - img
+              - group
+        - generic [ref=e163]:
+          - heading "No roommates found matching your filters." [level=6] [ref=e164]
+          - paragraph [ref=e165]: Try adjusting your budget or location preference.
+  - contentinfo [ref=e166]:
+    - generic [ref=e167]:
+      - generic [ref=e168]:
+        - generic [ref=e169]:
+          - heading "Company" [level=6] [ref=e170]
+          - generic [ref=e171]:
+            - link "About Us" [ref=e173] [cursor=pointer]:
+              - /url: /about
+            - link "Contact" [ref=e175] [cursor=pointer]:
+              - /url: /contact
+            - link "Careers" [ref=e177] [cursor=pointer]:
+              - /url: /careers
+        - generic [ref=e178]:
+          - heading "Resources" [level=6] [ref=e179]
+          - generic [ref=e180]:
+            - link "Blog" [ref=e182] [cursor=pointer]:
+              - /url: /blog
+            - link "FAQ" [ref=e184] [cursor=pointer]:
+              - /url: /faq
+            - link "Terms of Service" [ref=e186] [cursor=pointer]:
+              - /url: /terms
+            - link "Privacy Policy" [ref=e188] [cursor=pointer]:
+              - /url: /privacy
+        - generic [ref=e189]:
+          - heading "Connect" [level=6] [ref=e190]
+          - generic [ref=e191]:
+            - link "Follow us on Facebook" [ref=e193] [cursor=pointer]:
+              - /url: https://facebook.com/flatmates.india
+              - text: Facebook
+            - link "Follow us on Twitter" [ref=e195] [cursor=pointer]:
+              - /url: https://twitter.com/flatmates_in
+              - text: Twitter
+            - link "Follow us on Instagram" [ref=e197] [cursor=pointer]:
+              - /url: https://instagram.com/flatmates.co.in
+              - text: Instagram
+      - separator [ref=e198]
+      - paragraph [ref=e199]:
+        - text: © 2026
+        - link "Flatmates" [ref=e200] [cursor=pointer]:
+          - /url: /
+        - text: . All rights reserved.
+  - generic [ref=e201]:
+    - generic [ref=e202]:
+      - img [ref=e203]
+      - heading "We use cookies" [level=6] [ref=e205]
+    - paragraph [ref=e206]:
+      - text: Flatmates uses cookies to enhance your browsing experience and analyze our traffic. By clicking "Accept", you consent to our use of cookies. Read our
+      - link "Privacy Policy" [ref=e207] [cursor=pointer]:
+        - /url: /privacy
+      - text: .
+    - generic [ref=e208]:
+      - button "Decline" [ref=e209] [cursor=pointer]: Decline
+      - button "Accept All" [ref=e210] [cursor=pointer]: Accept All
+```

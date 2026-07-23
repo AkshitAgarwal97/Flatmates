@@ -1,0 +1,195 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+const mongoose_1 = __importStar(require("mongoose"));
+const PropertySchema = new mongoose_1.Schema({
+    owner: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    title: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String,
+        required: true
+    },
+    propertyType: {
+        type: String,
+        enum: ['room', 'flat', 'house', 'studio', 'apartment'],
+        required: true
+    },
+    listingType: {
+        type: String,
+        enum: ['room_in_flat', 'roommates_for_flat', 'occupied_flat', 'entire_property'],
+        required: true
+    },
+    address: {
+        street: String,
+        city: {
+            type: String,
+            required: true
+        },
+        state: String,
+        country: {
+            type: String,
+            required: true
+        },
+        zipCode: String,
+        coordinates: {
+            lat: Number,
+            lng: Number
+        }
+    },
+    location: {
+        type: {
+            type: String,
+            enum: ['Point'],
+            default: 'Point'
+        },
+        coordinates: {
+            type: [Number],
+            default: [0, 0]
+        }
+    },
+    price: {
+        amount: {
+            type: Number,
+            required: true
+        },
+        // Removed currency & period fields per new requirements
+        brokerage: {
+            type: Number,
+            default: 0
+        }
+    },
+    availability: {
+        availableFrom: {
+            type: Date,
+            required: true
+        },
+        availableUntil: Date,
+        minimumStay: Number,
+        maximumStay: Number
+    },
+    features: {
+        bedrooms: Number,
+        bathrooms: Number,
+        area: Number,
+        furnishing: {
+            type: String,
+            enum: ['furnished', 'unfurnished', 'semi-furnished']
+        },
+        amenities: [String],
+        utilities: [String]
+    },
+    images: [{
+            url: {
+                type: String,
+                required: true
+            },
+            caption: String
+        }],
+    currentOccupants: {
+        total: {
+            type: Number,
+            default: 0
+        },
+        details: [{
+                gender: {
+                    type: String,
+                    enum: ['male', 'female', 'other']
+                },
+                age: Number,
+                occupation: String
+            }]
+    },
+    preferences: {
+        gender: {
+            type: String,
+            enum: ['male', 'female', 'any']
+        },
+        ageRange: {
+            min: Number,
+            max: Number
+        },
+        occupation: [String],
+        lifestyle: [String],
+        smoking: Boolean,
+        pets: Boolean
+    },
+    status: {
+        type: String,
+        enum: ['active', 'inactive', 'rented'],
+        default: 'active'
+    },
+    views: {
+        type: Number,
+        default: 0
+    },
+    saves: {
+        type: Number,
+        default: 0
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false
+    },
+    featuredUntil: {
+        type: Date
+    },
+}, {
+    timestamps: true // Auto-manages createdAt and updatedAt (also works with findByIdAndUpdate)
+});
+// Text index for full-text search on title and description
+PropertySchema.index({ title: 'text', description: 'text' });
+// 2dsphere index for location radius search
+PropertySchema.index({ location: '2dsphere' });
+// Compound index: primary listing browse query (city filter + active + sorted by price)
+PropertySchema.index({ 'address.city': 1, status: 1, 'price.amount': 1 });
+// Compound index: expiry background job + general active listing listing
+PropertySchema.index({ status: 1, createdAt: -1 });
+// Compound index: my listings page (owner filter)
+PropertySchema.index({ owner: 1, status: 1, createdAt: -1 });
+// Featured listings query
+PropertySchema.index({ isFeatured: 1, status: 1, featuredUntil: 1 });
+// Price range filter
+PropertySchema.index({ 'price.amount': 1, status: 1 });
+// Gender preference filter
+PropertySchema.index({ 'preferences.gender': 1, status: 1 });
+exports.default = mongoose_1.default.model('Property', PropertySchema);
+//# sourceMappingURL=Property.js.map

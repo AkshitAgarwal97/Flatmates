@@ -1,0 +1,12 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.protect = void 0;
+const passport_1 = __importDefault(require("passport"));
+// Protect routes - requires JWT authentication
+// Cast to RequestHandler to satisfy TypeScript overloads where middleware is used
+exports.protect = passport_1.default.authenticate('jwt', { session: false });
+exports.default = exports.protect;
+//# sourceMappingURL=auth.js.map
