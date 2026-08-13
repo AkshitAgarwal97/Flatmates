@@ -254,7 +254,8 @@ const propertySlice = createSlice({
       })
       .addCase(getSavedProperties.fulfilled, (state, action) => {
         state.loading = false;
-        state.savedProperties = action.payload;
+        const p = action.payload;
+        state.savedProperties = Array.isArray(p) ? p : (Array.isArray(p?.properties) ? p.properties : []);
       })
       .addCase(getSavedProperties.rejected, (state, action) => {
         state.loading = false;
@@ -267,7 +268,15 @@ const propertySlice = createSlice({
       })
       .addCase(getUserListings.fulfilled, (state, action) => {
         state.loading = false;
-        state.userListings = action.payload;
+        // Backend may return { properties: [...], pagination: {...} } or a plain array
+        const payload = action.payload;
+        if (Array.isArray(payload)) {
+          state.userListings = payload;
+        } else if (payload && Array.isArray(payload.properties)) {
+          state.userListings = payload.properties;
+        } else {
+          state.userListings = [];
+        }
       })
       .addCase(getUserListings.rejected, (state, action) => {
         state.loading = false;

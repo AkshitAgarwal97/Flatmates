@@ -108,7 +108,8 @@ const MessageNotification = () => {
   };
 
   // Get unread conversations
-  const unreadConversations = conversations.filter(conv => conv.unreadCount > 0);
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
+  const unreadConversations = safeConversations.filter(conv => conv.unreadCount > 0);
   const unreadTotal = unreadConversations.reduce((total, conv) => total + conv.unreadCount, 0);
 
   if (!isAuthenticated) {
