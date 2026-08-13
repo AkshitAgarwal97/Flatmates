@@ -26,3 +26,22 @@ deploy.tar.gz
 .github/instructions/kluster-code-verify.instructions.md
 .kluster
 .vercel
+
+# !! MongoDB local data — NEVER commit raw DB files !!
+backend/mongodb_data/
+mongodb_data/
+*.wt
+*.turtle
+WiredTiger*
+mongod.lock
+
+# Built output — generated on deploy, not needed in repo
+backend/dist/
+frontend/build/
+
+# Local uploads — use Cloudinary in production
+backend/uploads/
+
+# Logs
+*.log
+npm-debug.log*
