@@ -32,19 +32,58 @@ interface SendMessageRequest {
 
 export const getConversations = async (req: Request, res: Response) => {
   try {
-    const conversations = await Conversation.find({
-      participants: (req.user as AuthenticatedUser)?._id,
+    const userId = (req.user as AuthenticatedUser)?._id;
+    const userIdStr = userId.toString();
+
+    const rawConversations = await Conversation.find({
+      participants: userId,
       isActive: true
     })
-      .populate('participants', 'name avatar')
-      .populate('property', 'title images')
+      .populate('participants', 'name avatar occupation gender')
+      .populate('property', 'title images price address')
       .populate('lastMessage')
       .sort({ updatedAt: -1 });
 
+    const seenParticipantPairs = new Set<string>();
+    const validConversations: any[] = [];
+
+    for (const conv of rawConversations) {
+      // Find other participant ID
+      const otherPart = conv.participants?.find((p: any) => (p._id || p).toString() !== userIdStr);
+      const otherPartId = otherPart ? (otherPart._id || otherPart).toString() : null;
+
+      // If lastMessage is missing, attempt to find latest message in DB
+      if (!conv.lastMessage) {
+        const latestMsg = await Message.findOne({ conversation: conv._id }).sort({ createdAt: -1 });
+        if (latestMsg) {
+          conv.lastMessage = latestMsg._id as any;
+          await conv.save();
+          await conv.populate('lastMessage');
+        }
+      }
+
+      if (otherPartId) {
+        // If we have already seen a conversation for this partner
+        if (seenParticipantPairs.has(otherPartId)) {
+          // If current conversation has no messages, mark inactive (clean up duplicate)
+          if (!conv.lastMessage) {
+            conv.isActive = false;
+            await conv.save();
+            continue;
+          }
+        } else {
+          seenParticipantPairs.add(otherPartId);
+        }
+      }
+
+      validConversations.push(conv);
+    }
+
     // Transform unreadCount to number for the requesting user
-    const conversationsWithUnread = conversations.map((conv: any) => {
+    const conversationsWithUnread = validConversations.map((conv: any) => {
       const convObj = conv.toObject();
-      const unread = conv.unreadCount.get((req.user as AuthenticatedUser)?._id.toString()) || 0;
+      const unreadMap = conv.unreadCount;
+      const unread = unreadMap?.get ? (unreadMap.get(userIdStr) || 0) : (unreadMap?.[userIdStr] || 0);
       return { ...convObj, unreadCount: unread };
     });
 
@@ -63,9 +102,10 @@ export const createConversation = async (req: Request<{}, {}, CreateConversation
 
   try {
     const { recipient, property, initialMessage } = req.body;
+    const currentUserId = (req.user as AuthenticatedUser).id.toString();
 
     // Check if recipient is blocked or blocking the sender
-    const sender = await User.findById((req.user as AuthenticatedUser).id);
+    const sender = await User.findById(currentUserId);
     const recipientUser = await User.findById(recipient);
 
     if (!sender) return errorRes(res, 'Sender not found', 404);
@@ -78,33 +118,38 @@ export const createConversation = async (req: Request<{}, {}, CreateConversation
       return errorRes(res, 'Communication blocked', 403);
     }
 
-    if (recipient === (req.user as AuthenticatedUser).id.toString()) {
+    if (recipient === currentUserId) {
       return errorRes(res, 'You cannot message yourself', 400);
     }
 
-    // ★ FIX #5: Atomic findOrCreate conversation to prevent concurrent duplicate threads.
-    // Use findOneAndUpdate with upsert option, handling property null condition correctly.
-    const propertyFilter = property ? { property: new mongoose.Types.ObjectId(property) } : { property: { $exists: false } };
-    
-    let conversation = await Conversation.findOneAndUpdate(
-      {
-        participants: { $all: [(req.user as AuthenticatedUser)?._id, new mongoose.Types.ObjectId(recipient)] },
-        ...propertyFilter
-      },
-      {
-        $setOnInsert: {
-          participants: [(req.user as AuthenticatedUser)?._id, new mongoose.Types.ObjectId(recipient)],
-          property: property ? new mongoose.Types.ObjectId(property) : null,
-          unreadCount: new Map(),
-          isActive: true,
-          contactSharedBy: []
-        }
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    const participantIds = [
+      (req.user as AuthenticatedUser)?._id,
+      new mongoose.Types.ObjectId(recipient)
+    ];
 
-    const convObj = conversation.toObject();
-    const unread = conversation.unreadCount.get((req.user as AuthenticatedUser)?._id.toString()) || 0;
+    // Find ANY existing active conversation between these two participants
+    let conversation = await Conversation.findOne({
+      participants: { $all: participantIds, $size: 2 },
+      isActive: true
+    }).sort({ updatedAt: -1 });
+
+    if (conversation) {
+      // If property specified and conversation didn't have one, update property
+      if (property && !conversation.property) {
+        conversation.property = new mongoose.Types.ObjectId(property);
+        await conversation.save();
+      }
+    } else {
+      // Create a new conversation only if no existing conversation exists
+      conversation = new Conversation({
+        participants: participantIds,
+        ...(property ? { property: new mongoose.Types.ObjectId(property) } : {}),
+        unreadCount: {},
+        isActive: true,
+        contactSharedBy: []
+      });
+      await conversation.save();
+    }
 
     // Reactivate archived/inactive conversation
     if (!conversation.isActive) {
@@ -123,7 +168,7 @@ export const createConversation = async (req: Request<{}, {}, CreateConversation
       await message.save();
 
       // Update conversation with last message
-      conversation.lastMessage = message._id;
+      conversation.lastMessage = message._id as any;
       await conversation.save();
 
       // Add notification for recipient
@@ -146,7 +191,7 @@ export const createConversation = async (req: Request<{}, {}, CreateConversation
     // Populate and return conversation
     const populatedConversation = await Conversation.findById(conversation._id)
       .populate('participants', 'name avatar')
-      .populate('property', 'title images')
+      .populate('property', 'title images price address')
       .populate({
         path: 'lastMessage',
         populate: { path: 'sender', select: 'name avatar' }
@@ -155,11 +200,15 @@ export const createConversation = async (req: Request<{}, {}, CreateConversation
     if (!populatedConversation) return errorRes(res, 'Server error', 500);
 
     const populatedConvObj = populatedConversation.toObject();
-    const finalUnread = 0;
+    // Safely get unread count — unreadCount may be a Map or plain object
+    const unreadMap: any = populatedConversation.unreadCount;
+    const finalUnread = unreadMap?.get
+      ? (unreadMap.get((req.user as AuthenticatedUser)?._id.toString()) || 0)
+      : (unreadMap?.[(req.user as AuthenticatedUser)?._id.toString()] || 0);
 
     return success(res, { ...populatedConvObj, unreadCount: finalUnread });
   } catch (err: any) {
-    console.error(err.message);
+    console.error('[createConversation] Error:', err);
     return errorRes(res, 'Server error');
   }
 };

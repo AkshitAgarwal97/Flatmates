@@ -46,6 +46,10 @@ const createProperty = async (req, res) => {
         if (parsedPreferences.occupation && parsedPreferences.occupation !== '') {
             filteredPreferences.occupation = parsedPreferences.occupation;
         }
+        const parsedAddress = (0, formDataHelper_1.parseFormDataJSON)(req.body.address);
+        const locationData = (parsedAddress && parsedAddress.coordinates && parsedAddress.coordinates.lat && parsedAddress.coordinates.lng)
+            ? { type: 'Point', coordinates: [Number(parsedAddress.coordinates.lng), Number(parsedAddress.coordinates.lat)] }
+            : undefined;
         // Create new property
         const newProperty = new Property_1.default({
             owner: req.user?.id,
@@ -53,7 +57,8 @@ const createProperty = async (req, res) => {
             description: req.body.description,
             propertyType: req.body.propertyType,
             listingType: req.body.listingType,
-            address: (0, formDataHelper_1.parseFormDataJSON)(req.body.address),
+            address: parsedAddress,
+            ...(locationData ? { location: locationData } : {}),
             price: (0, formDataHelper_1.parseFormDataJSON)(req.body.price),
             availability: (0, formDataHelper_1.parseFormDataJSON)(req.body.availability),
             features: (0, formDataHelper_1.parseFormDataJSON)(req.body.features) || {},
@@ -210,15 +215,43 @@ const getProperties = async (req, res) => {
             };
         }
         const skip = (Number(page) - 1) * Number(limit);
-        const [properties, total] = await Promise.all([
-            Property_1.default.find(filter)
-                .populate('owner', 'name avatar isBoosted lastActive')
-                .sort(filter.$text ? { score: { $meta: 'textScore' }, isFeatured: -1 } : { isFeatured: -1, createdAt: -1 })
-                .skip(skip)
-                .limit(Number(limit))
-                .lean(),
-            Property_1.default.countDocuments(filter)
-        ]);
+        let properties = [];
+        let total = 0;
+        try {
+            [properties, total] = await Promise.all([
+                Property_1.default.find(filter)
+                    .populate('owner', 'name avatar isBoosted lastActive')
+                    .sort(filter.$text ? { score: { $meta: 'textScore' }, isFeatured: -1 } : { isFeatured: -1, createdAt: -1 })
+                    .skip(skip)
+                    .limit(Number(limit))
+                    .lean(),
+                Property_1.default.countDocuments(filter)
+            ]);
+        }
+        catch (queryErr) {
+            if (filter.$text) {
+                // Fallback to regex search if text index fails
+                delete filter.$text;
+                const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+                filter.$or = [
+                    { title: searchRegex },
+                    { description: searchRegex },
+                    { 'address.city': searchRegex },
+                ];
+                [properties, total] = await Promise.all([
+                    Property_1.default.find(filter)
+                        .populate('owner', 'name avatar isBoosted lastActive')
+                        .sort({ isFeatured: -1, createdAt: -1 })
+                        .skip(skip)
+                        .limit(Number(limit))
+                        .lean(),
+                    Property_1.default.countDocuments(filter)
+                ]);
+            }
+            else {
+                throw queryErr;
+            }
+        }
         let propertiesWithScores = properties;
         if (currentUser && currentUser.preferences) {
             propertiesWithScores = propertiesWithScores.map((p) => ({

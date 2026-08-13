@@ -2,6 +2,18 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { propertyAPI, extractResponseData } from '../../services/api';
 import { Property, PropertyFilters, PropertyFormValues, PropertyState } from '../../types';
 
+// Normalize backend error to a plain string so it can safely be rendered in JSX
+const normalizeError = (err: any, fallback: string): string => {
+  const data = err?.response?.data;
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (data.message && typeof data.message === 'string') return data.message;
+  if (Array.isArray(data.errors) && data.errors.length > 0) {
+    return data.errors.map((e: any) => (typeof e === 'string' ? e : e?.msg || JSON.stringify(e))).join(', ');
+  }
+  return fallback;
+};
+
 // Get all properties with filters
 export const getProperties = createAsyncThunk(
   'property/getProperties',
@@ -20,7 +32,7 @@ export const getProperties = createAsyncThunk(
       // We check if res.data.success is true, meaning we are using the new apiResponse format.
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to fetch properties');
+      return rejectWithValue(normalizeError(err, 'Failed to fetch properties'));
     }
   }
 );
@@ -33,7 +45,7 @@ export const getPropertyById = createAsyncThunk(
       const res = await propertyAPI.getPropertyById(id);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to fetch property');
+      return rejectWithValue(normalizeError(err, 'Failed to fetch property'));
     }
   }
 );
@@ -46,7 +58,7 @@ export const createProperty = createAsyncThunk(
       const res = await propertyAPI.createProperty(propertyData);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to create property');
+      return rejectWithValue(normalizeError(err, 'Failed to create property'));
     }
   }
 );
@@ -59,7 +71,7 @@ export const updateProperty = createAsyncThunk(
       const res = await propertyAPI.updateProperty(id, propertyData);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to update property');
+      return rejectWithValue(normalizeError(err, 'Failed to update property'));
     }
   }
 );
@@ -72,7 +84,7 @@ export const deleteProperty = createAsyncThunk(
       await propertyAPI.deleteProperty(id);
       return id;
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to delete property');
+      return rejectWithValue(normalizeError(err, 'Failed to delete property'));
     }
   }
 );
@@ -85,7 +97,7 @@ export const toggleSaveProperty = createAsyncThunk(
       const res = await propertyAPI.toggleSaveProperty(id);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to toggle save property');
+      return rejectWithValue(normalizeError(err, 'Failed to toggle save property'));
     }
   }
 );
@@ -98,7 +110,7 @@ export const getSavedProperties = createAsyncThunk(
       const res = await propertyAPI.getSavedProperties();
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to fetch saved properties');
+      return rejectWithValue(normalizeError(err, 'Failed to fetch saved properties'));
     }
   }
 );
@@ -111,7 +123,7 @@ export const getUserListings = createAsyncThunk(
       const res = await propertyAPI.getUserListings();
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to fetch user listings');
+      return rejectWithValue(normalizeError(err, 'Failed to fetch user listings'));
     }
   }
 );

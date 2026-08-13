@@ -2,6 +2,18 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authAPI, userAPI, propertyAPI, extractResponseData } from '../../services/api';
 import { User, AuthState, LoginCredentials, RegisterData, AuthResponse } from '../../types';
 
+// Normalize backend error to a plain string so it can safely be rendered in JSX
+const normalizeError = (err: any, fallback: string): string => {
+  const data = err?.response?.data;
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (data.message && typeof data.message === 'string') return data.message;
+  if (Array.isArray(data.errors) && data.errors.length > 0) {
+    return data.errors.map((e: any) => (typeof e === 'string' ? e : e?.msg || JSON.stringify(e))).join(', ');
+  }
+  return fallback;
+};
+
 // Set auth token - Keep for backwards compatibility if components call it directly
 // The actual headers are handled by the axios interceptor in api.ts
 export const setAuthToken = (token: string | null) => {
@@ -20,7 +32,7 @@ export const loadUser = createAsyncThunk(
       const res = await authAPI.getMe();
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to load user');
+      return rejectWithValue(normalizeError(err, 'Failed to load user'));
     }
   }
 );
@@ -33,7 +45,7 @@ export const register = createAsyncThunk(
       const res = await authAPI.register(userData);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to register');
+      return rejectWithValue(normalizeError(err, 'Failed to register'));
     }
   }
 );
@@ -46,7 +58,7 @@ export const login = createAsyncThunk(
       const res = await authAPI.login(userData);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to login');
+      return rejectWithValue(normalizeError(err, 'Failed to login'));
     }
   }
 );
@@ -59,7 +71,7 @@ export const completeProfile = createAsyncThunk(
       const res = await authAPI.completeProfile(profileData);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to complete profile');
+      return rejectWithValue(normalizeError(err, 'Failed to complete profile'));
     }
   }
 );
@@ -72,7 +84,7 @@ export const updateProfile = createAsyncThunk(
       const res = await userAPI.updateProfile(profileData);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to update profile');
+      return rejectWithValue(normalizeError(err, 'Failed to update profile'));
     }
   }
 );
@@ -85,7 +97,7 @@ export const toggleSaveProperty = createAsyncThunk(
       const res = await propertyAPI.toggleSaveProperty(propertyId);
       return extractResponseData(res).savedProperties;
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to save property');
+      return rejectWithValue(normalizeError(err, 'Failed to save property'));
     }
   }
 );

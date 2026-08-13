@@ -47,6 +47,11 @@ export const createProperty = async (req: AuthenticatedRequest, res: Response) =
       filteredPreferences.occupation = parsedPreferences.occupation;
     }
 
+    const parsedAddress = parseFormDataJSON(req.body.address);
+    const locationData = (parsedAddress && parsedAddress.coordinates && parsedAddress.coordinates.lat && parsedAddress.coordinates.lng)
+      ? { type: 'Point', coordinates: [Number(parsedAddress.coordinates.lng), Number(parsedAddress.coordinates.lat)] }
+      : undefined;
+
     // Create new property
     const newProperty = new Property({
       owner: req.user?.id,
@@ -54,7 +59,8 @@ export const createProperty = async (req: AuthenticatedRequest, res: Response) =
       description: req.body.description,
       propertyType: req.body.propertyType,
       listingType: req.body.listingType,
-      address: parseFormDataJSON(req.body.address),
+      address: parsedAddress,
+      ...(locationData ? { location: locationData } : {}),
       price: parseFormDataJSON(req.body.price),
       availability: parseFormDataJSON(req.body.availability),
       features: parseFormDataJSON(req.body.features) || {},
@@ -238,15 +244,42 @@ export const getProperties = async (req: Request, res: Response) => {
 
     const skip = (Number(page) - 1) * Number(limit);
 
-    const [properties, total] = await Promise.all([
-      Property.find(filter)
-        .populate('owner', 'name avatar isBoosted lastActive')
-        .sort(filter.$text ? { score: { $meta: 'textScore' }, isFeatured: -1 } : { isFeatured: -1, createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit))
-        .lean(),
-      Property.countDocuments(filter)
-    ]);
+    let properties: any[] = [];
+    let total: number = 0;
+
+    try {
+      [properties, total] = await Promise.all([
+        Property.find(filter)
+          .populate('owner', 'name avatar isBoosted lastActive')
+          .sort(filter.$text ? { score: { $meta: 'textScore' }, isFeatured: -1 } : { isFeatured: -1, createdAt: -1 })
+          .skip(skip)
+          .limit(Number(limit))
+          .lean(),
+        Property.countDocuments(filter)
+      ]);
+    } catch (queryErr: any) {
+      if (filter.$text) {
+        // Fallback to regex search if text index fails
+        delete filter.$text;
+        const searchRegex = new RegExp((search as string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        filter.$or = [
+          { title: searchRegex },
+          { description: searchRegex },
+          { 'address.city': searchRegex },
+        ];
+        [properties, total] = await Promise.all([
+          Property.find(filter)
+            .populate('owner', 'name avatar isBoosted lastActive')
+            .sort({ isFeatured: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit))
+            .lean(),
+          Property.countDocuments(filter)
+        ]);
+      } else {
+        throw queryErr;
+      }
+    }
 
     let propertiesWithScores = properties as any[];
 

@@ -14,6 +14,7 @@ import { Box } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Hidden from "@mui/material/Hidden";
+import Container from "@mui/material/Container";
 
 const Messages = () => {
   React.useEffect(() => { document.title = "Messages | Flatmates"; }, []);
@@ -54,11 +55,7 @@ const Messages = () => {
   }, [targetUserId, dispatch, navigate]);
 
   return (
-    <Box sx={{ py: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Messages
-      </Typography>
-
+    <Container maxWidth="lg" sx={{ py: 3 }}>
       <Grid container spacing={3}>
         {/* Conversation List - Always visible on desktop, hidden on mobile when viewing a conversation */}
         <Hidden smDown={isConversationSelected}>
@@ -82,7 +79,7 @@ const Messages = () => {
           </Routes>
         </Grid>
       </Grid>
-    </Box>
+    </Container>
   );
 };
 

@@ -17,7 +17,7 @@ import ListIcon from "@mui/icons-material/List";
 import RoommateCard from "./RoommateCard";
 import RoommatesFilter from "./RoommatesFilter";
 import RoommatesMap from "./RoommatesMap";
-import { userAPI, extractResponseData } from "../../services/api";
+import { roommateAPI, extractResponseData } from "../../services/api";
 import { Roommate } from "../../types/roommate";
 import { useLocation } from "react-router-dom";
 
@@ -31,29 +31,29 @@ const mapUserToRoommate = (user: any): Roommate => {
   return {
     id: user._id || user.id,
     name: user.name || 'Anonymous',
-    age,
+    age: user.age || age,
     gender: user.gender || 'Other',
-    image: user.avatar || 'https://via.placeholder.com/150',
-    activeStatus,
-    budget: {
+    image: user.image || user.avatar || 'https://via.placeholder.com/150',
+    activeStatus: user.activeStatus || activeStatus,
+    budget: user.budget || {
       min: user.preferences?.budget?.min || 5000,
       max: user.preferences?.budget?.max || 50000,
     },
-    location: {
+    location: user.location || {
       city: 'Bangalore',
       area: (user.preferences?.location && user.preferences.location.length > 0)
         ? user.preferences.location[0]
         : 'Anywhere',
     },
-    preferences: {
+    preferences: user.preferences || {
       food: user.personalLifestyle?.food || 'Veg',
       smoking: !!user.personalLifestyle?.smoking,
       drinking: !!user.personalLifestyle?.drinking,
       occupation: user.occupation || 'Professional',
       cleanliness: user.personalLifestyle?.cleanliness || 'Medium',
     },
-    compatibilityScore: user.matchScore || 80,
-    verification: {
+    compatibilityScore: user.compatibilityScore || user.matchScore || 80,
+    verification: user.verification || {
       phone: !!user.isPhoneVerified,
       id: !!user.isIdVerified,
     },
@@ -89,24 +89,6 @@ const RoommatesList: React.FC = () => {
   const fetchRoommates = async () => {
     setLoading(true);
     try {
-      const queryParams = new URLSearchParams();
-      // Add filters to query
-      if (filters.budget) {
-        queryParams.append("minBudget", filters.budget[0].toString());
-        queryParams.append("maxBudget", filters.budget[1].toString());
-      }
-      if (filters.gender !== "all")
-        queryParams.append("gender", filters.gender);
-      if (filters.food !== "all") queryParams.append("food", filters.food);
-      if (filters.occupation.length > 0)
-        queryParams.append("occupation", filters.occupation.join(","));
-      if (filters.search) queryParams.append("search", filters.search);
-
-      queryParams.append("page", page.toString());
-
-      queryParams.append("sort", filters.sortBy);
-
-      // Use centralized userAPI instead of raw axios
       const reqFilters: any = {};
       if (filters.budget) {
         reqFilters.minBudget = filters.budget[0].toString();
@@ -120,11 +102,12 @@ const RoommatesList: React.FC = () => {
       reqFilters.page = page.toString();
       reqFilters.sort = filters.sortBy;
 
-      const res = await userAPI.getUsers(reqFilters);
+      const res = await roommateAPI.searchRoommates(reqFilters);
       const data = extractResponseData(res as any) as any;
-      const mappedRoommates = (data.users || []).map((u: any) => mapUserToRoommate(u));
+      const rawRoommates = data.roommates || data.users || (Array.isArray(data) ? data : []);
+      const mappedRoommates = rawRoommates.map((u: any) => mapUserToRoommate(u));
       setRoommates(mappedRoommates);
-      setHasMore(data.pagination ? data.pagination.page < data.pagination.pages : false);
+      setHasMore(data.totalPages ? data.page < data.totalPages : (data.pagination ? data.pagination.page < data.pagination.pages : false));
     } catch (err) {
       console.error("Failed to fetch roommates", err);
     } finally {

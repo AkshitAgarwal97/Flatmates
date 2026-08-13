@@ -28,11 +28,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    // Handle 401 Unauthorized errors
+    // Handle 401 Unauthorized errors — only clear the token.
+    // DO NOT use window.location.href here: it causes a full page reload loop
+    // because loadUser() fires on every mount, gets a 401, which reloads the page,
+    // which fires loadUser() again, ad infinitum.
+    // PrivateRoute already handles the /login redirect via React Router.
     if (error.response && error.response.status === 401) {
-      // Clear token and redirect to login
       localStorage.removeItem('token');
-      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -57,6 +59,9 @@ const appendFormData = (formData: FormData, data: Record<string, any>, jsonKeys:
 
     if (jsonKeys.includes(key) || Array.isArray(value)) {
       formData.append(key, JSON.stringify(value));
+    } else if (typeof value === 'boolean') {
+      // Booleans must be explicitly converted to strings for FormData
+      formData.append(key, value.toString());
     } else {
       formData.append(key, value);
     }
@@ -114,7 +119,7 @@ export const userAPI = {
     const formData = new FormData();
     const profilePayload = { ...profileData };
     delete profilePayload.avatar;
-    appendFormData(formData, profilePayload, ['preferences']);
+    appendFormData(formData, profilePayload, ['preferences', 'personalLifestyle']);
 
     if (profileData.avatar && profileData.avatar instanceof File) {
       formData.append('avatar', profileData.avatar);
@@ -166,6 +171,11 @@ export const messageAPI = {
     });
   },
   archiveConversation: (conversationId: string) => api.delete(`/messages/conversations/${conversationId}`)
+};
+
+// Roommate API
+export const roommateAPI = {
+  searchRoommates: (filters?: any) => api.get('/roommates', { params: filters })
 };
 
 export default api;

@@ -36,7 +36,7 @@ router.put(
     avatarUpload.single('avatar'),
     check('name', 'Name is required').optional().not().isEmpty(),
     check('email', 'Please include a valid email').optional().isEmail(),
-    check('phone', 'Please include a valid phone number').optional().isMobilePhone('any')
+    check('phone', 'Please include a valid phone number').optional().matches(/^[+\d\s\-().]{7,20}$/)
   ],
   wrapHandler(updateCurrentUser)
 );

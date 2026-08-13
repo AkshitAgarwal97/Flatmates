@@ -6,6 +6,18 @@ import {
   MessageState
 } from '../../types/index';
 
+// Normalize backend error to a plain string so it can safely be rendered in JSX
+const normalizeError = (err: any, fallback: string): string => {
+  const data = err?.response?.data;
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (data.message && typeof data.message === 'string') return data.message;
+  if (Array.isArray(data.errors) && data.errors.length > 0) {
+    return data.errors.map((e: any) => (typeof e === 'string' ? e : e?.msg || JSON.stringify(e))).join(', ');
+  }
+  return fallback;
+};
+
 // Fetch all conversations for the current user
 export const fetchConversations = createAsyncThunk(
   'messages/fetchConversations',
@@ -14,7 +26,7 @@ export const fetchConversations = createAsyncThunk(
       const res = await messageAPI.getConversations();
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to fetch conversations');
+      return rejectWithValue(normalizeError(err, 'Failed to fetch conversations'));
     }
   }
 );
@@ -30,7 +42,7 @@ export const createConversation = createAsyncThunk(
       const res = await messageAPI.createConversation({ recipient: recipientId, property: propertyId, initialMessage });
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to create conversation');
+      return rejectWithValue(normalizeError(err, 'Failed to create conversation'));
     }
   }
 );
@@ -43,7 +55,7 @@ export const fetchMessages = createAsyncThunk(
       const res = await messageAPI.getMessages(conversationId);
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to fetch messages');
+      return rejectWithValue(normalizeError(err, 'Failed to fetch messages'));
     }
   }
 );
@@ -59,7 +71,7 @@ export const sendMessage = createAsyncThunk(
       const res = await messageAPI.sendMessage(conversationId, { content, attachments });
       return extractResponseData(res);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to send message');
+      return rejectWithValue(normalizeError(err, 'Failed to send message'));
     }
   }
 );
@@ -72,7 +84,7 @@ export const archiveConversation = createAsyncThunk(
       await messageAPI.archiveConversation(conversationId);
       return conversationId;
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Failed to archive conversation');
+      return rejectWithValue(normalizeError(err, 'Failed to archive conversation'));
     }
   }
 );

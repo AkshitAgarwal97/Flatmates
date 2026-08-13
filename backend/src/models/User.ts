@@ -170,7 +170,7 @@ const UserSchema: Schema = new Schema({
     type: Date
   },
   personalLifestyle: {
-    food: { type: String, enum: ['Veg', 'Non-Veg', 'Vegan'] },
+    food: { type: String, enum: ['Veg', 'Non-Veg', 'Eggetarian', 'Vegan'] },
     smoking: { type: Boolean, default: false },
     drinking: { type: Boolean, default: false },
     cleanliness: { type: String, enum: ['Low', 'Medium', 'High'] },

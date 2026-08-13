@@ -25,15 +25,21 @@ export const updateCurrentUser = async (req: Request, res: Response) => {
   }
 
   try {
-    const { name, email, phone, bio, preferences } = req.body;
+    const { parseFormDataJSON } = await import('../utils/formDataHelper');
+    const { name, email, phone, bio, gender, dob, occupation, personalLifestyle, isRoommateListed, preferences } = req.body;
 
     // Build profile object
     const profileFields: any = {};
-    if (name) profileFields.name = name;
-    if (email) profileFields.email = email;
-    if (phone) profileFields.phone = phone;
-    if (bio) profileFields.bio = bio;
-    if (preferences) profileFields.preferences = preferences;
+    if (name !== undefined) profileFields.name = name;
+    if (email !== undefined) profileFields.email = email;
+    if (phone !== undefined) profileFields.phone = phone;
+    if (bio !== undefined) profileFields.bio = bio;
+    if (gender !== undefined) profileFields.gender = gender;
+    if (dob !== undefined) profileFields.dob = dob ? new Date(dob) : undefined;
+    if (occupation !== undefined) profileFields.occupation = occupation;
+    if (personalLifestyle !== undefined) profileFields.personalLifestyle = parseFormDataJSON(personalLifestyle);
+    if (isRoommateListed !== undefined) profileFields.isRoommateListed = String(isRoommateListed) === 'true';
+    if (preferences !== undefined) profileFields.preferences = parseFormDataJSON(preferences);
 
     const authReq = req as AuthenticatedRequest;
     let user = await User.findById(authReq.user?.id);

@@ -75,7 +75,8 @@ const NewConversation = ({
         try {
           setLoading(true);
           const response = await axios.get(`/api/users/${ownerId}`);
-          const ownerData = response.data;
+          // Backend wraps responses as { success, data: {...} } — unwrap to get the actual user object
+          const ownerData = response.data?.data ?? response.data;
           
           // Auto-select the owner
           setSelectedUser(ownerData);

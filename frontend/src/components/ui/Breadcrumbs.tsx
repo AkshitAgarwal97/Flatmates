@@ -44,8 +44,23 @@ const Breadcrumbs: React.FC = () => {
             const last = index === pathnames.length - 1;
             const to = `/${pathnames.slice(0, index + 1).join('/')}`;
 
-            // Handle dynamic IDs (e.g., property ID) by showing a generic "Details" or similar if not in map
-            const name = breadcrumbNameMap[to] || (pathnames[index - 1] === 'properties' ? 'Property Details' : value.charAt(0).toUpperCase() + value.slice(1));
+            // Handle dynamic IDs (e.g., MongoDB ObjectId) by showing friendly labels
+            const isMongoId = /^[0-9a-fA-F]{24}$/.test(value);
+            let name = breadcrumbNameMap[to];
+            if (!name) {
+              const parentPath = pathnames[index - 1];
+              if (parentPath === 'messages' || (isMongoId && pathnames.includes('messages'))) {
+                name = 'Chat';
+              } else if (parentPath === 'properties' || (isMongoId && pathnames.includes('properties'))) {
+                name = 'Property Details';
+              } else if (parentPath === 'profile' || parentPath === 'users' || (isMongoId && pathnames.includes('profile'))) {
+                name = 'User Profile';
+              } else if (isMongoId) {
+                name = 'Details';
+              } else {
+                name = value.charAt(0).toUpperCase() + value.slice(1);
+              }
+            }
 
             return last ? (
               <Typography color="text.primary" key={to}>

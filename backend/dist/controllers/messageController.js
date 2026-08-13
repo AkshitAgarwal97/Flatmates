@@ -45,18 +45,52 @@ const User_1 = __importDefault(require("../models/User"));
 const apiResponse_1 = require("../utils/apiResponse");
 const getConversations = async (req, res) => {
     try {
-        const conversations = await Conversation_1.default.find({
-            participants: req.user?._id,
+        const userId = req.user?._id;
+        const userIdStr = userId.toString();
+        const rawConversations = await Conversation_1.default.find({
+            participants: userId,
             isActive: true
         })
-            .populate('participants', 'name avatar')
-            .populate('property', 'title images')
+            .populate('participants', 'name avatar occupation gender')
+            .populate('property', 'title images price address')
             .populate('lastMessage')
             .sort({ updatedAt: -1 });
+        const seenParticipantPairs = new Set();
+        const validConversations = [];
+        for (const conv of rawConversations) {
+            // Find other participant ID
+            const otherPart = conv.participants?.find((p) => (p._id || p).toString() !== userIdStr);
+            const otherPartId = otherPart ? (otherPart._id || otherPart).toString() : null;
+            // If lastMessage is missing, attempt to find latest message in DB
+            if (!conv.lastMessage) {
+                const latestMsg = await Message_1.default.findOne({ conversation: conv._id }).sort({ createdAt: -1 });
+                if (latestMsg) {
+                    conv.lastMessage = latestMsg._id;
+                    await conv.save();
+                    await conv.populate('lastMessage');
+                }
+            }
+            if (otherPartId) {
+                // If we have already seen a conversation for this partner
+                if (seenParticipantPairs.has(otherPartId)) {
+                    // If current conversation has no messages, mark inactive (clean up duplicate)
+                    if (!conv.lastMessage) {
+                        conv.isActive = false;
+                        await conv.save();
+                        continue;
+                    }
+                }
+                else {
+                    seenParticipantPairs.add(otherPartId);
+                }
+            }
+            validConversations.push(conv);
+        }
         // Transform unreadCount to number for the requesting user
-        const conversationsWithUnread = conversations.map((conv) => {
+        const conversationsWithUnread = validConversations.map((conv) => {
             const convObj = conv.toObject();
-            const unread = conv.unreadCount.get(req.user?._id.toString()) || 0;
+            const unreadMap = conv.unreadCount;
+            const unread = unreadMap?.get ? (unreadMap.get(userIdStr) || 0) : (unreadMap?.[userIdStr] || 0);
             return { ...convObj, unreadCount: unread };
         });
         return (0, apiResponse_1.success)(res, conversationsWithUnread);
@@ -74,8 +108,9 @@ const createConversation = async (req, res) => {
     }
     try {
         const { recipient, property, initialMessage } = req.body;
+        const currentUserId = req.user.id.toString();
         // Check if recipient is blocked or blocking the sender
-        const sender = await User_1.default.findById(req.user.id);
+        const sender = await User_1.default.findById(currentUserId);
         const recipientUser = await User_1.default.findById(recipient);
         if (!sender)
             return (0, apiResponse_1.error)(res, 'Sender not found', 404);
@@ -86,26 +121,36 @@ const createConversation = async (req, res) => {
         if (isBlocked) {
             return (0, apiResponse_1.error)(res, 'Communication blocked', 403);
         }
-        if (recipient === req.user.id.toString()) {
+        if (recipient === currentUserId) {
             return (0, apiResponse_1.error)(res, 'You cannot message yourself', 400);
         }
-        // ★ FIX #5: Atomic findOrCreate conversation to prevent concurrent duplicate threads.
-        // Use findOneAndUpdate with upsert option, handling property null condition correctly.
-        const propertyFilter = property ? { property: new mongoose_1.default.Types.ObjectId(property) } : { property: { $exists: false } };
-        let conversation = await Conversation_1.default.findOneAndUpdate({
-            participants: { $all: [req.user?._id, new mongoose_1.default.Types.ObjectId(recipient)] },
-            ...propertyFilter
-        }, {
-            $setOnInsert: {
-                participants: [req.user?._id, new mongoose_1.default.Types.ObjectId(recipient)],
-                property: property ? new mongoose_1.default.Types.ObjectId(property) : null,
-                unreadCount: new Map(),
+        const participantIds = [
+            req.user?._id,
+            new mongoose_1.default.Types.ObjectId(recipient)
+        ];
+        // Find ANY existing active conversation between these two participants
+        let conversation = await Conversation_1.default.findOne({
+            participants: { $all: participantIds, $size: 2 },
+            isActive: true
+        }).sort({ updatedAt: -1 });
+        if (conversation) {
+            // If property specified and conversation didn't have one, update property
+            if (property && !conversation.property) {
+                conversation.property = new mongoose_1.default.Types.ObjectId(property);
+                await conversation.save();
+            }
+        }
+        else {
+            // Create a new conversation only if no existing conversation exists
+            conversation = new Conversation_1.default({
+                participants: participantIds,
+                ...(property ? { property: new mongoose_1.default.Types.ObjectId(property) } : {}),
+                unreadCount: {},
                 isActive: true,
                 contactSharedBy: []
-            }
-        }, { upsert: true, new: true, setDefaultsOnInsert: true });
-        const convObj = conversation.toObject();
-        const unread = conversation.unreadCount.get(req.user?._id.toString()) || 0;
+            });
+            await conversation.save();
+        }
         // Reactivate archived/inactive conversation
         if (!conversation.isActive) {
             conversation.isActive = true;
@@ -141,7 +186,7 @@ const createConversation = async (req, res) => {
         // Populate and return conversation
         const populatedConversation = await Conversation_1.default.findById(conversation._id)
             .populate('participants', 'name avatar')
-            .populate('property', 'title images')
+            .populate('property', 'title images price address')
             .populate({
             path: 'lastMessage',
             populate: { path: 'sender', select: 'name avatar' }
@@ -149,11 +194,15 @@ const createConversation = async (req, res) => {
         if (!populatedConversation)
             return (0, apiResponse_1.error)(res, 'Server error', 500);
         const populatedConvObj = populatedConversation.toObject();
-        const finalUnread = 0;
+        // Safely get unread count — unreadCount may be a Map or plain object
+        const unreadMap = populatedConversation.unreadCount;
+        const finalUnread = unreadMap?.get
+            ? (unreadMap.get(req.user?._id.toString()) || 0)
+            : (unreadMap?.[req.user?._id.toString()] || 0);
         return (0, apiResponse_1.success)(res, { ...populatedConvObj, unreadCount: finalUnread });
     }
     catch (err) {
-        console.error(err.message);
+        console.error('[createConversation] Error:', err);
         return (0, apiResponse_1.error)(res, 'Server error');
     }
 };

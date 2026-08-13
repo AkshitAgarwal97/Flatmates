@@ -22,6 +22,9 @@ import {
   OutlinedInput,
   Alert,
   CircularProgress,
+  FormControlLabel,
+  Switch,
+  Divider,
 } from "@mui/material";
 import {
   PhotoCamera as PhotoCameraIcon,
@@ -30,8 +33,7 @@ import {
 } from "@mui/icons-material";
 import { updateProfile, loadUser } from "../../redux/slices/authSlice";
 import { RootState, AppDispatch } from "../../redux/store";
-
-import { User, Preferences, Price as UserBudget } from "../../types";
+import { User } from "../../types";
 
 interface FormValues {
   firstName: string;
@@ -41,27 +43,15 @@ interface FormValues {
   location: string;
   bio: string;
   age: string;
+  gender: string;
   occupation: string;
   university: string;
   budgetMin: string;
   budgetMax: string;
+  food: string;
+  isRoommateListed: boolean;
 }
 
-interface CompleteProfileFormValues {
-  phone: string;
-  bio: string;
-  location: string;
-  age: number;
-  gender: string;
-  occupation: string;
-  university: string;
-  preferences: Preferences;
-  budget: {
-    min: number;
-    max: number;
-  };
-}
-// Updated validation schema with proper type handling
 const validationSchema = Yup.object().shape({
   firstName: Yup.string().required("First name is required"),
   lastName: Yup.string().required("Last name is required"),
@@ -74,6 +64,7 @@ const validationSchema = Yup.object().shape({
     .min(18, "Must be at least 18")
     .max(100, "Invalid age")
     .nullable(),
+  gender: Yup.string().nullable(),
   occupation: Yup.string().nullable(),
   university: Yup.string().nullable(),
   budgetMin: Yup.number()
@@ -83,16 +74,9 @@ const validationSchema = Yup.object().shape({
   budgetMax: Yup.number()
     .transform((value) => (isNaN(value) ? undefined : value))
     .min(0, "Budget must be positive")
-    .test(
-      "max",
-      "Max budget must be greater than min budget",
-      function (value) {
-        const { budgetMin } = this.parent;
-        if (!budgetMin || !value) return true;
-        return value > budgetMin;
-      }
-    )
     .nullable(),
+  food: Yup.string().nullable(),
+  isRoommateListed: Yup.boolean(),
 });
 
 const lifestyleOptions = [
@@ -158,99 +142,65 @@ const EditProfile: React.FC = () => {
   useEffect(() => {
     if (user) {
       setSelectedLifestyle(user.preferences?.lifestyle || []);
-      setSelectedInterests(user.preferences?.interests || []);
+      setSelectedInterests((user.preferences as any)?.interests || []);
     }
   }, [user]);
-  // First, update the CompleteProfileFormValues interface
-  interface CompleteProfileFormValues {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phone?: string;
-    location?: string;
-    bio?: string;
-    age?: string;
-    occupation?: string;
-    university?: string;
-    preferences?: {
-      location: string;
-      budget: string;
-      moveInDate: string;
-      duration: string;
-      gender: string;
-      lifestyle?: string[];
-      interests?: string[];
-    };
-    budget?: {
-      min: number;
-      max: number;
-    };
-  }
 
-  // Then update the handleSubmit function
   const handleSubmit = async (
     values: FormValues,
     { setSubmitting }: FormikHelpers<FormValues>
   ) => {
     try {
-      const formData: Partial<CompleteProfileFormValues> & { name?: string } = {
+      const updateData: any = {
         name: `${values.firstName} ${values.lastName}`.trim(),
         email: values.email,
         phone: values.phone,
         location: values.location,
         bio: values.bio,
-        age: values.age,
+        gender: values.gender,
         occupation: values.occupation,
         university: values.university,
+        isRoommateListed: values.isRoommateListed,
+        personalLifestyle: {
+          food: values.food || 'Veg',
+        },
         preferences: {
-          location: values.location || "", // Provide default values
-          budget: values.budgetMax?.toString() || "",
-          moveInDate: new Date().toISOString(), // Default to current date
-          duration: "12", // Default duration
-          gender: "any", // Default gender preference
+          location: values.location ? [values.location] : [],
+          budget: {
+            min: Number(values.budgetMin) || 0,
+            max: Number(values.budgetMax) || 0,
+          },
           lifestyle: selectedLifestyle,
           interests: selectedInterests,
         },
+        avatar: profileImage || undefined,
       };
 
-      if (values.budgetMin && values.budgetMax) {
-        formData.budget = {
-          min: Number(values.budgetMin),
-          max: Number(values.budgetMax),
-        };
+      if (values.age) {
+        const currentYear = new Date().getFullYear();
+        const birthYear = currentYear - Number(values.age);
+        updateData.dob = new Date(`${birthYear}-01-01`).toISOString();
       }
-
-      // Create updateData with proper typing
-      const updateData = {
-        ...formData,
-        avatar: profileImage || undefined, // Use undefined instead of null
-      } as const;
 
       await dispatch(updateProfile(updateData)).unwrap();
       setSaveSuccess(true);
       setTimeout(() => {
         navigate("/profile");
-      }, 2000);
-    } catch (error) {
-      console.error(
-        "Profile update failed:",
-        error instanceof Error ? error.message : "Unknown error"
-      );
+      }, 1500);
+    } catch (err) {
+      console.error("Profile update failed:", err);
     } finally {
       setSubmitting(false);
     }
   };
-  // Updated image change handler with proper type checking
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
       setProfileImage(file);
-    } else {
-      console.error("Invalid file type");
     }
   };
 
-  // Updated Select component handlers with proper typing
   const handleLifestyleChange = (event: SelectChangeEvent<string[]>) => {
     setSelectedLifestyle(event.target.value as string[]);
   };
@@ -260,27 +210,29 @@ const EditProfile: React.FC = () => {
   };
 
   const profileData: any = user || {};
+  const dobYear = profileData.dob ? new Date(profileData.dob).getFullYear() : null;
+  const computedAge = dobYear ? new Date().getFullYear() - dobYear : profileData.age || "";
 
   const initialValues: FormValues = {
     firstName: profileData.firstName || profileData.name?.split(' ')[0] || "",
     lastName: profileData.lastName || profileData.name?.split(' ').slice(1).join(' ') || "",
     email: profileData.email || "",
     phone: profileData.phone || "",
-    location: profileData.location || "",
+    location: (profileData.preferences?.location && profileData.preferences.location[0]) || profileData.location || "",
     bio: profileData.bio || "",
-    age: profileData.age?.toString() || "",
-    occupation: profileData.occupation || "",
+    age: computedAge.toString(),
+    gender: profileData.gender || "Male",
+    occupation: profileData.occupation || "Professional",
     university: profileData.university || "",
-    budgetMin: profileData.budget?.min?.toString() || "",
-    budgetMax: profileData.budget?.max?.toString() || "",
+    budgetMin: profileData.preferences?.budget?.min?.toString() || profileData.budget?.min?.toString() || "5000",
+    budgetMax: profileData.preferences?.budget?.max?.toString() || profileData.budget?.max?.toString() || "25000",
+    food: profileData.personalLifestyle?.food || "Veg",
+    isRoommateListed: !!profileData.isRoommateListed,
   };
 
   if (loading) {
     return (
-      <Container
-        maxWidth="md"
-        sx={{ mt: 4, display: "flex", justifyContent: "center" }}
-      >
+      <Container maxWidth="md" sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
         <CircularProgress />
       </Container>
     );
@@ -289,7 +241,7 @@ const EditProfile: React.FC = () => {
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
           Edit Profile
         </Typography>
 
@@ -317,17 +269,12 @@ const EditProfile: React.FC = () => {
             values,
             handleChange,
             handleBlur,
+            setFieldValue,
             isSubmitting,
           }) => (
             <Form>
               <Grid container spacing={3}>
-                <Grid
-                  item
-                  xs={12}
-                  display="flex"
-                  justifyContent="center"
-                  mb={3}
-                >
+                <Grid item xs={12} display="flex" justifyContent="center" mb={3}>
                   <Box position="relative">
                     <Avatar
                       src={
@@ -337,8 +284,7 @@ const EditProfile: React.FC = () => {
                       }
                       sx={{ width: 120, height: 120 }}
                     >
-                      {profileData.firstName?.[0]}
-                      {profileData.lastName?.[0]}
+                      {profileData.name?.[0]}
                     </Avatar>
                     <IconButton
                       component="label"
@@ -384,7 +330,7 @@ const EditProfile: React.FC = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid item xs={12} sm={6}>
                   <Field
                     as={TextField}
                     name="email"
@@ -408,10 +354,27 @@ const EditProfile: React.FC = () => {
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel id="gender-select-label">Gender</InputLabel>
+                    <Select
+                      labelId="gender-select-label"
+                      name="gender"
+                      value={values.gender}
+                      label="Gender"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value="Male">Male</MenuItem>
+                      <MenuItem value="Female">Female</MenuItem>
+                      <MenuItem value="Other">Other</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
                   <Field
                     as={TextField}
                     name="location"
-                    label="Location"
+                    label="Preferred City/Area"
                     fullWidth
                     error={touched.location && !!errors.location}
                     helperText={touched.location && errors.location}
@@ -422,9 +385,9 @@ const EditProfile: React.FC = () => {
                   <Field
                     as={TextField}
                     name="bio"
-                    label="Bio"
+                    label="Bio / About Yourself"
                     multiline
-                    rows={4}
+                    rows={3}
                     fullWidth
                     error={touched.bio && !!errors.bio}
                     helperText={touched.bio && errors.bio}
@@ -444,32 +407,46 @@ const EditProfile: React.FC = () => {
                 </Grid>
 
                 <Grid item xs={12} sm={4}>
-                  <Field
-                    as={TextField}
-                    name="occupation"
-                    label="Occupation"
-                    fullWidth
-                    error={touched.occupation && !!errors.occupation}
-                    helperText={touched.occupation && errors.occupation}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel id="occupation-select-label">Occupation</InputLabel>
+                    <Select
+                      labelId="occupation-select-label"
+                      name="occupation"
+                      value={values.occupation}
+                      label="Occupation"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value="Student">Student</MenuItem>
+                      <MenuItem value="Professional">Professional</MenuItem>
+                      <MenuItem value="WFH">WFH</MenuItem>
+                      <MenuItem value="Other">Other</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
 
                 <Grid item xs={12} sm={4}>
-                  <Field
-                    as={TextField}
-                    name="university"
-                    label="University"
-                    fullWidth
-                    error={touched.university && !!errors.university}
-                    helperText={touched.university && errors.university}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel id="food-select-label">Dietary Preference</InputLabel>
+                    <Select
+                      labelId="food-select-label"
+                      name="food"
+                      value={values.food}
+                      label="Dietary Preference"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value="Veg">Veg</MenuItem>
+                      <MenuItem value="Non-Veg">Non-Veg</MenuItem>
+                      <MenuItem value="Eggetarian">Eggetarian</MenuItem>
+                      <MenuItem value="Vegan">Vegan</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
                   <Field
                     as={TextField}
                     name="budgetMin"
-                    label="Budget Min ($)"
+                    label="Min Budget (₹)"
                     type="number"
                     fullWidth
                     error={touched.budgetMin && !!errors.budgetMin}
@@ -481,12 +458,33 @@ const EditProfile: React.FC = () => {
                   <Field
                     as={TextField}
                     name="budgetMax"
-                    label="Budget Max ($)"
+                    label="Max Budget (₹)"
                     type="number"
                     fullWidth
                     error={touched.budgetMax && !!errors.budgetMax}
                     helperText={touched.budgetMax && errors.budgetMax}
                   />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 1 }} />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={values.isRoommateListed}
+                        onChange={(e) => setFieldValue("isRoommateListed", e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Typography fontWeight="bold" color="primary">
+                        List me on the Roommates Finder page
+                      </Typography>
+                    }
+                  />
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Enable this so other members looking for a roommate in your city can view your profile.
+                  </Typography>
                 </Grid>
 
                 <Grid item xs={12}>
@@ -498,9 +496,7 @@ const EditProfile: React.FC = () => {
                       onChange={handleLifestyleChange}
                       input={<OutlinedInput label="Lifestyle Preferences" />}
                       renderValue={(selected) => (
-                        <Box
-                          sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
-                        >
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                           {(selected as string[]).map((value) => (
                             <Chip key={value} label={value} size="small" />
                           ))}
@@ -525,16 +521,9 @@ const EditProfile: React.FC = () => {
                       onChange={handleInterestsChange}
                       input={<OutlinedInput label="Interests" />}
                       renderValue={(selected) => (
-                        <Box
-                          sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
-                        >
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                           {(selected as string[]).map((value) => (
-                            <Chip
-                              key={value}
-                              label={value}
-                              size="small"
-                              color="primary"
-                            />
+                            <Chip key={value} label={value} size="small" color="primary" />
                           ))}
                         </Box>
                       )}
