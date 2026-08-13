@@ -79,10 +79,12 @@ const Dashboard = () => {
   };
 
   // Calculate statistics
-  const totalListings = userListings?.length || 0;
-  const totalViews = userListings?.reduce((sum: number, p: Property) => sum + (p.views || 0), 0) || 0;
-  const totalSaves = userListings?.reduce((sum: number, p: Property) => sum + (p.saves || 0), 0) || 0;
-  const savedCount = savedProperties?.length || 0;
+  const safeListings: Property[] = Array.isArray(userListings) ? userListings : [];
+  const safeSaved: Property[] = Array.isArray(savedProperties) ? savedProperties : [];
+  const totalListings = safeListings.length;
+  const totalViews = safeListings.reduce((sum: number, p: Property) => sum + (p.views || 0), 0);
+  const totalSaves = safeListings.reduce((sum: number, p: Property) => sum + (p.saves || 0), 0);
+  const savedCount = safeSaved.length;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -210,10 +212,10 @@ const Dashboard = () => {
                       {property.address.city}, {property.address.state}
                     </Typography>
                     <Typography variant="body2">
-                      ₹{property.price.amount}
+                      â‚¹{property.price.amount}
                       {property.price.brokerage &&
                       property.price.brokerage > 0 ? (
-                        <span> (Brokerage: ₹{property.price.brokerage})</span>
+                        <span> (Brokerage: â‚¹{property.price.brokerage})</span>
                       ) : null}
                     </Typography>
                     {property.views !== undefined && (
@@ -375,7 +377,7 @@ const Dashboard = () => {
                                     )}...`
                                   : conversation.lastMessage?.content || ""}
                               </Typography>
-                              {` — ${new Date(
+                              {` â€” ${new Date(
                                 conversation.lastMessage?.createdAt || ""
                               ).toLocaleDateString()}`}
                             </React.Fragment>
@@ -463,12 +465,12 @@ const Dashboard = () => {
                           {property.address.city}, {property.address.state}
                         </Typography>
                         <Typography variant="body2">
-                          ₹{property.price.amount}
+                          â‚¹{property.price.amount}
                           {property.price.brokerage &&
                           property.price.brokerage > 0 ? (
                             <span>
                               {" "}
-                              (Brokerage: ₹{property.price.brokerage})
+                              (Brokerage: â‚¹{property.price.brokerage})
                             </span>
                           ) : null}
                         </Typography>
