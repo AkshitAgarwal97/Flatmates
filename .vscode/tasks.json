@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Keep Render Alive",
+      "type": "shell",
+      "command": "npx",
+      "args": ["ts-node", "${workspaceFolder}/keepAlive.ts"],
+      "isBackground": true,
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
