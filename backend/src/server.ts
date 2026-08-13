@@ -141,6 +141,11 @@ const authLimiter = rateLimit({
   max: process.env.NODE_ENV === 'production' ? 20 : 1000, // Limit to 20 in prod, 1000 in dev
 });
 
+// Health check — used by keepAlive pinger and uptime monitors
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
 // Routes — trackActivity is applied AFTER passport so req.user is populated
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', trackActivity, userRoutes);
@@ -148,6 +153,7 @@ app.use('/api/properties', trackActivity, propertyRoutes);
 app.use('/api/messages', trackActivity, messageRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/roommates', roommateRoutes);
+
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

@@ -3,6 +3,10 @@
   "outputDirectory": "frontend/build",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://flatmates-z2bt.onrender.com/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
