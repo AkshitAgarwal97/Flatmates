@@ -579,11 +579,7 @@ const PropertyForm = () => {
                         <em>Select Listing Type</em>
                       </MenuItem>
                       <MenuItem value="room_in_flat">Room in a shared flat</MenuItem>
-                      <MenuItem value="roommates_for_flat">
-                        Roommates for a flat
-                      </MenuItem>
                       <MenuItem value="entire_property">Entire Property</MenuItem>
-                      <MenuItem value="occupied_flat">Occupied Flat</MenuItem>
                     </Field>
                     {touched.listingType && errors.listingType && (
                       <FormHelperText>{errors.listingType}</FormHelperText>
@@ -616,7 +612,7 @@ const PropertyForm = () => {
                     helperText={touched.price?.amount && errors.price?.amount}
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">₹</InputAdornment>
+                        <InputAdornment position="start">â‚¹</InputAdornment>
                       ),
                     }}
                   />
@@ -642,7 +638,7 @@ const PropertyForm = () => {
                     }
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">₹</InputAdornment>
+                        <InputAdornment position="start">â‚¹</InputAdornment>
                       ),
                     }}
                   />
