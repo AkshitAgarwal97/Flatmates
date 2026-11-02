@@ -1,0 +1,22 @@
+# Copy to deploy/secrets/oci.tfvars (gitignored) and fill in.
+# Console: Identity → Users → your user → API Keys → Add API Key
+
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaa..."
+user_ocid        = "ocid1.user.oc1..aaaaaaaa..."
+fingerprint      = "aa:bb:cc:..."
+private_key_path = "C:/Users/YOU/.oci/oci_api_key.pem"
+compartment_ocid = "ocid1.tenancy.oc1..aaaaaaaa..." # often same as tenancy
+region           = "ap-mumbai-1"
+
+# Public half of deploy/secrets/id_ed25519 (generated locally)
+ssh_public_key = "ssh-ed25519 AAAA... flatmates-oci-deploy"
+
+# If 4 OCPU / 24 GB is out of capacity, use:
+# ocpus      = 2
+# memory_gbs = 12
+
+# Optional: your home IP so SSH is not world-open
+# ssh_ingress_cidr = "1.2.3.4/32"
+
+# Set false if Identity policies must be created in a different home region
+enable_instance_principal = true

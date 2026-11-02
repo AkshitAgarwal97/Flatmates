@@ -1,0 +1,44 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - nginx
+  - curl
+  - ca-certificates
+  - gnupg
+  - unattended-upgrades
+  - tar
+  - rsync
+  - python3-pip
+  - python3-venv
+  - certbot
+  - python3-certbot-nginx
+
+users:
+  - default
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-flatmates.conf
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin no
+
+runcmd:
+  - fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - grep -q swapfile /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  - mkdir -p /var/lib/flatmates/images /opt/flatmates /opt/flatmates/deploy
+  - chown -R ubuntu:ubuntu /var/lib/flatmates /opt/flatmates
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  - apt-get install -y nodejs
+  - pip3 install --upgrade oci-cli || true
+  - systemctl enable nginx
+  - systemctl start nginx
+  - iptables -I INPUT 5 -p tcp --dport 80 -j ACCEPT || true
+  - iptables -I INPUT 6 -p tcp --dport 443 -j ACCEPT || true
+  - mkdir -p /etc/iptables && iptables-save > /etc/iptables/rules.v4 || true
+  - systemctl enable unattended-upgrades
+  - dpkg-reconfigure -f noninteractive unattended-upgrades || true

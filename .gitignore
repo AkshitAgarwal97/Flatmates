@@ -26,7 +26,20 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
+.env.production
 .env*.local
+
+# VM / OCI secrets (API keys, SSH private keys, tfvars)
+/deploy/secrets/
+/deploy/terraform/.terraform/
+/deploy/terraform/.terraform.lock.hcl
+/deploy/terraform/terraform.tfstate
+/deploy/terraform/terraform.tfstate.backup
+/deploy/terraform/terraform.tfvars
+
+# app data on disk (listings, photos)
+/data/
 
 # vercel
 .vercel
@@ -34,3 +47,24 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/data/db.json
+/public/uploads/*
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+.vercel
+
+# local auth dumps — never commit sessions or password tokens
+auth.json
+cookies.txt
+login-out.txt
+listing.json
+home.html
+/recordings/

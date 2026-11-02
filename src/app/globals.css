@@ -2,32 +2,284 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+:root,
+html.dark {
+  --bg: #07131f;
+  --fg: #e8f4ff;
+  --muted: rgba(232, 244, 255, 0.62);
+  --muted-2: rgba(232, 244, 255, 0.45);
+  --surface: rgba(12, 28, 44, 0.72);
+  --border: rgba(148, 211, 232, 0.16);
+  --accent: #2dd4bf;
+  --accent-ink: #042f2e;
+  --kicker: #99f6e4;
+  --glow-a: rgba(45, 212, 191, 0.18);
+  --glow-b: rgba(56, 189, 248, 0.16);
+  --field: rgba(0, 0, 0, 0.28);
+  --skeleton: rgba(255, 255, 255, 0.08);
+  --theme-color: #07131f;
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 12px 40px rgba(45, 212, 191, 0.14), 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+html.light {
+  --bg: #f4f1ea;
+  --fg: #12202c;
+  --muted: rgba(18, 32, 44, 0.68);
+  --muted-2: rgba(18, 32, 44, 0.48);
+  --surface: rgba(255, 252, 246, 0.82);
+  --border: rgba(18, 64, 72, 0.14);
+  --accent: #0f766e;
+  --accent-ink: #f4fffd;
+  --kicker: #0f766e;
+  --glow-a: rgba(15, 118, 110, 0.12);
+  --glow-b: rgba(180, 83, 9, 0.08);
+  --field: rgba(255, 255, 255, 0.72);
+  --skeleton: rgba(18, 32, 44, 0.08);
+  --theme-color: #f4f1ea;
+  --card-shadow: 0 2px 12px rgba(18, 32, 44, 0.12);
+  --card-shadow-hover: 0 8px 32px rgba(15, 118, 110, 0.14), 0 2px 8px rgba(18, 32, 44, 0.15);
+}
+
+html,
+body {
+  min-height: 100%;
+  font-family: var(--font-inter, ui-sans-serif, system-ui, -apple-system, sans-serif);
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--fg);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, var(--glow-a), transparent 50%),
+    radial-gradient(900px 500px at 100% 0%, var(--glow-b), transparent 45%),
+    var(--bg);
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium transition-all duration-150;
+  border-color: var(--border);
+  color: var(--fg);
+}
+
+.btn-ghost:hover {
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+  transform: translateY(-1px);
+}
+
+.btn-ghost:active {
+  transform: translateY(0);
+}
+
+/* ── Form fields ────────────────────────────────────────────── */
+.field {
+  @apply w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors duration-150;
+  border-color: var(--border);
+  background: var(--field);
+  color: var(--fg);
+}
+
+.field:focus {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.field::placeholder {
+  color: var(--muted-2);
+}
+
+/* ── Text utilities ─────────────────────────────────────────── */
+.muted   { color: var(--muted); }
+.muted-2 { color: var(--muted-2); }
+.kicker  { color: var(--kicker); }
+
+/* ── Skeleton loader ────────────────────────────────────────── */
+.skeleton {
+  background: var(--skeleton);
+  border-radius: 0.75rem;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── Nav links ──────────────────────────────────────────────── */
+.nav-link {
+  color: var(--muted);
+  transition: color 0.15s;
+}
+
+.nav-link:hover {
+  color: var(--fg);
+}
+
+.nav-link-active {
+  color: var(--fg);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+/* ── Navigation progress bar ────────────────────────────────── */
+@keyframes nav-progress {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(-10%);  }
+  100% { transform: translateX(0%);    }
+}
+
+.nav-progress-bar {
+  animation: nav-progress 0.5s ease-out forwards;
+}
+
+/* ── Listing card hover lift ────────────────────────────────── */
+.listing-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--card-shadow);
+}
+
+.listing-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* ── Accordion / FAQ animations ─────────────────────────────── */
+details > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+details > summary::-webkit-details-marker { display: none; }
+
+details > summary::after {
+  content: '+';
+  font-size: 1.1rem;
+  color: var(--kicker);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+details[open] > summary::after {
+  transform: rotate(45deg);
+}
+
+details > p,
+details > ul,
+details > div {
+  animation: accordion-down 0.22s ease-out;
+}
+
+@keyframes accordion-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ── Star rating ────────────────────────────────────────────── */
+.star-btn {
+  transition: transform 0.1s ease, color 0.1s ease;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.star-btn:hover {
+  transform: scale(1.25);
+}
+
+/* ── City pill grid ─────────────────────────────────────────── */
+.city-pill {
+  @apply flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 cursor-pointer border;
+  border-color: var(--border);
+  color: var(--fg);
+  background: transparent;
+}
+
+.city-pill:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--accent);
+}
+
+/* ── Partner offer WIP badge ────────────────────────────────── */
+.wip-badge {
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+/* ── Light mode overrides ───────────────────────────────────── */
+html.light .text-white,
+html.light .text-white\/90,
+html.light .text-white\/80 {
+  color: var(--fg) !important;
+}
+
+html.light .text-white\/70,
+html.light .text-white\/65,
+html.light .text-white\/60,
+html.light .text-white\/55,
+html.light .text-white\/50,
+html.light .text-white\/45,
+html.light .text-white\/40,
+html.light .text-white\/35 {
+  color: var(--muted) !important;
+}
+
+html.light .border-white\/15,
+html.light .border-white\/10,
+html.light .hover\:border-teal-400\/30:hover {
+  border-color: var(--border) !important;
+}
+
+html.light .bg-black\/20,
+html.light .bg-black\/55,
+html.light .bg-slate-800,
+html.light .bg-slate-950 {
+  background-color: color-mix(in srgb, var(--fg) 8%, var(--surface)) !important;
+}
+
+html.light .hover\:bg-white\/10:hover,
+html.light .hover\:bg-white\/5:hover {
+  background-color: color-mix(in srgb, var(--fg) 6%, transparent) !important;
+}
+
+html.light .text-teal-200,
+html.light .text-teal-200\/80,
+html.light .text-teal-300 {
+  color: #0f766e !important;
 }

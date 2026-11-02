@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07131f"/>
+      <stop offset="55%" stop-color="#0c2a3a"/>
+      <stop offset="100%" stop-color="#134e4a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="980" cy="120" r="180" fill="#2dd4bf" opacity="0.12"/>
+  <circle cx="160" cy="520" r="220" fill="#5eead4" opacity="0.08"/>
+  <text x="80" y="250" fill="#f8fafc" font-family="Georgia, serif" font-size="72" font-weight="700">flatmates.co.in</text>
+  <text x="80" y="330" fill="#99f6e4" font-family="system-ui, sans-serif" font-size="36">Zero brokerage rooms &amp; flatmates</text>
+  <text x="80" y="400" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="28">India IT hubs · Lifestyle match · In-app chat</text>
+</svg>
