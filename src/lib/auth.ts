@@ -11,20 +11,20 @@ function normalizeSecret(value?: string) {
 const SECRET = normalizeSecret(process.env.JWT_SECRET);
 
 function secret() {
-  return SECRET || process.env.VERCEL_GIT_COMMIT_SHA || "flatmates-prod-fallback-change-me";
+  return SECRET || "flatmates-prod-fallback-change-me";
 }
 
 function cookieSecure() {
-  return process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+  return process.env.NODE_ENV === "production";
 }
 
-function sign(payloadObj: object) {
+export function sign(payloadObj: object) {
   const payload = Buffer.from(JSON.stringify(payloadObj)).toString("base64url");
   const sig = createHmac("sha256", secret()).update(payload).digest("base64url");
   return `${payload}.${sig}`;
 }
 
-function unsign<T>(token?: string | null): T | null {
+export function unsign<T>(token?: string | null): T | null {
   if (!token) return null;
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;

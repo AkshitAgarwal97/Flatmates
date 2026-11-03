@@ -9,8 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@upstash/redis": "^1.38.4",
-    "@vercel/blob": "^2.8.0",
     "leaflet": "^1.9.4",
     "next": "14.2.5",
     "react": "^18",

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
-import { pageMetadata, SITE_OWNER_NAME, SUPPORT_EMAIL } from "@/lib/seo";
+import { OwnerName } from "@/components/OwnerName";
+import { pageMetadata, SUPPORT_EMAIL } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact support",
@@ -22,7 +23,11 @@ export default function ContactPage() {
       <PageHeader
         kicker="Support"
         title="Contact support"
-        lead={`Operated by ${SITE_OWNER_NAME}. Chat between members stays in-app. Use email for account, safety, and billing.`}
+        lead={
+          <>
+            Operated by <OwnerName />. Chat between members stays in-app. Use email for account, safety, and billing.
+          </>
+        }
       />
       <div className="grid gap-4 md:grid-cols-3">
         {TOPICS.map(([t, d]) => (

@@ -1,15 +1,23 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { passwordToken } from "@/lib/client-crypto";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [tab, setTab] = useState<"email" | "phone">("email");
   const [otpMode, setOtpMode] = useState<{ email: string; hint?: string } | null>(null);
   const [otp, setOtp] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneOtp, setPhoneOtp] = useState<{ phone: string; hint?: string } | null>(null);
+  const [smsCode, setSmsCode] = useState("");
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("error");
+    if (q) setError(q);
+  }, []);
 
   async function submitAuth(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -87,7 +95,6 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     if (data.otp) setOtpMode({ email: otpMode.email, hint: data.otp });
   }
 
-  // One-click demo login
   async function tryDemo() {
     setPending(true);
     setError("");
@@ -111,6 +118,57 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       setError("Network error — try again");
     }
   }
+
+  async function sendPhone(e: FormEvent) {
+    e.preventDefault();
+    setPending(true);
+    setError("");
+    const res = await fetch("/api/auth/phone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "send", phone }),
+    });
+    const data = await res.json();
+    setPending(false);
+    if (!res.ok) {
+      setError(data.error || "Could not send OTP");
+      return;
+    }
+    setPhoneOtp({ phone: data.phone, hint: data.otp });
+  }
+
+  async function verifyPhone(e: FormEvent) {
+    e.preventDefault();
+    setPending(true);
+    setError("");
+    const res = await fetch("/api/auth/phone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ action: "verify", phone, otp: smsCode }),
+    });
+    const data = await res.json();
+    setPending(false);
+    if (!res.ok) {
+      setError(data.error || "OTP failed");
+      return;
+    }
+    window.location.href = "/browse";
+  }
+
+  const social = (
+    <div className="space-y-2">
+      <a href="/api/auth/oauth/google" className="btn-ghost flex w-full items-center justify-center gap-2 text-sm">
+        Continue with Google / Gmail
+      </a>
+      <a href="/api/auth/oauth/facebook" className="btn-ghost flex w-full items-center justify-center gap-2 text-sm">
+        Continue with Facebook
+      </a>
+      <a href="/api/auth/oauth/instagram" className="btn-ghost flex w-full items-center justify-center gap-2 text-sm">
+        Continue with Instagram
+      </a>
+    </div>
+  );
 
   if (otpMode) {
     return (
@@ -136,12 +194,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         />
         {error && <p className="text-sm text-rose-300">{error}</p>}
         <button className="btn w-full" disabled={pending}>
-          {pending ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-              Checking…
-            </span>
-          ) : "Verify & continue"}
+          {pending ? "Checking…" : "Verify & continue"}
         </button>
         <button type="button" className="btn-ghost w-full text-xs" onClick={() => void resend()} disabled={pending}>
           Resend OTP
@@ -150,79 +203,121 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     );
   }
 
+  if (phoneOtp) {
+    return (
+      <form onSubmit={(e) => void verifyPhone(e)} className="glass mx-auto mt-10 w-full max-w-md space-y-4 rounded-3xl p-6">
+        <h1 className="text-2xl font-semibold">Verify mobile OTP</h1>
+        <p className="text-sm muted">Code sent to {phoneOtp.phone}</p>
+        {phoneOtp.hint && (
+          <div className="rounded-xl bg-teal-400/10 p-3 text-sm text-teal-200 border border-teal-400/20">
+            <p className="font-medium">Dev mode code:</p>
+            <p className="mt-1 text-xl font-bold tracking-widest">{phoneOtp.hint}</p>
+            <p className="mt-1 text-xs muted-2">Add MSG91 or Twilio to send real SMS.</p>
+          </div>
+        )}
+        <input
+          className="field tracking-[0.4em] text-center text-xl"
+          inputMode="numeric"
+          maxLength={6}
+          value={smsCode}
+          onChange={(e) => setSmsCode(e.target.value)}
+          required
+          autoFocus
+        />
+        {error && <p className="text-sm text-rose-300">{error}</p>}
+        <button className="btn w-full" disabled={pending}>
+          {pending ? "Checking…" : "Verify & continue"}
+        </button>
+        <button type="button" className="btn-ghost w-full text-xs" onClick={() => setPhoneOtp(null)}>
+          Use a different number
+        </button>
+      </form>
+    );
+  }
+
   return (
-    <form
-      method="post"
-      action="#"
-      onSubmit={submitAuth}
-      className="glass relative mx-auto mt-10 w-full max-w-md space-y-4 rounded-3xl p-6"
-    >
+    <div className="glass relative mx-auto mt-10 w-full max-w-md space-y-4 rounded-3xl p-6">
       {pending && (
         <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-black/25 backdrop-blur-[1px]" aria-busy="true">
           <span className="flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-medium shadow">
-            <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-            </svg>
-            {mode === "login" ? "Signing you in…" : "Creating account…"}
+            Working…
           </span>
         </div>
       )}
-      <h1 className="text-2xl font-semibold">
-        {mode === "login" ? "Welcome back" : "Create a free account"}
-      </h1>
-      <p className="text-sm muted">
-        {mode === "login"
-          ? "Password is hashed in your browser before sending."
-          : "Password is hashed in your browser before sending. OTP verifies new accounts."}
-      </p>
+      <h1 className="text-2xl font-semibold">{mode === "login" ? "Welcome back" : "Create a free account"}</h1>
+      <p className="text-sm muted">Google / Gmail, Facebook, Instagram, mobile OTP, or email.</p>
+      {social}
+      <div className="flex items-center gap-3 text-xs muted-2">
+        <span className="flex-1 border-t border-line" />
+        <span>or</span>
+        <span className="flex-1 border-t border-line" />
+      </div>
+      <div className="flex gap-2">
+        <button type="button" className={tab === "email" ? "btn !py-1.5 text-xs" : "btn-ghost !py-1.5 text-xs"} onClick={() => setTab("email")}>
+          Email
+        </button>
+        <button type="button" className={tab === "phone" ? "btn !py-1.5 text-xs" : "btn-ghost !py-1.5 text-xs"} onClick={() => setTab("phone")}>
+          Mobile number
+        </button>
+      </div>
 
-      {mode === "register" && (
-        <input name="name" className="field" placeholder="Full name" required autoFocus />
+      {tab === "phone" ? (
+        <form onSubmit={(e) => void sendPhone(e)} className="space-y-3">
+          <input
+            className="field"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="10-digit mobile (India)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+          />
+          {error && <p className="text-sm text-rose-300">{error}</p>}
+          <button className="btn w-full" disabled={pending}>
+            Send OTP
+          </button>
+        </form>
+      ) : (
+        <form method="post" action="#" onSubmit={submitAuth} className="space-y-3">
+          {mode === "register" && <input name="name" className="field" placeholder="Full name" required autoFocus />}
+          <input name="email" type="email" className="field" placeholder="Email / Gmail" required autoComplete="email" />
+          <input
+            name="password"
+            type="password"
+            className="field"
+            placeholder="Password"
+            minLength={mode === "register" ? 8 : 6}
+            required
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+          />
+          {error && <p className="text-sm text-rose-300">{error}</p>}
+          <button type="submit" className="btn w-full" disabled={pending}>
+            {mode === "login" ? "Log in with email" : "Join with email"}
+          </button>
+        </form>
       )}
-      <input name="email" type="email" className="field" placeholder="Email" required autoComplete="email" />
-      <input
-        name="password"
-        type="password"
-        className="field"
-        placeholder="Password"
-        minLength={mode === "register" ? 8 : 6}
-        required
-        autoComplete={mode === "login" ? "current-password" : "new-password"}
-      />
-
-      {error && <p className="text-sm text-rose-300">{error}</p>}
-
-      <button type="submit" className="btn w-full" disabled={pending}>
-        {pending ? (
-          <span className="flex items-center justify-center gap-2">
-            <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-            </svg>
-            {mode === "login" ? "Logging in…" : "Creating account…"}
-          </span>
-        ) : mode === "login" ? "Log in" : "Join Flatmates"}
-      </button>
 
       {mode === "login" && (
         <>
-          <div className="flex items-center gap-3 text-xs muted-2">
-            <span className="flex-1 border-t border-line" />
-            <span>or try</span>
-            <span className="flex-1 border-t border-line" />
-          </div>
-          <button
-            type="button"
-            className="btn-ghost w-full text-xs flex items-center justify-center gap-2"
-            onClick={() => void tryDemo()}
-            disabled={pending}
-          >
-            ⚡ One-click demo login
+          <button type="button" className="btn-ghost w-full text-xs" onClick={() => void tryDemo()} disabled={pending}>
+            One-click demo login
           </button>
-          <p className="text-[11px] text-center muted-2">
-            demo@flatmates.co.in · password: demo123
+          <p className="text-center text-xs muted">
+            New here?{" "}
+            <Link href="/register" className="kicker hover:underline">
+              Join free
+            </Link>
           </p>
         </>
       )}
-    </form>
+      {mode === "register" && (
+        <p className="text-center text-xs muted">
+          Already have an account?{" "}
+          <Link href="/login" className="kicker hover:underline">
+            Log in
+          </Link>
+        </p>
+      )}
+    </div>
   );
 }

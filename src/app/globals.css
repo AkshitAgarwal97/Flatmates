@@ -3,25 +3,6 @@
 @tailwind utilities;
 
 :root,
-html.dark {
-  --bg: #07131f;
-  --fg: #e8f4ff;
-  --muted: rgba(232, 244, 255, 0.62);
-  --muted-2: rgba(232, 244, 255, 0.45);
-  --surface: rgba(12, 28, 44, 0.72);
-  --border: rgba(148, 211, 232, 0.16);
-  --accent: #2dd4bf;
-  --accent-ink: #042f2e;
-  --kicker: #99f6e4;
-  --glow-a: rgba(45, 212, 191, 0.18);
-  --glow-b: rgba(56, 189, 248, 0.16);
-  --field: rgba(0, 0, 0, 0.28);
-  --skeleton: rgba(255, 255, 255, 0.08);
-  --theme-color: #07131f;
-  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-  --card-shadow-hover: 0 12px 40px rgba(45, 212, 191, 0.14), 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
 html.light {
   --bg: #f4f1ea;
   --fg: #12202c;
@@ -39,6 +20,25 @@ html.light {
   --theme-color: #f4f1ea;
   --card-shadow: 0 2px 12px rgba(18, 32, 44, 0.12);
   --card-shadow-hover: 0 8px 32px rgba(15, 118, 110, 0.14), 0 2px 8px rgba(18, 32, 44, 0.15);
+}
+
+html.dark {
+  --bg: #07131f;
+  --fg: #e8f4ff;
+  --muted: rgba(232, 244, 255, 0.62);
+  --muted-2: rgba(232, 244, 255, 0.45);
+  --surface: rgba(12, 28, 44, 0.72);
+  --border: rgba(148, 211, 232, 0.16);
+  --accent: #2dd4bf;
+  --accent-ink: #042f2e;
+  --kicker: #99f6e4;
+  --glow-a: rgba(45, 212, 191, 0.18);
+  --glow-b: rgba(56, 189, 248, 0.16);
+  --field: rgba(0, 0, 0, 0.28);
+  --skeleton: rgba(255, 255, 255, 0.08);
+  --theme-color: #07131f;
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 12px 40px rgba(45, 212, 191, 0.14), 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 html,

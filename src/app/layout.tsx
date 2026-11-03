@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import { Nav } from "@/components/Nav";
+import { OwnerName } from "@/components/OwnerName";
 import { Providers } from "@/components/Providers";
 import { JsonLd } from "@/components/JsonLd";
 import { NavProgress } from "@/components/NavProgress";
@@ -11,7 +12,6 @@ import {
   DEFAULT_OG,
   SITE_KEYWORDS,
   SITE_NAME,
-  SITE_OWNER_NAME,
   SITE_URL,
   SUPPORT_EMAIL,
   absoluteUrl,
@@ -74,14 +74,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07131f",
+  themeColor: "#f4f1ea",
 };
 
-const THEME_BOOT = `(function(){try{var t=localStorage.getItem("flatmates-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}document.documentElement.classList.add(t);}catch(e){document.documentElement.classList.add("dark");}})();`;
+const THEME_BOOT = `(function(){try{var t=localStorage.getItem("flatmates-theme");if(t!=="light"&&t!=="dark")t="light";var r=document.documentElement;r.classList.remove("light","dark");r.classList.add(t);}catch(e){document.documentElement.classList.remove("dark");document.documentElement.classList.add("light");}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" suppressHydrationWarning className={`dark ${inter.variable}`}>
+    <html lang="en-IN" suppressHydrationWarning className={`light ${inter.variable}`}>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <Providers>
@@ -98,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               is in-app.
             </p>
             <p>
-              Operated by <span className="font-semibold text-fg">{SITE_OWNER_NAME}</span> · India ·{" "}
+              Operated by <OwnerName /> · India ·{" "}
               <Link href="/contact" className="kicker hover:underline">
                 Contact support
               </Link>{" "}

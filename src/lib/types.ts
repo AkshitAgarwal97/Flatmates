@@ -20,6 +20,11 @@ export type User = {
   email: string;
   passwordHash: string;
   emailVerified?: boolean;
+  phone?: string;
+  phoneVerified?: boolean;
+  googleId?: string;
+  facebookId?: string;
+  instagramId?: string;
   otpHash?: string;
   otpExpires?: string;
   pwdScheme?: "v1";

@@ -31,7 +31,7 @@ function loadImg(file: File): Promise<HTMLImageElement> {
   });
 }
 
-/** Compress image to JPEG data-URL (works on Vercel; no disk writes). */
+/** Compress image to a JPEG data-URL before upload. */
 export async function imageToDataUrl(file: File, maxW = 1280, quality = 0.72): Promise<string> {
   if (file.size > 6 * 1024 * 1024) throw new Error("Image max 6MB");
   const img = await loadImg(file);

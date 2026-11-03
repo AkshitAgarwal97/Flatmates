@@ -201,7 +201,7 @@ export async function POST(req: Request) {
   }
 
   // login — recover from DB, durable account cookie, or pending OTP cookie
-  // (Vercel /tmp DB can reset between isolates; cookies keep the password hash)
+  // Cookies keep the password hash so a later request can finish signup.
   const pending = readPendingCookie();
   const account = readAccountCookie();
   let user = db.users.find((u) => u.email === em);

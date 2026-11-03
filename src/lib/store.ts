@@ -274,7 +274,7 @@ function writeDisk(db: DB) {
     if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
     writeFileSync(DB_PATH, JSON.stringify(db));
   } catch {
-    // Vercel project dir is read-only; /tmp or memory still keeps the request alive.
+    // Disk write failed; the in-memory copy still serves this process.
   }
 }
 
@@ -291,7 +291,7 @@ function loadLocal(): DB {
   return cache;
 }
 
-/** Shared durable DB (Upstash Redis when configured, else /tmp + memory). */
+/** Shared DB: data/db.json on disk, with an in-memory cache. */
 export async function getDb(opts?: { fresh?: boolean }): Promise<DB> {
   try {
     if (!globalThis.__flatmatesDbReady) {

@@ -8,7 +8,7 @@ export function PageHeader({
 }: {
   kicker?: string;
   title: string;
-  lead?: string;
+  lead?: ReactNode;
   actions?: ReactNode;
 }) {
   return (

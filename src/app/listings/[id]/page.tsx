@@ -10,6 +10,7 @@ import { AdSlot, Affiliates } from "@/components/Monetize";
 import { PayButton } from "@/components/PayButton";
 import { FavBtn, ReviewForm } from "@/components/Social";
 import { SharePanel } from "@/components/SharePanel";
+import { PosterNext } from "@/components/PosterNext";
 import { JsonLd } from "@/components/JsonLd";
 import { live } from "@/lib/pay";
 import { listingPoster, lifestyleChips, MODE_LABEL, POSTER_ROLE } from "@/lib/listing-ui";
@@ -22,8 +23,9 @@ import {
   pageMetadata,
   SITE_URL,
 } from "@/lib/seo";
+import { activeListingsInCity, cityPageIsThin } from "@/lib/city-supply";
 
-type Props = { params: { id: string } };
+type Props = { params: { id: string }; searchParams?: { posted?: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const db = await getDb();
@@ -59,7 +61,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default async function ListingPage({ params }: Props) {
+export default async function ListingPage({ params, searchParams }: Props) {
   const db = await getDb();
   // Support both slug and ID lookup
   const listing = db.listings.find((l) => l.id === params.id || l.slug === params.id);
@@ -76,6 +78,11 @@ export default async function ListingPage({ params }: Props) {
     (l) => l.userId === listing.userId && l.status === "active"
   ).length;
   const path = listingPath(listing);
+  const isOwner = user?.id === listing.userId;
+  const cityLive = activeListingsInCity(db.listings, listing.city);
+  const thinCity = cityPageIsThin(cityLive);
+  const shareText = `${listing.title} — ₹${listing.rent.toLocaleString("en-IN")}/mo in ${listing.locality}, ${listing.city}. ₹0 brokerage.`;
+  const whatsappHref = `https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareText} ${SITE_URL}${path}`)}`;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr,0.8fr]">
@@ -103,6 +110,17 @@ export default async function ListingPage({ params }: Props) {
             {listing.locality}
           </Link>
         </nav>
+
+        {isOwner ? (
+          <PosterNext
+            justPosted={searchParams?.posted === "1"}
+            city={listing.city}
+            cityHref={cityPath(listing.city)}
+            cityLive={cityLive}
+            thin={thinCity}
+            whatsappHref={whatsappHref}
+          />
+        ) : null}
 
         <Gallery images={listing.images} alt={`${listing.title} in ${listing.locality}, ${listing.city}`} />
 

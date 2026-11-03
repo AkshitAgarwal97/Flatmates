@@ -31,7 +31,7 @@ const cityAliases = [
 ];
 
 const nextConfig = {
-  // Standalone on Linux/Vercel/Oracle. Skip on Windows: Next 14 tracing can miss nft.json there.
+  // Standalone on the Oracle VM. Skip on Windows: Next 14 tracing can miss nft.json there.
   ...(process.env.NEXT_OUTPUT === "standalone" || process.platform !== "win32"
     ? { output: "standalone" }
     : {}),

@@ -3,7 +3,7 @@
   "short_name": "Flatmates",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#07131f",
-  "theme_color": "#07131f",
+  "background_color": "#f4f1ea",
+  "theme_color": "#f4f1ea",
   "icons": [{ "src": "/icon.svg", "sizes": "512x512", "type": "image/svg+xml" }]
 }

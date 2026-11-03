@@ -4,7 +4,8 @@ import { CITIES, CITY_ALIAS_TO_CANONICAL, HUBS } from "@/lib/hubs";
 
 export const SITE_URL = "https://www.flatmates.co.in";
 export const SITE_NAME = "Flatmates.co.in";
-export const SITE_OWNER_NAME = "Akshi";
+export const SITE_OWNER_NAME = "Akshit Agarwal";
+export const SITE_OWNER_LINKEDIN = "https://www.linkedin.com/in/akshit-agarwal-38b282170";
 export const SUPPORT_EMAIL = "support@flatmates.co.in";
 export const DEFAULT_OG = "/og.svg";
 
@@ -222,7 +223,13 @@ export function organizationJsonLd() {
       name: city,
       containedInPlace: { "@type": "Country", name: "India" },
     })),
-    sameAs: [`${SITE_URL}/about`, SITE_URL],
+    sameAs: [`${SITE_URL}/about`, SITE_URL, SITE_OWNER_LINKEDIN],
+    founder: {
+      "@type": "Person",
+      name: SITE_OWNER_NAME,
+      url: SITE_OWNER_LINKEDIN,
+      sameAs: [SITE_OWNER_LINKEDIN],
+    },
   };
 }
 

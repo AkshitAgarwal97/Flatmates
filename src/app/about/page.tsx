@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { CITIES } from "@/lib/hubs";
 import { JsonLd } from "@/components/JsonLd";
 import { PageHeader } from "@/components/PageHeader";
-import { breadcrumbJsonLd, pageMetadata, SITE_NAME, SITE_OWNER_NAME, SITE_URL, SUPPORT_EMAIL } from "@/lib/seo";
+import { OwnerName } from "@/components/OwnerName";
+import { breadcrumbJsonLd, pageMetadata, SITE_NAME, SITE_URL, SUPPORT_EMAIL } from "@/lib/seo";
 
 export const dynamic = "force-static";
 
@@ -27,7 +28,11 @@ export default function AboutPage() {
       <PageHeader
         kicker="About"
         title={`About ${SITE_NAME}`}
-        lead={`Operated by ${SITE_OWNER_NAME} in India. For listing, safety, or billing help, email ${SUPPORT_EMAIL}.`}
+        lead={
+          <>
+            Operated by <OwnerName /> in India. For listing, safety, or billing help, email {SUPPORT_EMAIL}.
+          </>
+        }
       />
       <p className="muted max-w-2xl">
         Support:{" "}

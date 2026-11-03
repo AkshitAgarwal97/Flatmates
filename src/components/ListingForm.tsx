@@ -122,7 +122,8 @@ export function ListingForm() {
         setPending(false);
         return;
       }
-      router.push(`/listings/${data.listing.slug || data.listing.id}`);
+      const slug = data.listing.slug || data.listing.id;
+      router.push(`/listings/${slug}?posted=1`);
     } catch {
       setError("Network error — try again");
       setPending(false);
